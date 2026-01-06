@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>智律云1.0 AI平台 - 合同审核</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash/lodash.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+
+<!-- 头部导航 -->
+<header class="bg-white shadow flex items-center justify-between px-4 py-3 sticky top-0 z-50">
+  <div class="flex items-center space-x-4">
+    <div class="text-xl font-semibold text-blue-600">智律云1.0 AI平台</div>
+    <nav class="flex space-x-4 text-gray-700 text-sm font-medium">
+      <button id="nav-contract-review" class="hover:text-blue-600">合同审核</button>
+    </nav>
+  </div>
+  <div class="flex items-center space-x-3">
+    <div class="text-sm text-gray-600" id="user-info">您好，法务用户</div>
+    <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500" id="logoutBtn">退出</button>
+  </div>
+</header>
+
+<!-- 主内容区 -->
+<div class="flex flex-1 h-screen overflow-hidden">
+
+  <!-- 左侧筛选面板 -->
+  <aside class="w-64 bg-white border-r border-gray-300 p-4 overflow-y-auto">
+    <div class="mb-4">
+      <h2 class="text-gray-700 font-semibold mb-2">筛选与检索</h2>
+      <div class="relative">
+        <input type="text" id="searchKeyword" placeholder="关键字搜索" class="w-full border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        <div class="absolute right-2 top-2 text-gray-400 cursor-pointer" title="清除" id="clearKeyword">&times;</div>
+      </div>
+    </div>
+    <div class="mb-4">
+      <h3 class="text-gray-600 font-semibold mb-2">多选过滤</h3>
+      <div class="flex flex-col space-y-2 text-sm text-gray-700">
+        <label class="flex items-center space-x-2">
+          <input type="checkbox" class="filter-checkbox" data-filter="status" value="待审核" />
+          <span>状态：待审核</span>
+        </label>
+        <label class="flex items-center space-x-2">
+          <input type="checkbox" class="filter-checkbox" data-filter="status" value="已通过" />
+          <span>状态：已通过</span>
+        </label>
+        <label class="flex items-center space-x-2">
+          <input type="checkbox" class="filter-checkbox" data-filter="status" value="被驳回" />
+          <span>状态：被驳回</span>
+        </label>
+        <label class="flex items-center space-x-2">
+          <input type="checkbox" class="filter-checkbox" data-filter="type" value="合同" />
+          <span>类型：合同</span>
+        </label>
+        <label class="flex items-center space-x-2">
+          <input type="checkbox" class="filter-checkbox" data-filter="type" value="协议" />
+          <span>类型：协议</span>
+        </label>
+        <!-- 其他过滤条件 -->
+      </div>
+    </div>
+    <div class="mb-4">
+      <h3 class="text-gray-600 font-semibold mb-2">时间区间</h3>
+      <div class="flex flex-col space-y-2 text-sm text-gray-700">
+        <input type="date" id="dateStart" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+        <input type="date" id="dateEnd" class="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+      </div>
+    </div>
+    <div class="mb-4">
+      <h3 class="text-gray-600 font-semibold mb-2">保存的筛选配置</h3>
+      <div class="flex flex-col space-y-2 text-sm text-gray-700" id="savedFilters">
+        <button class="text-blue-600 hover:underline" data-filter="全部">全部</button>
+        <button class="text-blue-600 hover:underline" data-filter="我的筛选1">我的筛选1</button>
+        <button class="text-blue-600 hover:underline" data-filter="项目A">项目A</button>
+      </div>
+    </div>
+    <div class="mt-4">
+      <button class="w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-500" id="applyFilters">应用筛选</button>
+    </div>
+  </aside>
+
+  <!-- 中央列表区域 -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- 标签切换 -->
+    <div class="flex border-b border-gray-300 bg-white px-4 py-2">
+      <button class="tab-btn active" data-tab="all">全部</button>
+      <button class="tab-btn" data-tab="pending">待审核</button>
+      <button class="tab-btn" data-tab="approved">已通过</button>
+      <button class="tab-btn" data-tab="rejected">被驳回</button>
+      <button class="tab-btn" data-tab="archived">归档</button>
+    </div>
+    <!-- 列表表格 -->
+    <div class="flex-1 overflow-y-auto" id="contractListContainer">
+      <table class="min-w-full divide-y divide-gray-200" id="contractTable">
+        <thead class="bg-gray-50 sticky top-0 z-10">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="id">编号</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="title">标题</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="counterparty">对方</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="amount">金额</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="dueDate">到期日</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="status">状态</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="reviewer">当前审核人</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" data-sort="lastUpdate">最后更新时间</th>
+            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200" id="contractTableBody">
+          <!-- 动态加载 -->
+        </tbody>
+      </table>
+    </div>
+    <!-- 分页控制 -->
+    <div class="flex justify-between items-center px-4 py-2 bg-white border-t border-gray-300">
+      <div class="flex items-center space-x-2">
+        <button class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" id="prevPage">&lt; 上一页</button>
+        <span class="text-sm" id="pageInfo">第 1 页 / 共 1 页</span>
+        <button class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" id="nextPage">下一页 &gt;</button>
+      </div>
+      <div class="text-sm text-gray-600" id="totalCount">共 0 条</div>
+    </div>
+  </main>
+
+  <!-- 右侧详情与操作面板 -->
+  <aside class="w-96 bg-gray-50 border-l border-gray-300 flex flex-col overflow-hidden" id="detailPanel">
+    <!-- 元数据与版本信息 -->
+    <div class="p-4 border-b border-gray-300 bg-white">
+      <h3 class="text-gray-700 font-semibold mb-2">合同信息</h3>
+      <div class="text-sm text-gray-600 space-y-1" id="contractMeta">
+        <div><strong>上传人：</strong><span id="uploader">张三</span></div>
+        <div><strong>上传时间：</strong><span id="uploadTime">2023-01-01 10:00</span></div>
+        <div><strong>版本号：</strong><span id="version">1.0</span></div>
+        <div><strong>关联项目：</strong><span id="project">项目A</span></div>
+      </div>
+    </div>
+    <!-- 预览区 -->
+    <div class="flex-1 overflow-y-auto p-2" id="previewContainer">
+      <!-- 预览内容 -->
+      <div class="text-center text-gray-400 py-20" id="noPreview">请选择合同进行预览</div>
+    </div>
+    <!-- 操作按钮 -->
+    <div class="p-2 bg-white border-t border-gray-300 flex flex-wrap gap-2">
+      <button class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-500" id="approveBtn">通过</button>
+      <button class="flex-1 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-500" id="rejectBtn">驳回</button>
+      <button class="flex-1 bg-yellow-600 text-white py-2 px-4 rounded hover:bg-yellow-500" id="assignBtn">指派</button>
+      <button class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400" id="saveDraftBtn">保存草稿</button>
+      <button class="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-500" id="exportBtn">导出PDF</button>
+      <button class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400" id="downloadOriginalBtn">下载原始</button>
+    </div>
+    <!-- 标注与评论工具栏 -->
+    <div class="p-2 border-t border-gray-300 bg-white flex items-center space-x-2">
+      <button class="bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-500" id="highlightBtn">高亮</button>
+      <button class="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-500" id="commentBtn">评论</button>
+      <button class="bg-orange-600 text-white px-2 py-1 rounded hover:bg-orange-500" id="questionBtn">插入问题</button>
+      <button class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-500" id="riskLevelBtn">风险等级</button>
+    </div>
+    <!-- 评论区 -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <div class="px-4 py-2 border-b border-gray-300 bg-gray-100 flex items-center justify-between">
+        <div class="text-gray-700 font-semibold">评论区</div>
+        <div class="flex space-x-2 text-sm text-gray-600">
+          <button class="hover:underline" id="filterUnresolved">未解决</button>
+          <button class="hover:underline" id="filterMyComments">我的评论</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-2" id="commentsContainer">
+        <!-- 动态加载评论 -->
+      </div>
+      <div class="p-2 border-t border-gray-300 bg-gray-50 flex items-center space-x-2">
+        <textarea class="flex-1 border border-gray-300 rounded px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" rows="2" placeholder="添加评论..." id="newComment"></textarea>
+        <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500" id="sendComment">发送</button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- 模态框：审批意见 -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="approvalModal">
+  <div class="bg-white rounded-lg w-96 p-4 shadow-lg relative">
+    <h3 class="text-lg font-semibold mb-2">填写审批意见</h3>
+    <textarea class="w-full border border-gray-300 rounded px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" rows="4" id="approvalComment"></textarea>
+    <div class="mt-4 flex justify-end space-x-2">
+      <button class="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400" id="cancelApproval">取消</button>
+      <button class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-500" id="confirmApproval">通过</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：驳回原因 -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="rejectModal">
+  <div class="bg-white rounded-lg w-96 p-4 shadow-lg relative">
+    <h3 class="text-lg font-semibold mb-2">填写驳回原因</h3>
+    <textarea class="w-full border border-gray-300 rounded px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" rows="4" id="rejectReason"></textarea>
+    <div class="mt-4 flex justify-end space-x-2">
+      <button class="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400" id="cancelReject">取消</button>
+      <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-500" id="confirmReject">驳回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：指派 -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="assignModal">
+  <div class="bg-white rounded-lg w-96 p-4 shadow-lg relative max-h-full overflow-y-auto">
+    <h3 class="text-lg font-semibold mb-2">指派合同</h3>
+    <div class="mb-2">
+      <label class="block text-sm mb-1">指派给：</label>
+      <select class="w-full border border-gray-300 rounded px-2 py-1" id="assigneeSelect">
+        <option value="">请选择</option>
+        <option value="user1">审核员1</option>
+        <option value="user2">审核员2</option>
+        <option value="group1">审核组1</option>
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="block text-sm mb-1">响应时限：</label>
+      <input type="date" class="w-full border border-gray-300 rounded px-2 py-1" id="responseDeadline" />
+    </div>
+    <div class="mb-2">
+      <label class="block text-sm mb-1">提醒策略：</label>
+      <select class="w-full border border-gray-300 rounded px-2 py-1" id="reminderStrategy">
+        <option value="none">无提醒</option>
+        <option value="email">邮件提醒</option>
+        <option value="push">推送通知</option>
+        <option value="both">邮件+推送</option>
+      </select>
+    </div>
+    <div class="mt-4 flex justify-end space-x-2">
+      <button class="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400" id="cancelAssign">取消</button>
+      <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-500" id="confirmAssign">指派</button>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：风险提示 -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" id="riskModal">
+  <div class="bg-white rounded-lg w-96 p-4 shadow-lg relative">
+    <h3 class="text-lg font-semibold mb-2">风险提示</h3>
+    <div class="text-gray-700 mb-4" id="riskContent">
+      <!-- 风险内容 -->
+    </div>
+    <div class="flex justify-end space-x-2">
+      <button class="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400" id="closeRisk">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 其他模态框可根据需要添加 -->
+
+<script>
+  // 简单示例：初始化
+  document.addEventListener('DOMContentLoaded', () => {
+    // 变量定义
+    let currentPage = 1;
+    const pageSize = 10;
+    let totalRecords = 0;
+    let currentTab = 'all';
+    let filters = {};
+    let contracts = []; // 模拟数据
+    let selectedContractId = null;
+
+    // 模拟加载数据
+    function loadContracts() {
+      // 这里应调用API获取数据
+      // 这里用模拟数据
+      contracts = [];
+      for (let i=1; i<=57; i++) {
+        contracts.push({
+          id: 'C' + (1000 + i),
+          title: '合同标题 ' + i,
+          counterparty: '对方主体 ' + i,
+          amount: (Math.random()*100000).toFixed(2),
+          dueDate: `2023-12-${(i%28)+1}`,
+          status: ['待审核','已通过','被驳回'][i%3],
+          reviewer: ['审核员1','审核员2'][i%2],
+          lastUpdate: `2023-01-${(i%28)+1} 10:${(i%60).toString().padStart(2,'0')}`,
+        });
+      }
+      totalRecords = contracts.length;
+      renderTable();
+      updatePagination();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('contractTableBody');
+      tbody.innerHTML = '';
+      // 过滤
+      let filtered = contracts.filter(c => {
+        // 根据当前tab
+        if (currentTab !== 'all' && c.status !== currentTab) return false;
+        // 根据筛选条件
+        // 这里可以添加过滤逻辑
+        return true;
+      });
+      // 分页
+      const startIdx = (currentPage -1) * pageSize;
+      const pageData = filtered.slice(startIdx, startIdx + pageSize);
+      for (const c of pageData) {
+        const tr = document.createElement('tr');
+        tr.dataset.id = c.id;
+        tr.className = 'hover:bg-gray-100 cursor-pointer';
+        tr.innerHTML = `
+          <td class="px-4 py-2 text-sm">${c.id}</td>
+          <td class="px-4 py-2 text-sm">${c.title}</td>
+          <td class="px-4 py-2 text-sm">${c.counterparty}</td>
+          <td class="px-4 py-2 text-sm">${c.amount}</td>
+          <td class="px-4 py-2 text-sm">${c.dueDate}</td>
+          <td class="px-4 py-2 text-sm">${c.status}</td>
+          <td class="px-4 py-2 text-sm">${c.reviewer}</td>
+          <td class="px-4 py-2 text-sm">${c.lastUpdate}</td>
+          <td class="px-4 py-2 text-center space-x-2">
+            <button class="text-blue-600 hover:underline view-btn">查看</button>
+            <button class="text-green-600 hover:underline approve-btn">审批</button>
+            <button class="text-red-600 hover:underline reject-btn">驳回</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const filteredCount = contracts.filter(c => {
+        if (currentTab !== 'all' && c.status !== currentTab) return false;
+        return true;
+      }).length;
+      const totalPages = Math.ceil(filteredCount / pageSize);
+      document.getElementById('pageInfo').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+      document.getElementById('totalCount').textContent = `共 ${filteredCount} 条`;
+      document.getElementById('prevPage').disabled = currentPage === 1;
+      document.getElementById('nextPage').disabled = currentPage === totalPages;
+    }
+
+    // 事件绑定
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        currentPage = 1;
+        renderTable();
+        updatePagination();
+      });
+    });
+
+    document.getElementById('prevPage').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+        updatePagination();
+      }
+    });
+    document.getElementById('nextPage').addEventListener('click', () => {
+      const filteredCount = contracts.filter(c => {
+        if (currentTab !== 'all' && c.status !== currentTab) return false;
+        return true;
+      }).length;
+      const totalPages = Math.ceil(filteredCount / pageSize);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTable();
+        updatePagination();
+      }
+    });
+
+    // 其他事件绑定（筛选、操作按钮等）
+    // 这里只示范部分
+    document.getElementById('applyFilters').addEventListener('click', () => {
+      // 获取过滤条件
+      // 这里可以实现过滤逻辑
+      currentPage = 1;
+      renderTable();
+      updatePagination();
+    });
+
+    // 选择合同行
+    document.getElementById('contractTableBody').addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (tr) {
+        // 高亮
+        document.querySelectorAll('#contractTableBody tr').forEach(row => row.classList.remove('bg-blue-100'));
+        tr.classList.add('bg-blue-100');
+        selectedContractId = tr.dataset.id;
+        // 加载详情
+        loadContractDetail(selectedContractId);
+      }
+    });
+
+    function loadContractDetail(id) {
+      // 模拟加载
+      const contract = contracts.find(c => c.id === id);
+      if (contract) {
+        // 填充元数据
+        document.getElementById('uploader').textContent = '张三';
+        document.getElementById('uploadTime').textContent = '2023-01-01 10:00';
+        document.getElementById('version').textContent = '1.0';
+        document.getElementById('project').textContent = '项目A';
+
+        // 预览
+        const container = document.getElementById('previewContainer');
+        container.innerHTML = '';
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'text-center text-gray-400 py-20';
+        previewDiv.id = 'noPreview';
+        previewDiv.textContent = '合同预览（模拟）';
+        container.appendChild(previewDiv);
+      }
+    }
+
+    // 操作按钮事件（审批、驳回、指派等）
+    document.getElementById('approveBtn').addEventListener('click', () => {
+      if (!selectedContractId) return;
+      showModal('approvalModal');
+    });
+    document.getElementById('rejectBtn').addEventListener('click', () => {
+      if (!selectedContractId) return;
+      showModal('rejectModal');
+    });
+    document.getElementById('assignBtn').addEventListener('click', () => {
+      if (!selectedContractId) return;
+      showModal('assignModal');
+    });
+    document.getElementById('saveDraftBtn').addEventListener('click', () => {
+      alert('保存草稿（模拟）');
+    });
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      alert('导出PDF（模拟）');
+    });
+    document.getElementById('downloadOriginalBtn').addEventListener('click', () => {
+      alert('下载原始文件（模拟）');
+    });
+
+    // 模态框操作
+    function showModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).classList.add('flex');
+    }
+    function hideModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      document.getElementById(id).classList.remove('flex');
+    }
+
+    document.getElementById('cancelApproval').addEventListener('click', () => hideModal('approvalModal'));
+    document.getElementById('confirmApproval').addEventListener('click', () => {
+      hideModal('approvalModal');
+      alert('审批通过（模拟）');
+    });
+    document.getElementById('cancelReject').addEventListener('click', () => hideModal('rejectModal'));
+    document.getElementById('confirmReject').addEventListener('click', () => {
+      hideModal('rejectModal');
+      alert('驳回成功（模拟）');
+    });
+    document.getElementById('cancelAssign').addEventListener('click', () => hideModal('assignModal'));
+    document.getElementById('confirmAssign').addEventListener('click', () => {
+      hideModal('assignModal');
+      alert('指派成功（模拟）');
+    });
+
+    // 评论区
+    document.getElementById('sendComment').addEventListener('click', () => {
+      const commentText = document.getElementById('newComment').value.trim();
+      if (commentText === '') return;
+      const container = document.getElementById('commentsContainer');
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'mb-2 p-2 bg-gray-100 rounded text-sm';
+      commentDiv.innerHTML = `<strong>我：</strong> ${commentText} <span class="text-gray-500 text-xs">${new Date().toLocaleString()}</span>`;
+      container.appendChild(commentDiv);
+      document.getElementById('newComment').value = '';
+    });
+
+    // 初始化加载
+    loadContracts();
+
+    // 其他功能实现（筛选、排序、批注、预览等）可根据需求继续扩展
+  });
+</script>
+</body>
+</html>
