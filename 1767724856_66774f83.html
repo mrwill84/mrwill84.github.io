@@ -1,0 +1,461 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>智律云AI平台 v1.0 - 版本控制与审计</title>
+<!-- 引入字体和样式 -->
+<link href="https://fonts.googleapis.com/css2?family=Helvetica:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  /* 全局样式 */
+  body {
+    font-family: 'Helvetica', sans-serif;
+    background-color: #f5f7fa;
+    margin: 0;
+    padding: 0;
+    color: #333;
+  }
+
+  /* 头部样式 */
+  header {
+    background-color: #2d8cf0;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  /* 导航栏样式 */
+  nav {
+    display: flex;
+    justify-content: center;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  nav button {
+    background: none;
+    border: none;
+    padding: 15px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+  }
+
+  nav button:hover {
+    background-color: #f0f0f0;
+  }
+
+  /* 内容区域 */
+  main {
+    padding: 20px;
+  }
+
+  /* 模块样式 */
+  .section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    padding: 20px;
+  }
+
+  /* 标题样式 */
+  .section h2 {
+    margin-top: 0;
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #2d8cf0;
+  }
+
+  /* 表格样式 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+  }
+
+  th, td {
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+  }
+
+  /* 按钮样式 */
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 10px;
+    transition: background-color 0.2s;
+  }
+
+  .btn-primary {
+    background-color: #2d8cf0;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background-color: #1e6fcf;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+  }
+
+  /* 版本比较区域 */
+  .diff-container {
+    display: flex;
+    overflow-x: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  .diff-section {
+    flex: 1;
+    padding: 10px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 14px;
+  }
+
+  /* 差异高亮 */
+  .diff-insert {
+    background-color: #d4fcdc;
+  }
+
+  .diff-delete {
+    background-color: #fdd;
+    text-decoration: line-through;
+  }
+
+  /* 操作日志表格 */
+  .audit-table {
+    width: 100%;
+  }
+
+  /* 导出按钮 */
+  .export-btn {
+    margin-top: 10px;
+  }
+
+  /* 响应式调整 */
+  @media(max-width: 768px) {
+    nav {
+      flex-direction: column;
+    }
+    nav button {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>智律云AI平台 v1.0 - 版本控制与审计</h1>
+</header>
+
+<nav>
+  <button id="tab-versions" class="active">版本管理</button>
+  <button id="tab-audit">审计日志</button>
+</nav>
+
+<main>
+  <!-- 版本管理区域 -->
+  <section id="section-versions" class="section">
+    <h2>版本控制</h2>
+    <div style="margin-bottom: 15px;">
+      <button class="btn btn-primary" id="save-version">保存当前版本</button>
+      <button class="btn btn-secondary" id="rollback-version">回滚到选中版本</button>
+    </div>
+    <table id="versions-table">
+      <thead>
+        <tr>
+          <th>版本编号</th>
+          <th>时间</th>
+          <th>操作人</th>
+          <th>描述</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 版本条目动态填充 -->
+      </tbody>
+    </table>
+    <div style="margin-top: 20px;">
+      <h3>版本差异比较</h3>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+          <h4>版本 A</h4>
+          <div class="diff-container" id="diff-old">
+            <!-- 旧版本内容 -->
+          </div>
+        </div>
+        <div style="flex: 1; min-width: 300px;">
+          <h4>版本 B</h4>
+          <div class="diff-container" id="diff-new">
+            <!-- 新版本内容 -->
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="compare-btn" style="margin-top: 10px;">比较差异</button>
+    </div>
+  </section>
+
+  <!-- 审计日志区域 -->
+  <section id="section-audit" class="section" style="display:none;">
+    <h2>审计日志</h2>
+    <div style="margin-bottom: 15px;">
+      <button class="btn btn-primary" id="export-csv">导出CSV</button>
+      <button class="btn btn-primary" id="export-pdf">导出PDF</button>
+    </div>
+    <table class="audit-table" id="audit-table">
+      <thead>
+        <tr>
+          <th>操作人</th>
+          <th>时间</th>
+          <th>IP</th>
+          <th>变更详情</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 审计日志条目动态填充 -->
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<!-- 模拟数据和脚本 -->
+<script>
+  // 模拟版本数据
+const versions = [
+  {
+    id: 'v1.0.0',
+    time: '2023-10-01 10:00:00',
+    user: '管理员',
+    description: '初始版本',
+    content: `合同文本内容 v1.0.0\n- 条款A\n- 条款B\n- 条款C`
+  },
+  {
+    id: 'v1.1.0',
+    time: '2023-10-05 15:30:00',
+    user: '编辑员1',
+    description: '更新条款B',
+    content: `合同文本内容 v1.1.0\n- 条款A\n- 条款B（修改）\n- 条款C`
+  },
+  {
+    id: 'v1.2.0',
+    time: '2023-10-10 09:20:00',
+    user: '编辑员2',
+    description: '增加条款D',
+    content: `合同文本内容 v1.2.0\n- 条款A\n- 条款B（修改）\n- 条款C\n- 条款D`
+  }
+];
+
+// 模拟审计日志
+const auditLogs = [
+  {
+    operator: '管理员',
+    time: '2023-10-01 10:00:00',
+    ip: '192.168.1.10',
+    detail: '创建合同版本 v1.0.0'
+  },
+  {
+    operator: '编辑员1',
+    time: '2023-10-05 15:30:00',
+    ip: '192.168.1.11',
+    detail: '更新条款B'
+  },
+  {
+    operator: '编辑员2',
+    time: '2023-10-10 09:20:00',
+    ip: '192.168.1.12',
+    detail: '增加条款D'
+  }
+];
+
+let selectedOldVersion = null;
+let selectedNewVersion = null;
+
+// 初始化版本表
+function renderVersions() {
+  const tbody = document.querySelector('#versions-table tbody');
+  tbody.innerHTML = '';
+  versions.forEach((v, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${v.id}</td>
+      <td>${v.time}</td>
+      <td>${v.user}</td>
+      <td>${v.description}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" data-index="${index}" onclick="selectVersion(${index})">选择</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 选择版本
+function selectVersion(index) {
+  const version = versions[index];
+  if (!selectedOldVersion) {
+    selectedOldVersion = version;
+    alert(`已选择版本 ${version.id} 作为旧版本`);
+  } else if (!selectedNewVersion && version !== selectedOldVersion) {
+    selectedNewVersion = version;
+    alert(`已选择版本 ${version.id} 作为新版本`);
+  } else {
+    alert('请先比较或重置选择');
+  }
+}
+
+// 重置版本选择
+function resetSelection() {
+  selectedOldVersion = null;
+  selectedNewVersion = null;
+}
+
+// 比较差异
+function compareVersions() {
+  if (!selectedOldVersion || !selectedNewVersion) {
+    alert('请先选择两个版本进行比较');
+    return;
+  }
+  const oldContent = selectedOldVersion.content;
+  const newContent = selectedNewVersion.content;
+  const diffOldDiv = document.getElementById('diff-old');
+  const diffNewDiv = document.getElementById('diff-new');
+  diffOldDiv.innerHTML = generateDiffHTML(oldContent, newContent, true);
+  diffNewDiv.innerHTML = generateDiffHTML(newContent, oldContent, false);
+}
+
+// 生成差异HTML
+function generateDiffHTML(text1, text2, isOld) {
+  const lines1 = text1.split('\n');
+  const lines2 = text2.split('\n');
+  const maxLen = Math.max(lines1.length, lines2.length);
+  let html = '';
+  for (let i = 0; i < maxLen; i++) {
+    const line1 = lines1[i] || '';
+    const line2 = lines2[i] || '';
+    if (line1 !== line2) {
+      if (isOld) {
+        html += `<div class="diff-delete">${line1}</div>`;
+      } else {
+        html += `<div class="diff-insert">${line2}</div>`;
+      }
+    } else {
+      html += `<div>${line1}</div>`;
+    }
+  }
+  return html;
+}
+
+// 保存版本
+function saveVersion() {
+  const newVersion = {
+    id: `v${(versions.length + 1).toFixed(1)}`,
+    time: new Date().toISOString().slice(0,19).replace('T',' '),
+    user: '当前用户',
+    description: '用户保存版本',
+    content: `合同文本内容 ${versions.length + 1}\n- 条款A\n- 条款B\n- 条款C`
+  };
+  versions.push(newVersion);
+  renderVersions();
+  alert('新版本已保存');
+  resetSelection();
+}
+
+// 回滚版本
+function rollbackVersion() {
+  if (!selectedOldVersion) {
+    alert('请先选择要回滚的版本');
+    return;
+  }
+  // 模拟回滚
+  alert(`已回滚到版本 ${selectedOldVersion.id}`);
+  // 这里可以实现实际内容替换逻辑
+  resetSelection();
+}
+
+// 渲染审计日志
+function renderAuditLogs() {
+  const tbody = document.querySelector('#audit-table tbody');
+  tbody.innerHTML = '';
+  auditLogs.forEach(log => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${log.operator}</td>
+      <td>${log.time}</td>
+      <td>${log.ip}</td>
+      <td>${log.detail}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 导出CSV
+function exportCSV() {
+  const csvContent = "操作人,时间,IP,变更详情\n" + auditLogs.map(log => 
+    `"${log.operator}","${log.time}","${log.ip}","${log.detail}"`
+  ).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '审计日志.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 导出PDF（简单模拟）
+function exportPDF() {
+  alert('PDF导出功能待实现');
+  // 实际实现可以使用jsPDF等库
+}
+
+// 事件绑定
+document.getElementById('save-version').addEventListener('click', saveVersion);
+document.getElementById('rollback-version').addEventListener('click', rollbackVersion);
+document.getElementById('compare-btn').addEventListener('click', compareVersions);
+document.getElementById('export-csv').addEventListener('click', exportCSV);
+document.getElementById('export-pdf').addEventListener('click', exportPDF);
+
+// 导航切换
+document.getElementById('tab-versions').addEventListener('click', () => {
+  document.getElementById('section-versions').style.display = '';
+  document.getElementById('section-audit').style.display = 'none';
+});
+document.getElementById('tab-audit').addEventListener('click', () => {
+  document.getElementById('section-versions').style.display = 'none';
+  document.getElementById('section-audit').style.display = '';
+});
+
+// 初始化
+renderVersions();
+renderAuditLogs();
+</script>
+</body>
+</html>
+```
