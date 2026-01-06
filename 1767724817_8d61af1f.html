@@ -1,0 +1,455 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>智律云AI平台 v1.0</title>
+<style>
+  /* 全局样式 */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* 头部导航 */
+  header {
+    background-color: #2d8cf0;
+    padding: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  nav {
+    display: flex;
+    gap: 20px;
+  }
+
+  nav a {
+    color: #fff;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+
+  nav a:hover {
+    background-color: rgba(255,255,255,0.2);
+  }
+
+  /* 主内容区域 */
+  main {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* 标题 */
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+  }
+
+  /* 概述卡片 */
+  .overview-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .overview-item {
+    flex: 1 1 200px;
+    min-width: 200px;
+    background-color: #f0f4f8;
+    border-radius: 6px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background-color 0.3s;
+  }
+
+  .overview-item:hover {
+    background-color: #e0e7ef;
+  }
+
+  .overview-item h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    color: #2d8cf0;
+  }
+
+  .overview-item p {
+    font-size: 16px;
+    color: #555;
+  }
+
+  /* 功能模块 */
+  .section {
+    margin-top: 50px;
+  }
+
+  .section h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+
+  /* 流程图示意 */
+  .flow-diagram {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .flow-step {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    width: 250px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  .flow-step h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #2d8cf0;
+  }
+
+  .flow-step p {
+    font-size: 14px;
+    color: #555;
+    text-align: center;
+  }
+
+  /* 连接线（示意） */
+  .connector {
+    position: absolute;
+    width: 2px;
+    background-color: #ccc;
+  }
+
+  /* 表格样式 */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f0f4f8;
+    font-weight: 600;
+  }
+
+  /* 按钮 */
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #2d8cf0;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .btn:hover {
+    background-color: #1a73e8;
+  }
+
+  /* 表单 */
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  input[type="text"], select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+  }
+
+  input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: #2d8cf0;
+    outline: none;
+  }
+
+  /* 侧边栏 */
+  aside {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-top: 40px;
+  }
+
+  aside h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #2d8cf0;
+  }
+
+  /* 其他 */
+  .notification {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 20px;
+    border: 1px solid #ffeeba;
+  }
+
+  /* 页脚 */
+  footer {
+    background-color: #2d8cf0;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    margin-top: 50px;
+  }
+
+  /* 响应式调整 */
+  @media(max-width: 768px){
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    nav {
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .overview-card {
+      flex-direction: column;
+    }
+    .flow-diagram {
+      flex-direction: column;
+      align-items: center;
+    }
+    .flow-step {
+      width: 80%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>智律云AI平台 v1.0</h1>
+  <nav>
+    <a href="#overview">平台概览</a>
+    <a href="#approval">审批流管理</a>
+    <a href="#notifications">通知机制</a>
+    <a href="#contract">合同审批</a>
+    <a href="#settings">系统设置</a>
+  </nav>
+</header>
+
+<main>
+  <!-- 概览部分 -->
+  <section id="overview" class="section">
+    <div class="section-title">平台概览</div>
+    <div class="overview-card">
+      <div class="overview-item">
+        <h3>多级审批流</h3>
+        <p>支持顺序、并行及条件分支的审批流程配置，满足复杂审批需求。</p>
+      </div>
+      <div class="overview-item">
+        <h3>通知提醒</h3>
+        <p>通过系统内通知、邮件和移动推送，确保相关人员及时获知审批状态。</p>
+      </div>
+      <div class="overview-item">
+        <h3>审批记录</h3>
+        <p>详细记录每个审批动作的决策理由、附件和签名信息，确保流程透明可追溯。</p>
+      </div>
+      <div class="overview-item">
+        <h3>超时策略</h3>
+        <p>设置超时自动升级或提醒管理员，保障流程高效运行。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 审批流与流程示意 -->
+  <section id="approval" class="section">
+    <div class="section-title">审批流配置与示意</div>
+    <div class="flow-diagram">
+      <!-- 节点1 -->
+      <div class="flow-step" style="position: relative;">
+        <h3>发起申请</h3>
+        <p>申请人提交合同审批请求。</p>
+      </div>
+      <!-- 连接线 -->
+      <div class="connector" style="height: 2px; width: 50px; margin-top: 60px; margin-left: calc(50% - 25px); background-color: #ccc;"></div>
+      <!-- 节点2 -->
+      <div class="flow-step" style="margin-top: 80px; position: relative;">
+        <h3>审批节点</h3>
+        <p>多级审批（顺序或并行）<br/>根据条件分支决策。</p>
+      </div>
+      <!-- 连接线 -->
+      <div class="connector" style="height: 2px; width: 50px; margin-top: 60px; margin-left: calc(50% - 25px); background-color: #ccc;"></div>
+      <!-- 节点3 -->
+      <div class="flow-step" style="margin-top: 160px; position: relative;">
+        <h3>决策结果</h3>
+        <p>审批通过或拒绝，触发后续流程或终止。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 通知机制 -->
+  <section id="notifications" class="section">
+    <div class="section-title">通知机制</div>
+    <p>系统支持多渠道通知，确保审批流程中的关键节点信息及时传达给相关人员，包括：</p>
+    <ul>
+      <li>系统内通知</li>
+      <li>邮件提醒</li>
+      <li>移动推送</li>
+    </ul>
+    <div class="notification">
+      <h4>示例通知内容</h4>
+      <p>您有一份合同待审批，请及时处理。</p>
+    </div>
+  </section>
+
+  <!-- 合同审批流程 -->
+  <section id="contract" class="section">
+    <div class="section-title">合同审批流程</div>
+    <p>合同进入待审或决策节点时，相关人员可以：</p>
+    <ul>
+      <li>查看审批详情</li>
+      <li>提交审批意见</li>
+      <li>上传附件、签名</li>
+      <li>添加决策理由</li>
+    </ul>
+    <h3 style="margin-top:20px;">审批动作记录</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>审批人</th>
+          <th>时间</th>
+          <th>决策</th>
+          <th>理由</th>
+          <th>附件</th>
+          <th>签名</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>张三</td>
+          <td>2023-10-01 10:15</td>
+          <td>同意</td>
+          <td>合同内容符合要求</td>
+          <td><a href="#">附件1.pdf</a></td>
+          <td><img src="https://via.placeholder.com/80x40?text=签名" alt="签名" style="height:40px;"/></td>
+        </tr>
+        <tr>
+          <td>李四</td>
+          <td>2023-10-01 11:00</td>
+          <td>拒绝</td>
+          <td>需要补充资料</td>
+          <td><a href="#">附件2.docx</a></td>
+          <td><img src="https://via.placeholder.com/80x40?text=签名" alt="签名" style="height:40px;"/></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 系统设置与超时策略 -->
+  <section id="settings" class="section">
+    <div class="section-title">系统设置与超时策略</div>
+    <p>配置审批流程的超时提醒与自动升级策略，确保流程高效运行。</p>
+    <form style="margin-top:20px; max-width:600px;">
+      <div class="form-group">
+        <label for="timeout">审批超时时间（小时）</label>
+        <input type="text" id="timeout" placeholder="例如：48" />
+      </div>
+      <div class="form-group">
+        <label for="reminder">超时提醒方式</label>
+        <select id="reminder">
+          <option value="email">邮件提醒</option>
+          <option value="push">移动推送</option>
+          <option value="system">系统通知</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="autoUpgrade">超时自动升级</label>
+        <select id="autoUpgrade">
+          <option value="none">无</option>
+          <option value="manager">提醒管理员</option>
+          <option value="nextLevel">自动升级到下一审批级别</option>
+        </select>
+      </div>
+      <button type="button" class="btn" style="margin-top:15px;">保存设置</button>
+    </form>
+  </section>
+
+  <!-- 其他内容可扩展 -->
+  <aside>
+    <h3>快速导航</h3>
+    <ul>
+      <li><a href="#overview">平台概览</a></li>
+      <li><a href="#approval">审批流示意</a></li>
+      <li><a href="#notifications">通知机制</a></li>
+      <li><a href="#contract">合同审批</a></li>
+      <li><a href="#settings">系统设置</a></li>
+    </ul>
+  </aside>
+</main>
+
+<!-- 页脚 -->
+<footer>
+  <p>&copy; 2023 智律云AI平台. 保留所有权利。</p>
+</footer>
+
+</body>
+</html>
+```
