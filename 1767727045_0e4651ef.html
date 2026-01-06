@@ -1,0 +1,673 @@
+<think>
+I need to make sure that the color contrast is accessible and that I’m using the proper ARIA attributes. It's vital for web accessibility and ensuring that everyone can interact with content effectively. Once I've confirmed those elements are in place, I can move on to crafting the actual code. I want to ensure the user experience is smooth and friendly. It's all about making the web a better place for everyone!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云1.0 AI 平台 - 合同审核</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    /* 高亮色与对比调整 */
+    .highlight { background: linear-gradient(90deg, rgba(255,233,128,0.45), rgba(255,210,88,0.25)); }
+    .red-flag { background: rgba(255,99,71,0.12); border-left: 3px solid #ff6347; padding-left: 6px; }
+    .mask { filter: blur(3px) grayscale(0.6); }
+    .scrollbar { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.6) transparent; }
+    .scrollbar::-webkit-scrollbar { height:8px; width:8px; }
+    .scrollbar::-webkit-scrollbar-thumb { background: rgba(100,116,139,.6); border-radius:999px; }
+  </style>
+</head>
+<body class="antialiased bg-slate-50 text-slate-900 min-h-screen">
+
+  <div class="max-w-[1400px] mx-auto p-4 grid grid-cols-12 gap-4">
+
+    <!-- 顶部栏 全局控制 -->
+    <header class="col-span-12 flex items-center justify-between gap-4 mb-2">
+      <div class="flex items-center gap-3">
+        <div class="text-2xl font-semibold">智律云 1.0</div>
+        <div class="text-sm text-slate-500">合同审核平台</div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2 text-sm">
+          <span class="text-xs text-slate-500" id="localeLabel">中文</span>
+          <select id="locale" class="border rounded p-1 text-sm">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+
+        <label class="flex items-center gap-2 text-sm">
+          <span class="text-xs text-slate-500">角色</span>
+          <select id="roleSelect" class="border rounded p-1 text-sm" aria-label="角色选择">
+            <option value="legal">法务审查员</option>
+            <option value="reviewer">复核员</option>
+            <option value="admin">系统管理员</option>
+            <option value="external">外部审阅者</option>
+          </select>
+        </label>
+
+        <button id="exportAudit" class="bg-slate-700 text-white px-3 py-1 rounded text-sm hover:bg-slate-800">导出审计</button>
+      </div>
+    </header>
+
+    <!-- 左侧合同列表 -->
+    <aside class="col-span-3 bg-white border rounded-lg p-3 h-[72vh] overflow-hidden flex flex-col">
+      <div class="flex items-center gap-2 mb-2">
+        <input id="leftSearch" placeholder="搜索合同 / 对方 / 标签" class="flex-1 border rounded px-2 py-1 text-sm" />
+        <button id="newFilterBtn" class="text-xs text-slate-500">筛选</button>
+      </div>
+
+      <div class="flex gap-2 mb-2 text-xs">
+        <button class="template-btn flex-1 bg-sky-50 text-sky-700 py-1 rounded text-sm" data-cmd="高风险条款">高风险条款</button>
+        <button class="template-btn flex-1 bg-amber-50 text-amber-700 py-1 rounded text-sm" data-cmd="付款条款检查">付款条款检查</button>
+      </div>
+
+      <div class="flex gap-2 mb-3 text-xs">
+        <select id="typeFilter" class="border rounded px-2 py-1 text-sm">
+          <option value="all">全部类型</option>
+          <option value="sale">销售合同</option>
+          <option value="nda">保密协议</option>
+          <option value="service">服务协议</option>
+        </select>
+        <select id="statusFilter" class="border rounded px-2 py-1 text-sm">
+          <option value="all">全部状态</option>
+          <option value="draft">草稿</option>
+          <option value="in_review">审中</option>
+          <option value="approved">通过</option>
+          <option value="rejected">拒绝</option>
+        </select>
+      </div>
+
+      <div id="contractList" class="overflow-auto scrollbar space-y-2 px-1 py-1 flex-1" tabindex="0" aria-label="合同列表"></div>
+
+      <div class="mt-2 text-center text-xs text-slate-500">
+        <button id="loadMore" class="text-sky-600">加载更多</button>
+      </div>
+    </aside>
+
+    <!-- 中央合同预览 -->
+    <main class="col-span-6 bg-white border rounded-lg p-4 h-[72vh] overflow-hidden flex flex-col">
+      <div class="flex items-start gap-3 mb-3">
+        <div class="flex-1">
+          <div id="contractTitle" class="text-lg font-semibold">请选择合同</div>
+          <div id="contractMeta" class="text-sm text-slate-500">对方主体 · 状态 · 最近修改 · 风险评分</div>
+        </div>
+
+        <div class="flex gap-2 items-center">
+          <select id="versionSelect" class="border rounded px-2 py-1 text-sm" aria-label="版本切换">
+          </select>
+          <button id="compareBtn" class="bg-slate-100 px-2 py-1 rounded text-sm">比较</button>
+          <button id="attachmentBtn" class="bg-slate-100 px-2 py-1 rounded text-sm">附件</button>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mb-3">
+        <input id="commandInput" placeholder="输入自然语言或指令，如：审核付款条款；或使用模板按钮" class="flex-1 border rounded px-3 py-2" />
+        <button id="runCmd" class="bg-rose-600 text-white px-4 py-2 rounded">执行</button>
+      </div>
+
+      <div class="flex-1 grid grid-cols-12 gap-4 overflow-hidden">
+        <section class="col-span-12 h-full overflow-auto scrollbar bg-slate-50 p-4 rounded" id="previewArea" tabindex="0" aria-label="合同预览器">
+          <div id="previewContent" class="prose max-w-none text-sm text-slate-800"></div>
+        </section>
+      </div>
+
+      <div class="mt-3 text-xs text-slate-500">提示：选中文本后按 A 可以添加注释，按 H 可高亮，按 R 标记为高风险。</div>
+    </main>
+
+    <!-- 右侧审查面板 -->
+    <aside class="col-span-3 bg-white border rounded-lg p-3 h-[72vh] overflow-auto scrollbar flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-medium">审查面板</div>
+        <div class="text-xs text-slate-500" id="currentRoleLabel">法务审查员</div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-xs text-slate-500 mb-1">指令历史</div>
+        <div id="cmdHistory" class="flex flex-col gap-1 text-sm"></div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-xs text-slate-500 mb-1">结构化结果</div>
+        <div id="structuredResults" class="space-y-2 text-sm"></div>
+      </div>
+
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs text-slate-500">审查状态</div>
+          <select id="statusControl" class="border rounded px-2 py-1 text-sm" aria-label="审查状态切换">
+            <option value="draft">待审</option>
+            <option value="in_review">审中</option>
+            <option value="approved">通过</option>
+            <option value="rejected">拒绝</option>
+            <option value="need_changes">需修改</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2">
+          <input id="assignTo" placeholder="责任人 @姓名" class="flex-1 border rounded px-2 py-1 text-sm" />
+          <button id="assignBtn" class="bg-emerald-600 text-white px-3 py-1 rounded text-sm">分配</button>
+        </div>
+
+        <div class="mt-2">
+          <button id="createReviewTask" class="w-full bg-sky-600 text-white px-3 py-2 rounded text-sm">创建复核任务</button>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-xs text-slate-500 mb-1">注释与建议</div>
+        <div id="annotationsList" class="space-y-2 text-sm"></div>
+      </div>
+
+      <div class="mt-auto">
+        <div class="text-xs text-slate-500 mb-1">审计日志</div>
+        <div id="auditLog" class="text-xs text-slate-500 max-h-36 overflow-auto scrollbar"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 简单模态用于注释 -->
+  <div id="annoModal" class="fixed inset-0 bg-black/30 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-lg p-4 w-full max-w-lg">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-medium">添加注释</div>
+        <button id="closeAnno" class="text-slate-500">关闭</button>
+      </div>
+      <div class="text-sm text-slate-700 mb-2" id="annoSelection"></div>
+      <textarea id="annoText" rows="4" class="w-full border rounded px-2 py-2 text-sm" placeholder="建议/整改意见"></textarea>
+      <div class="flex items-center gap-2 mt-2">
+        <select id="annoPriority" class="border rounded px-2 py-1 text-sm">
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高</option>
+        </select>
+        <input id="annoTag" placeholder="标签" class="border rounded px-2 py-1 text-sm" />
+        <button id="saveAnno" class="ml-auto bg-rose-600 text-white px-3 py-1 rounded text-sm">保存注释</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 国际化文本
+    const I18N = {
+      zh: {
+        placeholderCommand: '输入自然语言或指令，如：审核付款条款；或使用模板按钮',
+        noContract: '请选择合同',
+        auditExportName: 'audit_export.csv',
+      },
+      en: {
+        placeholderCommand: 'Enter natural language or directive, e.g.: review payment terms; or use templates',
+        noContract: 'Select a contract',
+        auditExportName: 'audit_export.csv',
+      }
+    };
+
+    // 模拟数据
+    const users = ['张法务', '李复核', '王管理员', '外部A'];
+    const contracts = [];
+    const sampleTextA = [
+      "本合同双方为甲方：世纪科技有限公司，乙方：嘉信贸易有限公司。",
+      "付款条款：合同总金额为RMB 500,000，乙方应在签订合同后30个工作日内支付第一期款项50%。",
+      "违约责任：若任何一方未能履行义务，应承担违约金，违约金为未付款项的5%。",
+      "保密条款：双方应对本合同内容及商业信息保密，未经另一方书面允许不得披露。",
+      "期限：本合同有效期为自签订之日起12个月。"
+    ];
+    const sampleTextB = [
+      "本协议为技术服务协议，由技术方与客户方签署。",
+      "付款方式：客户应按照发票金额在15天内完成付款。迟延付款按日万分之五计息。",
+      "服务内容：技术方负责提供系统部署和维护服务。",
+      "终止条款：任何一方违约，守约方有权解除协议并要求赔偿。",
+      "附件：服务清单、验收标准。"
+    ];
+
+    function buildContracts() {
+      const now = Date.now();
+      for (let i=1;i<=14;i++){
+        contracts.push({
+          id: 'C' + i.toString().padStart(3,'0'),
+          title: i%2 ? `销售合同 - ${i}` : `服务协议 - ${i}`,
+          counterparty: i%2 ? '嘉信贸易有限公司' : '世纪客户有限公司',
+          status: ['draft','in_review','approved','rejected'][i%4],
+          modified: new Date(now - i*86400000).toISOString().slice(0,10),
+          riskScore: Math.floor(Math.random()*100),
+          type: i%2 ? 'sale' : 'service',
+          tags: i%3===0 ? ['重要'] : [],
+          text: i%2 ? sampleTextA : sampleTextB,
+          versions: [
+            {ver:'v1', text: i%2 ? sampleTextA : sampleTextB},
+            {ver:'v2', text: i%2 ? [...sampleTextA.slice(0,4), "新增条款：争议解决采用仲裁方式。"] : [...sampleTextB, "新增条款：数据脱敏要求。"]}
+          ],
+          attachments: ['协议.pdf','清单.xlsx']
+        });
+      }
+    }
+
+    // 状态
+    let state = {
+      locale: 'zh',
+      role: 'legal',
+      selectedContract: null,
+      annotations: {}, // contractId => []
+      audit: JSON.parse(localStorage.getItem('audit')||'[]'),
+      cmdHistory: [],
+      structured: {},
+      highlighted: new Set(),
+    };
+
+    // 初始化
+    buildContracts();
+
+    // DOM refs
+    const contractListEl = document.getElementById('contractList');
+    const previewContent = document.getElementById('previewContent');
+    const contractTitle = document.getElementById('contractTitle');
+    const contractMeta = document.getElementById('contractMeta');
+    const versionSelect = document.getElementById('versionSelect');
+    const commandInput = document.getElementById('commandInput');
+    const runCmd = document.getElementById('runCmd');
+    const cmdHistoryEl = document.getElementById('cmdHistory');
+    const structuredResultsEl = document.getElementById('structuredResults');
+    const annotationsListEl = document.getElementById('annotationsList');
+    const auditLogEl = document.getElementById('auditLog');
+    const statusControl = document.getElementById('statusControl');
+    const assignBtn = document.getElementById('assignBtn');
+    const assignTo = document.getElementById('assignTo');
+    const createReviewTask = document.getElementById('createReviewTask');
+    const roleSelect = document.getElementById('roleSelect');
+    const currentRoleLabel = document.getElementById('currentRoleLabel');
+    const localeSelect = document.getElementById('locale');
+    const localeLabel = document.getElementById('localeLabel');
+    const leftSearch = document.getElementById('leftSearch');
+    const typeFilter = document.getElementById('typeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const loadMore = document.getElementById('loadMore');
+    const templateBtns = document.querySelectorAll('.template-btn');
+    const runTemplateButtons = document.querySelectorAll('.template-btn');
+    const previewArea = document.getElementById('previewArea');
+    const annoModal = document.getElementById('annoModal');
+    const annoSelection = document.getElementById('annoSelection');
+    const annoText = document.getElementById('annoText');
+    const annoPriority = document.getElementById('annoPriority');
+    const annoTag = document.getElementById('annoTag');
+    const saveAnno = document.getElementById('saveAnno');
+    const closeAnno = document.getElementById('closeAnno');
+    const exportAuditBtn = document.getElementById('exportAudit');
+    const compareBtn = document.getElementById('compareBtn');
+    const attachmentBtn = document.getElementById('attachmentBtn');
+
+    // Render left list
+    let visibleCount = 8;
+    function renderList() {
+      const q = leftSearch.value.trim().toLowerCase();
+      const type = typeFilter.value;
+      const status = statusFilter.value;
+      const items = contracts.filter(c => {
+        if (type!=='all' && c.type!==type) return false;
+        if (status!=='all' && c.status!==status) return false;
+        if (!q) return true;
+        return (c.title+c.counterparty+(c.tags||[]).join(' ')).toLowerCase().includes(q);
+      }).slice(0, visibleCount);
+
+      contractListEl.innerHTML = '';
+      items.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'border rounded p-2 flex items-start gap-2 hover:bg-slate-50';
+        el.tabIndex = 0;
+        el.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">${c.title}</div>
+              <div class="text-xs text-slate-500">${c.modified}</div>
+            </div>
+            <div class="text-xs text-slate-500">${c.counterparty} · 风险 ${c.riskScore}</div>
+            <div class="mt-1 text-xs"><span class="inline-block px-2 py-0.5 text-xs rounded ${c.status==='approved'?'bg-emerald-100 text-emerald-700':'bg-slate-100 text-slate-600'}">${c.status}</span>
+              ${c.tags.map(t=>`<span class="ml-1 inline-block px-2 py-0.5 text-xs bg-yellow-50 text-yellow-700 rounded">${t}</span>`).join('')}
+            </div>
+          </div>
+        `;
+        el.addEventListener('click', ()=>selectContract(c.id));
+        el.addEventListener('keydown', (e)=>{ if(e.key==='Enter') selectContract(c.id); });
+        contractListEl.appendChild(el);
+      });
+    }
+
+    function selectContract(id) {
+      const c = contracts.find(x=>x.id===id);
+      state.selectedContract = c;
+      currentRoleLabel.textContent = roleSelect.options[roleSelect.selectedIndex].text;
+      renderPreview();
+      renderVersionOptions();
+      renderAnnotations();
+      renderAudit();
+      structuredResultsEl.innerHTML = '';
+    }
+
+    function renderPreview(versionIndex=0, mask=false) {
+      const c = state.selectedContract;
+      if(!c){ contractTitle.textContent = I18N[state.locale].noContract; previewContent.innerHTML=''; contractMeta.textContent=''; return; }
+      contractTitle.textContent = c.title;
+      contractMeta.textContent = `${c.counterparty} · ${c.status} · ${c.modified} · 风险 ${c.riskScore}`;
+      const ver = c.versions[versionIndex];
+      previewContent.innerHTML = '';
+      ver.text.forEach((p,i)=>{
+        const pEl = document.createElement('p');
+        pEl.className = 'mb-2';
+        pEl.id = `p-${i}`;
+        pEl.textContent = p;
+        // attach dataset
+        pEl.dataset.index = i;
+        // highlight if in highlighted set
+        if(state.highlighted.has(`${c.id}-${i}`)) pEl.classList.add('highlight');
+        // red flag marker if contains 付款 or 违约
+        if(/付款|违约|赔偿|仲裁|迟延|利息|逾期|期限|终止/.test(p)) {
+          pEl.classList.add('red-flag');
+        }
+        if(mask && state.role==='external') pEl.classList.add('mask');
+        previewContent.appendChild(pEl);
+      });
+    }
+
+    function renderVersionOptions() {
+      const c = state.selectedContract;
+      versionSelect.innerHTML = '';
+      c.versions.forEach((v,idx)=>{
+        const o = document.createElement('option');
+        o.value = idx;
+        o.textContent = v.ver;
+        versionSelect.appendChild(o);
+      });
+    }
+
+    // command parsing simulation
+    function parseAndRun(cmd) {
+      if(!state.selectedContract) return alert('请选择合同');
+      const lowered = cmd.toLowerCase();
+      const result = {items: [], suggestions: [], cmd};
+      const paragraphs = state.selectedContract.versions[versionSelect.value].text;
+      if(lowered.includes('付款') || lowered.includes('payment')) {
+        paragraphs.forEach((p,i)=>{
+          if(/付款|支付|发票|金额|迟延/.test(p)) result.items.push({index:i, text:p, tag:'付款条款'});
+        });
+        if(result.items.length) {
+          result.suggestions.push({title:'付款条款 - 风险提示', text:'建议确认付款期限、分期比例与违约利息，并在合同中明确发票与验收条件。', template:'建议修改：将付款期限由30个工作日调整为收到发票后30日内，并明确分期条款及逾期利息。', priority:'high'});
+        } else {
+          result.suggestions.push({title:'未发现付款条款', text:'未检索到明显付款条款。请检查合同解析或使用全文搜索。', priority:'medium'});
+        }
+      } else if(lowered.includes('高风险') || lowered.includes('high risk')) {
+        paragraphs.forEach((p,i)=>{
+          if(/违约|赔偿|仲裁|终止|免责/.test(p)) result.items.push({index:i, text:p, tag:'高风险'});
+        });
+        result.suggestions.push({title:'高风险提示', text:'检测到可能存在高风险条款，推荐转审或列出整改意见。', priority:'high'});
+      } else if(lowered.includes('摘要') || lowered.includes('summary')) {
+        result.suggestions.push({title:'合同摘要', text: paragraphs.slice(0,3).join(' / '), priority:'low'});
+      } else if(lowered.includes('生成审查意见') || lowered.includes('generate')) {
+        result.suggestions.push({title:'审查意见模板', text:'1. 付款条款：... 2. 保密条款：... 3. 建议与结论：建议修改并提交给对方确认。', priority:'medium'});
+      } else {
+        result.suggestions.push({title:'无法解析指令', text:'请使用示例指令或点击模板按钮。', priority:'low'});
+      }
+
+      // build structured results and highlight
+      state.cmdHistory.push({cmd, time:new Date().toLocaleString()});
+      state.structured[state.selectedContract.id] = result;
+      // highlight matched paragraphs
+      state.highlighted.clear();
+      result.items.forEach(it => state.highlighted.add(`${state.selectedContract.id}-${it.index}`));
+      renderCmdResult();
+      renderPreview(versionSelect.value, state.role==='external');
+      pushAudit(`执行指令: ${cmd}`);
+    }
+
+    function renderCmdResult() {
+      // history
+      cmdHistoryEl.innerHTML = '';
+      const hist = state.cmdHistory.slice(-6).reverse();
+      hist.forEach(h=>{
+        const d = document.createElement('div');
+        d.className = 'px-2 py-1 bg-slate-50 rounded';
+        d.textContent = `${h.time} · ${h.cmd}`;
+        cmdHistoryEl.appendChild(d);
+      });
+
+      // structured
+      structuredResultsEl.innerHTML = '';
+      const s = state.structured[state.selectedContract.id] || {items:[], suggestions:[]};
+      if(s.items && s.items.length){
+        s.items.forEach(it=>{
+          const div = document.createElement('div');
+          div.className = 'border-l-2 border-sky-200 pl-2 py-1 rounded';
+          div.innerHTML = `<div class="text-sm font-medium">${it.tag || '匹配段落'}</div><div class="text-xs text-slate-600">${it.text}</div>`;
+          const btns = document.createElement('div');
+          btns.className = 'flex gap-1 mt-1';
+          const aBtn = document.createElement('button'); aBtn.textContent='注释'; aBtn.className='text-xs bg-slate-100 px-2 py-0.5 rounded'; aBtn.addEventListener('click',()=>openAnno(it.text));
+          const hBtn = document.createElement('button'); hBtn.textContent='高亮'; hBtn.className='text-xs bg-amber-100 px-2 py-0.5 rounded'; hBtn.addEventListener('click',()=>{ /* toggle highlight */});
+          btns.appendChild(aBtn); btns.appendChild(hBtn);
+          div.appendChild(btns);
+          structuredResultsEl.appendChild(div);
+        });
+      }
+      if(s.suggestions && s.suggestions.length){
+        s.suggestions.forEach(sug=>{
+          const d = document.createElement('div');
+          d.className = 'mt-2 p-2 bg-slate-50 rounded text-sm';
+          d.innerHTML = `<div class="font-medium">${sug.title}</div><div class="text-xs text-slate-600">${sug.text}</div><div class="mt-1 text-xs text-slate-500">优先级：${sug.priority}</div>`;
+          const insert = document.createElement('button'); insert.textContent='一键插入意见'; insert.className='mt-2 bg-emerald-600 text-white px-2 py-1 text-xs rounded'; insert.addEventListener('click', ()=>insertOpinion(sug.template || sug.text));
+          d.appendChild(insert);
+          structuredResultsEl.appendChild(d);
+        });
+      }
+    }
+
+    function insertOpinion(text){
+      // append as annotation
+      if(!state.selectedContract) return;
+      const id = state.selectedContract.id;
+      state.annotations[id] = state.annotations[id]||[];
+      state.annotations[id].push({text,priority:'medium',tag:'系统建议',from:'system',time:new Date().toLocaleString()});
+      renderAnnotations();
+      pushAudit('一键插入审查意见');
+    }
+
+    // annotations
+    function renderAnnotations(){
+      annotationsListEl.innerHTML = '';
+      const id = state.selectedContract?.id;
+      if(!id) return;
+      const arr = state.annotations[id] || [];
+      arr.forEach((a,idx)=>{
+        const d = document.createElement('div');
+        d.className = 'p-2 border rounded bg-slate-50';
+        d.innerHTML = `<div class="flex items-center justify-between"><div class="text-sm font-medium">${a.tag||'注释'}</div><div class="text-xs text-slate-500">${a.time}</div></div>
+        <div class="text-xs text-slate-600 mt-1">${a.text}</div>
+        <div class="mt-2 flex gap-2">
+          <button class="text-xs bg-sky-600 text-white px-2 py-1 rounded" data-idx="${idx}" onclick="assignFromAnnotation(${idx})">分配</button>
+          <button class="text-xs bg-slate-100 px-2 py-1 rounded" data-idx="${idx}" onclick="requestChange(${idx})">要求修改</button>
+        </div>`;
+        annotationsListEl.appendChild(d);
+      });
+    }
+
+    // expose globally for inline onclick
+    window.assignFromAnnotation = function(idx){
+      const id = state.selectedContract.id;
+      const a = state.annotations[id][idx];
+      assignTo.value = '@复核人';
+      pushAudit(`从注释分配任务: ${a.text}`);
+      alert('已为注释创建分配草单，编辑责任人并点击分配。');
+    };
+    window.requestChange = function(idx){
+      const id = state.selectedContract.id;
+      const a = state.annotations[id][idx];
+      state.selectedContract.status = 'need_changes';
+      statusControl.value = 'need_changes';
+      pushAudit(`基于注释发起修改请求: ${a.text}`);
+      renderList();
+      renderPreview(versionSelect.value, state.role==='external');
+    };
+
+    // annotation modal workflow
+    let currentSelectionText = '';
+    function openAnno(selectionText){
+      currentSelectionText = selectionText;
+      annoSelection.textContent = selectionText;
+      annoText.value = '';
+      annoTag.value = '';
+      annoPriority.value = 'medium';
+      annoModal.classList.remove('hidden');
+      annoModal.style.display = 'flex';
+    }
+    closeAnno.addEventListener('click', ()=>{ annoModal.classList.add('hidden'); annoModal.style.display='none'; });
+    saveAnno.addEventListener('click', ()=>{
+      const id = state.selectedContract?.id;
+      if(!id) return;
+      state.annotations[id] = state.annotations[id]||[];
+      state.annotations[id].push({
+        text: annoText.value || currentSelectionText,
+        priority: annoPriority.value, tag: annoTag.value||'人工注释',
+        from: state.role, time: new Date().toLocaleString()
+      });
+      annoModal.classList.add('hidden'); annoModal.style.display='none';
+      renderAnnotations();
+      pushAudit('添加注释');
+    });
+
+    // selection handling
+    previewArea.addEventListener('mouseup', (e)=>{
+      const sel = window.getSelection();
+      const text = sel.toString().trim();
+      if(text.length>3) {
+        // small tooltip could be shown; for simplicity we'll open modal on key 'A'
+        currentSelectionText = text;
+        // set a temporary hint
+      }
+    });
+
+    // keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.key.toLowerCase()==='a' && currentSelectionText){
+        openAnno(currentSelectionText);
+      } else if(e.key.toLowerCase()==='h' && currentSelectionText){
+        // add highlight to the paragraphs containing the selection
+        const c = state.selectedContract;
+        if(!c) return;
+        c.versions[versionSelect.value].text.forEach((p,i)=>{
+          if(p.includes(currentSelectionText)) state.highlighted.add(`${c.id}-${i}`);
+        });
+        renderPreview(versionSelect.value, state.role==='external');
+      } else if(e.key.toLowerCase()==='r' && currentSelectionText){
+        // mark as high risk
+        const c = state.selectedContract;
+        if(!c) return;
+        c.versions[versionSelect.value].text.forEach((p,i)=>{
+          if(p.includes(currentSelectionText)) state.annotations[c.id] = state.annotations[c.id]||[], state.annotations[c.id].push({text:currentSelectionText,priority:'high',tag:'高风险',from:state.role,time:new Date().toLocaleString()});
+        });
+        renderAnnotations();
+      }
+    });
+
+    // status change and assign
+    statusControl.addEventListener('change', ()=>{
+      if(!state.selectedContract) return;
+      if(state.role==='external') return alert('权限不足：无法变更状态。');
+      state.selectedContract.status = statusControl.value;
+      pushAudit(`更改状态为 ${statusControl.value}`);
+      renderList(); renderPreview(versionSelect.value, state.role==='external');
+    });
+
+    assignBtn.addEventListener('click', ()=>{
+      if(!state.selectedContract) return;
+      if(!assignTo.value) return alert('请输入责任人');
+      pushAudit(`分配责任人 ${assignTo.value}`);
+      alert('已分配责任人并通知待办（模拟）。');
+    });
+
+    createReviewTask.addEventListener('click', ()=>{
+      if(!state.selectedContract) return;
+      pushAudit(`创建复核任务 by ${state.role}`);
+      alert('复核任务已创建（模拟）。');
+    });
+
+    // audit
+    function pushAudit(text){
+      const entry = {time:new Date().toLocaleString(), user: roleSelect.value, text};
+      state.audit.push(entry);
+      localStorage.setItem('audit', JSON.stringify(state.audit));
+      renderAudit();
+    }
+    function renderAudit(){
+      auditLogEl.innerHTML = state.audit.slice().reverse().map(a=>`<div class="p-1 border-b">${a.time} · ${a.user} · ${a.text}</div>`).join('');
+    }
+    exportAuditBtn.addEventListener('click', ()=>{
+      const rows = [['time','user','action'], ...state.audit.map(a=>[a.time,a.user,a.text])];
+      const csv = rows.map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = I18N[state.locale].auditExportName; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // search / filters / load more
+    leftSearch.addEventListener('input', renderList);
+    typeFilter.addEventListener('change', renderList);
+    statusFilter.addEventListener('change', renderList);
+    loadMore.addEventListener('click', ()=>{ visibleCount += 6; renderList(); });
+
+    // run command
+    runCmd.addEventListener('click', ()=>{ parseAndRun(commandInput.value); });
+    commandInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') parseAndRun(commandInput.value); });
+
+    // template buttons
+    runTemplateButtons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{ commandInput.value = btn.dataset.cmd; parseAndRun(btn.dataset.cmd); });
+    });
+
+    // role and locale
+    roleSelect.addEventListener('change', ()=>{
+      state.role = roleSelect.value;
+      currentRoleLabel.textContent = roleSelect.options[roleSelect.selectedIndex].text;
+      renderPreview(versionSelect.value, state.role==='external');
+    });
+    localeSelect.addEventListener('change', ()=>{
+      state.locale = localeSelect.value;
+      localeLabel.textContent = localeSelect.value==='zh' ? '中文' : 'English';
+      if(state.locale==='en'){
+        commandInput.placeholder = I18N.en.placeholderCommand;
+        contractTitle.textContent = 'Select a contract';
+      } else {
+        commandInput.placeholder = I18N.zh.placeholderCommand;
+      }
+    });
+
+    // version switch & compare
+    versionSelect.addEventListener('change', ()=> renderPreview(versionSelect.value, state.role==='external'));
+    compareBtn.addEventListener('click', ()=>{
+      if(!state.selectedContract) return;
+      const versions = state.selectedContract.versions;
+      if(versions.length<2) return alert('无可比较的版本');
+      // 简单比较：显示差异段落
+      const v0 = versions[0].text.join('\n');
+      const v1 = versions[1].text.join('\n');
+      const diffs = [];
+      versions[1].text.forEach((p,i)=>{
+        if(!versions[0].text.includes(p)) diffs.push({index:i,text:p});
+      });
+      structuredResultsEl.innerHTML = `<div class="text-sm font-medium">比较结果：新增/不同段落</div>` + diffs.map(d=>`<div class="mt-1 p-2 bg-slate-50 rounded text-xs">${d.text}</div>`).join('');
+      pushAudit('进行版本比较');
+    });
+    attachmentBtn.addEventListener('click', ()=>{
+      if(!state.selectedContract) return;
+      alert('附件：' + state.selectedContract.attachments.join(', '));
+      pushAudit('查看附件');
+    });
+
+    // initial render
+    renderList();
+    renderPreview();
+    renderAudit();
+
+    // Accessibility: ensure focus outline visible for keyboard nav
+    document.documentElement.style.scrollBehavior = 'smooth';
+  </script>
+</body>
+</html>
