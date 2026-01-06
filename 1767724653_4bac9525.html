@@ -1,0 +1,518 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>智律云AI平台 v1.0</title>
+<style>
+  /* Reset some default styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Header styles */
+.header {
+  background-color: #2d8cf0;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  color: #fff;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.header .nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.header .nav a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.header .nav a:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+/* Main container */
+.container {
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+
+/* Section styles */
+section {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+  padding: 20px;
+}
+
+/* Section headers */
+section h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #2d8cf0;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+/* Contract overview */
+.contract-overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.card {
+  flex: 1 1 300px;
+  background-color: #fafafa;
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.3s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.card p {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Upload section */
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.upload-btn {
+  background-color: #2d8cf0;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.3s;
+}
+
+.upload-btn:hover {
+  background-color: #1e6fcf;
+}
+
+.file-input {
+  display: none;
+}
+
+/* Auto parsing & review */
+.auto-parse {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.parse-btn {
+  align-self: flex-start;
+  background-color: #19be6b;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.parse-btn:hover {
+  background-color: #0e9b55;
+}
+
+/* Contract list table */
+.contract-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.contract-table th,
+.contract-table td {
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  text-align: left;
+  font-size: 14px;
+}
+
+.contract-table th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+}
+
+.contract-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* Review & approval */
+.review-section {
+  margin-top: 20px;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #fff;
+}
+
+.review-item h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.review-content {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.review-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-approve {
+  background-color: #19be6b;
+  color: #fff;
+}
+
+.btn-approve:hover {
+  background-color: #0e9b55;
+}
+
+.btn-reject {
+  background-color: #f56c6c;
+  color: #fff;
+}
+
+.btn-reject:hover {
+  background-color: #d04545;
+}
+
+/* Version management */
+.version-management {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.version-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.version-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.version-number {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.version-date {
+  font-size: 12px;
+  color: #999;
+}
+
+.version-actions button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: background-color 0.3s;
+}
+
+.btn-view {
+  background-color: #1890ff;
+  color: #fff;
+}
+
+.btn-view:hover {
+  background-color: #096dd9;
+}
+
+.btn-rollback {
+  background-color: #faad14;
+  color: #fff;
+}
+
+.btn-rollback:hover {
+  background-color: #d48806;
+}
+
+/* Audit logs */
+.audit-logs {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #fff;
+  padding: 10px;
+}
+
+.log-entry {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 13px;
+  color: #555;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .header .nav {
+    margin-top: 10px;
+  }
+  .contract-overview {
+    flex-direction: column;
+  }
+  .version-management {
+    flex-direction: column;
+  }
+  .version-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .version-actions {
+    margin-top: 10px;
+  }
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <h1>智律云AI平台 v1.0</h1>
+  <nav class="nav">
+    <a href="#overview">系统概述</a>
+    <a href="#upload">合同上传</a>
+    <a href="#auto-parse">自动解析</a>
+    <a href="#review">人工审核</a>
+    <a href="#approval">审批流程</a>
+    <a href="#version">版本管理</a>
+    <a href="#audit">审计日志</a>
+  </nav>
+</header>
+
+<div class="container">
+  <!-- 系统概述 -->
+  <section id="overview">
+    <h2>系统概述</h2>
+    <p>本系统用于企业合同审核与管理，支持合同上传、自动解析、人工审核、审批流程、版本管理和审计日志；界面为Web应用，支持现代浏览器及移动端自适应。</p>
+  </section>
+
+  <!-- 合同上传 -->
+  <section id="upload">
+    <h2>合同上传</h2>
+    <div class="upload-section">
+      <p>请上传合同文件（支持多种格式）：</p>
+      <input type="file" id="contractFile" class="file-input" multiple />
+      <label for="contractFile" class="upload-btn">选择文件</label>
+      <button class="upload-btn" style="margin-top:15px;">上传合同</button>
+    </div>
+  </section>
+
+  <!-- 自动解析 -->
+  <section id="auto-parse">
+    <h2>自动解析</h2>
+    <div class="auto-parse">
+      <button class="parse-btn">开始自动解析</button>
+      <div class="contract-overview">
+        <div class="card">
+          <h3>合同信息</h3>
+          <p>合同编号：<strong>123456</strong></p>
+          <p>签订日期：<strong>2023-01-15</strong></p>
+          <p>合同金额：<strong>¥1,000,000</strong></p>
+        </div>
+        <div class="card">
+          <h3>主要条款</h3>
+          <p>合作期限：2023-01-15 至 2024-01-14</p>
+          <p>付款方式：银行转账</p>
+          <p>责任方：甲方</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 人工审核 -->
+  <section id="review">
+    <h2>人工审核</h2>
+    <div class="review-section">
+      <div class="review-item">
+        <h4>合同内容审核</h4>
+        <div class="review-content">
+          <p>合同内容符合公司政策，条款合理。</p>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-approve">通过</button>
+          <button class="btn btn-reject">拒绝</button>
+        </div>
+      </div>
+      <div class="review-item">
+        <h4>风险评估</h4>
+        <div class="review-content">
+          <p>合同存在潜在风险，建议进一步审查。</p>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-approve">通过</button>
+          <button class="btn btn-reject">拒绝</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 审批流程 -->
+  <section id="approval">
+    <h2>审批流程</h2>
+    <div class="review-section">
+      <div class="review-item">
+        <h4>部门经理审批</h4>
+        <div class="review-content">
+          <p>审批状态：待审批</p>
+          <p>审批人：李经理</p>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-approve">批准</button>
+          <button class="btn btn-reject">拒绝</button>
+        </div>
+      </div>
+      <div class="review-item">
+        <h4>财务审核</h4>
+        <div class="review-content">
+          <p>审批状态：待审批</p>
+          <p>审批人：王财务</p>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-approve">批准</button>
+          <button class="btn btn-reject">拒绝</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 版本管理 -->
+  <section id="version">
+    <h2>版本管理</h2>
+    <div class="version-management">
+      <div class="version-item">
+        <div class="version-info">
+          <div class="version-number">版本 1.0</div>
+          <div class="version-date">2023-01-15</div>
+        </div>
+        <div class="version-actions">
+          <button class="btn btn-view">查看</button>
+          <button class="btn btn-rollback">回滚</button>
+        </div>
+      </div>
+      <div class="version-item">
+        <div class="version-info">
+          <div class="version-number">版本 1.1</div>
+          <div class="version-date">2023-02-10</div>
+        </div>
+        <div class="version-actions">
+          <button class="btn btn-view">查看</button>
+          <button class="btn btn-rollback">回滚</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 审计日志 -->
+  <section id="audit">
+    <h2>审计日志</h2>
+    <div class="audit-logs">
+      <div class="log-entry">
+        <p>[2023-02-10 14:35:22] 合同版本 1.1 创建</p>
+      </div>
+      <div class="log-entry">
+        <p>[2023-02-11 09:20:10] 合同自动解析完成</p>
+      </div>
+      <div class="log-entry">
+        <p>[2023-02-12 16:45:55] 部门经理李审批通过</p>
+      </div>
+      <div class="log-entry">
+        <p>[2023-02-13 11:10:33] 财务王审批拒绝</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
+```
