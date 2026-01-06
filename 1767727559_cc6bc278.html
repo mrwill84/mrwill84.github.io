@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云1.0 · 合同审核平台</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    /* small custom styles for diff highlighting and overlay */
+    .diff-add { background:#e6ffed; }
+    .diff-del { background:#ffecec; text-decoration:line-through; }
+    .viewer { max-height:60vh; overflow:auto; }
+    .comment-bubble { background:#f3f4f6; border-left:4px solid #60a5fa; padding:8px; border-radius:6px; }
+    .kbd { background:#111827;color:#fff;padding:2px 6px;border-radius:6px;font-size:12px; }
+  </style>
+</head>
+<body class="h-screen antialiased bg-gray-50 text-gray-800">
+  <div id="app" class="flex h-full">
+    <!-- Left Sidebar -->
+    <aside class="w-80 bg-white border-r hidden md:flex flex-col" aria-label="筛选与导航">
+      <div class="p-4 border-b">
+        <div class="text-sm text-gray-500 mb-2" id="filters-title">筛选</div>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs text-gray-600">状态</label>
+            <select id="filter-status" class="mt-1 w-full border rounded px-2 py-1 text-sm">
+              <option value="">全部</option>
+              <option value="pending">待审核</option>
+              <option value="approved">已通过</option>
+              <option value="rejected">已拒绝</option>
+              <option value="returned">被退回</option>
+              <option value="draft">草稿</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600">优先级</label>
+            <select id="filter-priority" class="mt-1 w-full border rounded px-2 py-1 text-sm">
+              <option value="">不限</option>
+              <option value="high">高</option>
+              <option value="medium">中</option>
+              <option value="low">低</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600">合同类型</label>
+            <select id="filter-type" class="mt-1 w-full border rounded px-2 py-1 text-sm">
+              <option value="">全部</option>
+              <option>销售合同</option>
+              <option>采购合同</option>
+              <option>服务合同</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-600">关键词搜索</label>
+            <input id="filter-keyword" class="mt-1 w-full border rounded px-2 py-1 text-sm" placeholder="合同编号/对方/标题" />
+          </div>
+          <div class="flex gap-2">
+            <button id="apply-filters" class="flex-1 bg-blue-600 text-white rounded px-3 py-1 text-sm">应用</button>
+            <button id="reset-filters" class="flex-1 border rounded px-3 py-1 text-sm">重置</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 flex-1 overflow-auto">
+        <div class="text-sm text-gray-500 mb-2">快捷筛选</div>
+        <div class="space-y-2">
+          <button class="w-full text-left px-3 py-2 bg-gradient-to-r from-white to-gray-50 border rounded hover:bg-gray-100 quick-filter" data-filter="my">我负责的</button>
+          <button class="w-full text-left px-3 py-2 border rounded hover:bg-gray-100 quick-filter" data-filter="involved">我参与的</button>
+          <button class="w-full text-left px-3 py-2 border rounded hover:bg-gray-100 quick-filter" data-filter="due_today">今日到期</button>
+          <button class="w-full text-left px-3 py-2 border rounded hover:bg-gray-100 quick-filter" data-filter="overdue">超期</button>
+        </div>
+
+        <div class="mt-6">
+          <div class="text-sm text-gray-500 mb-2">筛选保存与视图</div>
+          <div class="flex gap-2">
+            <button id="save-filter" class="flex-1 border rounded px-3 py-1 text-sm">保存视图</button>
+            <button id="toggle-collapse" class="flex-1 border rounded px-3 py-1 text-sm">折叠</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="p-4 border-t text-xs text-gray-500">
+        SLA: <span id="sla-summary">标准 SLA: 48 小时</span>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col">
+      <!-- Top Nav -->
+      <header class="flex items-center justify-between bg-white border-b px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" class="text-blue-600"><rect width="24" height="24" rx="4" fill="#1E40AF"/><path d="M7 12h10M7 8h10M7 16h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div>
+              <div class="font-semibold">智律云 1.0</div>
+              <div class="text-xs text-gray-500">AI 合同审核平台</div>
+            </div>
+          </div>
+          <div class="ml-6 flex items-center gap-2 text-sm text-gray-600">
+            <div class="hidden sm:block">合同审核 · 仪表盘</div>
+            <div class="text-gray-300">|</div>
+            <div id="current-role" class="px-2 py-0.5 bg-gray-100 rounded text-xs">审核员</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <button id="lang-toggle" class="px-3 py-1 border rounded text-sm" title="切换语言">中文 / EN</button>
+            <button id="help-btn" class="px-3 py-1 border rounded text-sm">帮助</button>
+            <button id="notifications-btn" class="relative" aria-label="通知中心">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 17H9v-6a3 3 0 116 0v6zM12 22a2.5 2.5 0 002.5-2.5h-5A2.5 2.5 0 0012 22z" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="notif-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">0</span>
+            </button>
+            <div class="flex items-center gap-2">
+              <img id="avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect width='36' height='36' rx='6' fill='%234B5563'/><text x='50%' y='55%' fill='white' font-size='18' font-family='Arial' text-anchor='middle' alignment-baseline='middle'>李</text></svg>" alt="avatar" class="w-9 h-9 rounded-full" />
+              <div class="text-sm">
+                <div id="username">李律师</div>
+                <div class="text-xs text-gray-400">审核员</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Body -->
+      <div class="flex-1 flex overflow-hidden">
+        <!-- List / center -->
+        <main class="flex-1 p-4 overflow-auto">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="text-lg font-semibold" id="main-title">合同列表</div>
+              <div class="text-sm text-gray-500" id="list-count">加载中...</div>
+              <div class="hidden sm:flex items-center gap-2 ml-3 text-xs">
+                视图:
+                <button id="view-list" class="px-2 py-1 border rounded text-xs bg-blue-50">列表</button>
+                <button id="view-card" class="px-2 py-1 border rounded text-xs">卡片</button>
+              </div>
+              <div class="ml-4 text-xs text-gray-400">快捷键: <span class="kbd">J</span>/<span class="kbd">K</span> 切换， <span class="kbd">A</span> 通过， <span class="kbd">R</span> 拒绝</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="bulk-approve" class="px-3 py-1 bg-green-600 text-white rounded text-sm">批量通过</button>
+              <button id="refresh-list" class="px-3 py-1 border rounded text-sm">刷新</button>
+            </div>
+          </div>
+
+          <div id="list-area" class="bg-white border rounded">
+            <table class="w-full" aria-label="合同列表表格">
+              <thead class="bg-gray-50 text-xs text-gray-500">
+                <tr>
+                  <th class="p-3"><input type="checkbox" id="select-all" /></th>
+                  <th class="p-3 text-left">合同编号</th>
+                  <th class="p-3 text-left">标题</th>
+                  <th class="p-3">对方主体</th>
+                  <th class="p-3">状态</th>
+                  <th class="p-3">当前审核人</th>
+                  <th class="p-3">到期/生效</th>
+                  <th class="p-3">版本</th>
+                  <th class="p-3">操作</th>
+                </tr>
+              </thead>
+              <tbody id="contracts-tbody" class="text-sm">
+                <!-- populated by JS -->
+              </tbody>
+            </table>
+            <div class="p-3 flex items-center justify-between border-t">
+              <div class="text-xs text-gray-500" id="pagination-info">共 <span id="total-count">0</span> 条</div>
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-gray-500">每页</label>
+                <select id="per-page" class="border rounded px-2 py-1 text-sm">
+                  <option>10</option><option>20</option><option>50</option>
+                </select>
+                <button id="prev-page" class="px-2 py-1 border rounded text-sm">上页</button>
+                <button id="next-page" class="px-2 py-1 border rounded text-sm">下页</button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right detail panel -->
+        <aside class="w-96 bg-white border-l p-4 overflow-auto" aria-label="详细面板">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-sm text-gray-500">合同详情</div>
+              <div id="detail-title" class="text-lg font-semibold mt-1">选择合同以查看</div>
+              <div class="text-xs text-gray-400" id="detail-meta">—</div>
+            </div>
+            <div class="text-xs text-gray-500">
+              <button id="open-full" class="px-2 py-1 border rounded text-sm">展开阅读</button>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="tabs flex gap-2 border-b">
+              <button class="tab-btn px-2 py-1 text-sm text-gray-600" data-tab="meta">元数据</button>
+              <button class="tab-btn px-2 py-1 text-sm text-gray-600" data-tab="doc">正文</button>
+              <button class="tab-btn px-2 py-1 text-sm text-gray-600" data-tab="compare">版本差异</button>
+              <button class="tab-btn px-2 py-1 text-sm text-gray-600" data-tab="audit">审计日志</button>
+            </div>
+
+            <div id="tab-meta" class="tab-panel mt-4 hidden" role="region" aria-labelledby="meta">
+              <dl class="grid grid-cols-2 gap-2 text-sm">
+                <div><dt class="text-gray-500">编号</dt><dd id="m-id">—</dd></div>
+                <div><dt class="text-gray-500">版本</dt><dd id="m-version">—</dd></div>
+                <div><dt class="text-gray-500">创建人</dt><dd id="m-creator">—</dd></div>
+                <div><dt class="text-gray-500">业务线</dt><dd id="m-line">—</dd></div>
+                <div class="col-span-2"><dt class="text-gray-500">签约主体</dt><dd id="m-parties">—</dd></div>
+                <div><dt class="text-gray-500">金额区间</dt><dd id="m-amount">—</dd></div>
+                <div><dt class="text-gray-500">关键条款</dt><dd id="m-terms">—</dd></div>
+                <div class="col-span-2">
+                  <dt class="text-gray-500">附件</dt>
+                  <dd id="m-attachments" class="space-y-1 text-sm text-gray-600"></dd>
+                </div>
+              </dl>
+            </div>
+
+            <div id="tab-doc" class="tab-panel mt-4 hidden" role="region">
+              <div class="viewer border rounded p-3 bg-gray-50" id="doc-viewer" tabindex="0" aria-label="文档阅读器">
+                <!-- document text -->
+              </div>
+              <div class="mt-3">
+                <div class="text-xs text-gray-500 mb-1">评论与标注</div>
+                <div id="comments-list" class="space-y-2 mb-2"></div>
+                <textarea id="comment-input" class="w-full border rounded p-2 text-sm" rows="3" placeholder="添加注释，支持 @ 提醒"></textarea>
+                <div class="flex items-center justify-between mt-2">
+                  <div class="text-xs text-gray-500">类型:
+                    <select id="comment-type" class="text-sm border rounded px-2 py-1 ml-2">
+                      <option value="info">信息性</option>
+                      <option value="optional">可选</option>
+                      <option value="must">必须修改</option>
+                    </select>
+                  </div>
+                  <div class="flex gap-2">
+                    <button id="save-comment" class="px-3 py-1 bg-blue-600 text-white rounded text-sm">保存注释</button>
+                    <button id="auto-highlight" class="px-3 py-1 border rounded text-sm">智能提取条款</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="tab-compare" class="tab-panel mt-4 hidden" role="region">
+              <div class="text-xs text-gray-500 mb-2">版本比较：当前 vs 上一版本</div>
+              <div class="grid grid-cols-2 gap-2 border rounded p-2 text-sm">
+                <div class="p-2 viewer bg-white" id="left-version"></div>
+                <div class="p-2 viewer bg-white" id="right-version"></div>
+              </div>
+              <div class="flex gap-2 mt-3">
+                <button id="accept-change" class="px-3 py-1 bg-green-600 text-white rounded text-sm">逐项接受</button>
+                <button id="reject-change" class="px-3 py-1 border rounded text-sm">逐项拒绝</button>
+              </div>
+            </div>
+
+            <div id="tab-audit" class="tab-panel mt-4 hidden" role="region">
+              <div id="audit-log" class="space-y-2 text-sm text-gray-600"></div>
+              <div class="mt-3 flex gap-2">
+                <button id="export-audit" class="px-3 py-1 border rounded text-sm">导出审计</button>
+                <button id="view-versions" class="px-3 py-1 border rounded text-sm">查看所有版本</button>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="mt-6 border-t pt-3">
+            <div class="text-sm font-semibold">审批操作</div>
+            <div class="text-xs text-gray-500 mb-2">请选择操作并填写必要信息</div>
+            <textarea id="action-note" class="w-full border rounded p-2 text-sm" rows="3" placeholder="审批备注（自动保存草稿）"></textarea>
+            <div class="mt-2 flex gap-2">
+              <button id="action-approve" class="flex-1 px-3 py-2 bg-green-600 text-white rounded">通过</button>
+              <button id="action-reject" class="flex-1 px-3 py-2 bg-red-600 text-white rounded">拒绝</button>
+              <button id="action-transfer" class="flex-1 px-3 py-2 border rounded">转交</button>
+            </div>
+            <div class="mt-2 flex gap-2">
+              <button id="action-request" class="flex-1 px-3 py-2 border rounded">请求修改</button>
+              <button id="action-freeze" class="flex-1 px-3 py-2 border rounded">冻结</button>
+              <button id="action-addsign" class="flex-1 px-3 py-2 border rounded">加签</button>
+            </div>
+            <div class="mt-2 text-xs text-gray-400">关键操作可在 5 分钟内撤销。拒绝/转交需填写理由（10-1000 字）。</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-40 z-50">
+    <div class="bg-white rounded shadow-lg w-11/12 md:w-1/3 p-4">
+      <div class="font-semibold" id="confirm-title">确认操作</div>
+      <div class="text-sm text-gray-600 mt-2" id="confirm-body">确认执行此操作？</div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="confirm-cancel" class="px-3 py-1 border rounded">取消</button>
+        <button id="confirm-ok" class="px-3 py-1 bg-blue-600 text-white rounded">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 hidden bg-white border rounded shadow px-4 py-2 z-50">
+    <div class="flex items-center gap-3">
+      <div id="toast-msg" class="text-sm">已执行，撤销</div>
+      <button id="toast-undo" class="px-2 py-1 text-sm text-blue-600">撤销</button>
+    </div>
+  </div>
+
+  <script>
+    // 简单 i18n 文案
+    const I18N = {
+      zh: {
+        filters: "筛选", list: "合同列表", details: "合同详情", approve: "通过", reject: "拒绝", transfer: "转交",
+        request_changes: "请求修改", freeze: "冻结", addsign: "加签", comments: "评论与标注",
+        savedraft: "草稿已自动保存", undo: "撤销"
+      },
+      en: {
+        filters: "Filters", list: "Contracts", details: "Contract Details", approve: "Approve", reject: "Reject", transfer: "Transfer",
+        request_changes: "Request Changes", freeze: "Freeze", addsign: "Add Signer", comments: "Comments",
+        savedraft: "Draft auto-saved", undo: "Undo"
+      }
+    };
+    let LANG = 'zh';
+
+    // Mock data
+    const mockContracts = [];
+    for (let i=1;i<=27;i++){
+      mockContracts.push({
+        id: i,
+        contract_number: 'CZ-'+(1000+i),
+        title: '委托合同 - 项目 '+i,
+        counterparty: ['甲方有限公司','乙方科技'][i%2],
+        status: ['pending','approved','rejected','returned','draft'][i%5],
+        current_reviewer: (i%4===0) ? '王律师' : '李律师',
+        expiry: new Date(Date.now() + (i-10)*24*3600*1000).toISOString().slice(0,10),
+        effective: new Date(Date.now() - (i*2)*24*3600*1000).toISOString().slice(0,10),
+        version: 1 + (i%3),
+        priority: ['high','medium','low'][i%3],
+        amount_min: 10000*i, amount_max: 20000*i,
+        summary_terms: ['付款条款：30天','解除条款：双方协商'],
+        attachments: ['合同正文.pdf'],
+        body: `这是合同正文示例段落 #${i}。主要条款如下：付款... 服务... 保密... 修改记录在版本中显示差异。`
+      });
+    }
+
+    // App state
+    let state = {
+      contracts: mockContracts,
+      filtered: mockContracts,
+      page: 1,
+      perPage: 10,
+      selectedId: null,
+      auditLogs: {},
+      notifications: [],
+      concurrentEditors: {}, // contractId -> [names]
+      undoStack: [], // {action, contractId, prevState, timeout}
+    };
+
+    // helpers
+    const q = sel => document.querySelector(sel);
+    const qa = sel => Array.from(document.querySelectorAll(sel));
+
+    function t(key){ return I18N[LANG][key] || key; }
+
+    // Render list
+    function renderList(){
+      const tbody = q('#contracts-tbody');
+      tbody.innerHTML = '';
+      const start = (state.page-1)*state.perPage;
+      const pageItems = state.filtered.slice(start, start+state.perPage);
+      q('#list-count').textContent = `${state.filtered.length} 条`;
+      q('#total-count').textContent = state.filtered.length;
+      pageItems.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b hover:bg-gray-50';
+        tr.innerHTML = `
+          <td class="p-3 text-center"><input type="checkbox" data-id="${c.id}" class="row-check" /></td>
+          <td class="p-3 text-sm">${c.contract_number}</td>
+          <td class="p-3">${c.title}</td>
+          <td class="p-3">${c.counterparty}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded text-xs ${c.status==='pending'?'bg-yellow-100 text-yellow-800':''} ${c.status==='approved'?'bg-green-100 text-green-800':''}">${c.status}</span></td>
+          <td class="p-3">${c.current_reviewer}</td>
+          <td class="p-3">${c.expiry}<br/><span class="text-xs text-gray-400">${c.effective}</span></td>
+          <td class="p-3 text-center">${c.version}</td>
+          <td class="p-3 text-sm">
+            <button class="view-btn px-2 py-1 border rounded text-xs" data-id="${c.id}">查看</button>
+            <button class="compare-btn px-2 py-1 border rounded text-xs" data-id="${c.id}">比较</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // attach events
+      qa('.view-btn').forEach(btn => btn.addEventListener('click', e => openDetail(parseInt(e.target.dataset.id))));
+      qa('.compare-btn').forEach(btn => btn.addEventListener('click', e => { openDetail(parseInt(e.target.dataset.id)); openTab('compare'); }));
+      qa('.row-check').forEach(cb => cb.addEventListener('change', updateBatchSelection));
+      q('#select-all').checked = false;
+      q('#pagination-info').textContent = `第 ${state.page} 页`;
+    }
+
+    function updateBatchSelection(){}
+    function applyFilters(){
+      const status = q('#filter-status').value;
+      const priority = q('#filter-priority').value;
+      const type = q('#filter-type').value;
+      const kw = q('#filter-keyword').value.trim();
+      state.filtered = state.contracts.filter(c => {
+        if (status && c.status!==status) return false;
+        if (priority && c.priority!==priority) return false;
+        if (kw) {
+          const s = `${c.contract_number} ${c.counterparty} ${c.title}`.toLowerCase();
+          if (!s.includes(kw.toLowerCase())) return false;
+        }
+        return true;
+      });
+      state.page = 1;
+      renderList();
+    }
+
+    // Detail panel
+    function openDetail(id){
+      const c = state.contracts.find(x=>x.id===id);
+      if(!c) return;
+      state.selectedId = id;
+      q('#detail-title').textContent = `${c.title}`;
+      q('#detail-meta').textContent = `${c.contract_number} · 当前状态：${c.status}`;
+      q('#m-id').textContent = c.contract_number;
+      q('#m-version').textContent = c.version;
+      q('#m-creator').textContent = '系统生成';
+      q('#m-line').textContent = '产品线A';
+      q('#m-parties').textContent = c.counterparty;
+      q('#m-amount').textContent = `${c.amount_min.toLocaleString()} - ${c.amount_max.toLocaleString()}`;
+      q('#m-terms').textContent = c.summary_terms.join('；');
+      q('#m-attachments').innerHTML = c.attachments.map(a=>`<div class="flex items-center justify-between"><span>${a}</span><button class="px-2 py-1 text-xs border rounded">下载</button></div>`).join('');
+      // doc viewer
+      q('#doc-viewer').innerHTML = '';
+      const p = document.createElement('div');
+      p.innerHTML = `<h3 class="font-semibold mb-2">${c.title}</h3><p class="whitespace-pre-wrap">${c.body}</p>`;
+      q('#doc-viewer').appendChild(p);
+      // comments
+      renderComments(id);
+      renderAudit(id);
+      // versions
+      q('#left-version').textContent = c.body;
+      q('#right-version').textContent = c.body + '（上一个版本有少量差异）';
+      // show meta tab by default
+      openTab('meta');
+      // load draft for note
+      loadDraft(id);
+      // simulate concurrent editors
+      simulateConcurrency(id);
+    }
+
+    function renderComments(contractId){
+      // mock comments store in localStorage per contract
+      const key = `comments_${contractId}`;
+      const comments = JSON.parse(localStorage.getItem(key) || '[]');
+      const list = q('#comments-list');
+      list.innerHTML = comments.map(cm => `<div class="comment-bubble"><div class="text-xs font-semibold">${cm.author} <span class="text-gray-400 text-xs">${cm.at}</span></div><div class="mt-1">${cm.text}</div><div class="text-xs text-gray-400 mt-2">类型: ${cm.type}</div></div>`).join('');
+    }
+
+    function saveComment(){
+      const id = state.selectedId;
+      if(!id) return alert('请选择合同');
+      const key = `comments_${id}`;
+      const comments = JSON.parse(localStorage.getItem(key) || '[]');
+      const text = q('#comment-input').value.trim();
+      if(!text) return;
+      comments.unshift({author:'李律师', at: new Date().toLocaleString(), text, type: q('#comment-type').value});
+      localStorage.setItem(key, JSON.stringify(comments));
+      q('#comment-input').value = '';
+      renderComments(id);
+      pushAudit(id, 'add_comment', `添加注释：${text.slice(0,40)}`);
+      notify(`合同 ${id} 新注释`, `${text.slice(0,80)}`);
+    }
+
+    // Audit logs
+    function pushAudit(contractId, type, note){
+      if(!state.auditLogs[contractId]) state.auditLogs[contractId]=[];
+      state.auditLogs[contractId].unshift({time:new Date().toLocaleString(), actor:'李律师', type, note});
+      renderAudit(contractId);
+    }
+    function renderAudit(contractId){
+      const container = q('#audit-log');
+      container.innerHTML = '';
+      const logs = state.auditLogs[contractId] || [];
+      if(logs.length===0) container.innerHTML = '<div class="text-sm text-gray-400">暂无审计记录</div>';
+      else container.innerHTML = logs.map(l=>`<div class="p-2 border rounded"><div class="text-xs text-gray-500">${l.time} · ${l.actor} · ${l.type}</div><div class="text-sm mt-1">${l.note}</div></div>`).join('');
+    }
+
+    // Actions
+    function openConfirm(title, body, okCb){
+      q('#confirm-title').textContent = title;
+      q('#confirm-body').textContent = body;
+      q('#confirm-modal').classList.remove('hidden');
+      const ok = q('#confirm-ok');
+      const cancel = q('#confirm-cancel');
+      function cleanup(){
+        q('#confirm-modal').classList.add('hidden');
+        ok.removeEventListener('click', onOk);
+        cancel.removeEventListener('click', onCancel);
+      }
+      function onOk(){ cleanup(); okCb && okCb(); }
+      function onCancel(){ cleanup(); }
+      ok.addEventListener('click', onOk);
+      cancel.addEventListener('click', onCancel);
+    }
+
+    function performAction(action){
+      const id = state.selectedId;
+      if(!id) return alert('请选择合同');
+      const note = q('#action-note').value.trim();
+      if((action==='reject' || action==='transfer') && (note.length<10 || note.length>1000)){
+        return alert('理由长度需在10-1000字');
+      }
+      openConfirm('确认操作', `将执行：${action}。此操作会通知相关人员并写入审计日志。`, ()=>{
+        // save prev status for undo
+        const c = state.contracts.find(x=>x.id===id);
+        const prev = {...c};
+        // apply simple status changes
+        if(action==='approve') c.status='approved';
+        if(action==='reject') c.status='rejected';
+        if(action==='request_changes') c.status='waiting_for_changes';
+        if(action==='freeze') c.status='frozen';
+        if(action==='transfer') c.current_reviewer = '王律师';
+        pushAudit(id, action, note || `${action} by 李律师`);
+        renderList();
+        renderAudit(id);
+        notify(`合同 ${c.contract_number} 执行：${action}`, note || '');
+        // push undo option
+        const undoObj = {action, contractId:id, prevState:prev, ts:Date.now()};
+        state.undoStack.push(undoObj);
+        showToast(`已执行 ${action}。`, () => undoAction(undoObj));
+        // auto auto-save audit push
+      });
+    }
+
+    function undoAction(undoObj){
+      const idx = state.undoStack.indexOf(undoObj);
+      if(idx===-1) return;
+      const c = state.contracts.find(x=>x.id===undoObj.contractId);
+      if(!c) return;
+      // restore
+      Object.assign(c, undoObj.prevState);
+      pushAudit(c.id, 'undo', `撤销操作：${undoObj.action}`);
+      renderList();
+      renderAudit(c.id);
+      notify(`撤销：${undoObj.action}`, `已撤销针对合同 ${c.contract_number} 的操作`);
+      // remove stack item
+      state.undoStack.splice(idx,1);
+      hideToast();
+    }
+
+    // Notifications
+    function notify(title, body){
+      const id = Date.now();
+      state.notifications.unshift({id,title,body,time:new Date().toLocaleString()});
+      q('#notif-count').textContent = state.notifications.length;
+    }
+
+    // Toast
+    function showToast(msg, onUndo){
+      q('#toast-msg').textContent = msg;
+      q('#toast').classList.remove('hidden');
+      const undoBtn = q('#toast-undo');
+      undoBtn.onclick = () => { onUndo(); hideToast(); };
+      // auto hide in 30s (simulate 5min undo)
+      setTimeout(()=>{ hideToast(); }, 30000);
+    }
+    function hideToast(){ q('#toast').classList.add('hidden'); }
+
+    // Draft autosave
+    function autosaveDraft(){
+      const id = state.selectedId;
+      if(!id) return;
+      const note = q('#action-note').value;
+      const key = `draft_action_${id}`;
+      localStorage.setItem(key, JSON.stringify({note, ts:Date.now()}));
+      // small indicator (could be expanded)
+      console.log(t('savedraft'));
+    }
+    function loadDraft(id){
+      const key = `draft_action_${id}`;
+      const d = JSON.parse(localStorage.getItem(key) || 'null');
+      if(d) q('#action-note').value = d.note;
+    }
+    setInterval(autosaveDraft, 10000);
+
+    // concurrency simulation
+    function simulateConcurrency(contractId){
+      state.concurrentEditors[contractId] = ['王律师'];
+      // every 12s toggle someone viewing
+      if(state.concurrentTimers && state.concurrentTimers[contractId]) return;
+      state.concurrentTimers = state.concurrentTimers || {};
+      state.concurrentTimers[contractId] = setInterval(()=>{
+        const arr = state.concurrentEditors[contractId];
+        if(Math.random()>0.5){
+          if(!arr.includes('赵律师')) arr.push('赵律师');
+        } else {
+          const i = arr.indexOf('赵律师'); if(i>-1) arr.splice(i,1);
+        }
+        // show hint
+        const hint = arr.length>1 ? `正在编辑：${arr.join('、')}` : `当前查看：${arr.join('、')}`;
+        q('#detail-meta').textContent = hint;
+      },12000);
+    }
+
+    // Version compare simple diff highlighting
+    function computeDiff(left, right){
+      // naive: mark lines that differ
+      const la = left.split(/(\n|\r\n)/);
+      const ra = right.split(/(\n|\r\n)/);
+      return {leftHtml: escapeHtml(left).replace(/\n/g,'<br/>'), rightHtml: escapeHtml(right).replace(/\n/g,'<br/>')};
+    }
+    function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // Tabs
+    function openTab(name){
+      qa('.tab-panel').forEach(p=>p.classList.add('hidden'));
+      q('#tab-'+name).classList.remove('hidden');
+      qa('.tab-btn').forEach(b=>b.classList.remove('border-b','border-blue-600','text-blue-600'));
+      qa(`.tab-btn[data-tab="${name}"]`).forEach(b=>b.classList.add('border-b','border-blue-600','text-blue-600'));
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.key.toLowerCase()==='j'){ // next
+        const idx = state.filtered.findIndex(c=>c.id===state.selectedId);
+        const next = state.filtered[idx+1] || state.filtered[0];
+        if(next) openDetail(next.id);
+      }
+      if(e.key.toLowerCase()==='k'){ // prev
+        const idx = state.filtered.findIndex(c=>c.id===state.selectedId);
+        const prev = state.filtered[idx-1] || state.filtered[state.filtered.length-1];
+        if(prev) openDetail(prev.id);
+      }
+      if(e.key.toLowerCase()==='a'){ performAction('approve'); }
+      if(e.key.toLowerCase()==='r'){ performAction('reject'); }
+    });
+
+    // event bindings
+    q('#apply-filters').addEventListener('click', applyFilters);
+    q('#reset-filters').addEventListener('click', ()=>{
+      q('#filter-status').value=''; q('#filter-priority').value=''; q('#filter-keyword').value=''; applyFilters();
+    });
+    qa('.quick-filter').forEach(b=>b.addEventListener('click', (e)=>{
+      const f = e.target.dataset.filter;
+      if(f==='my'){ q('#filter-keyword').value='李律师'; }
+      if(f==='due_today'){ q('#filter-keyword').value=''; q('#filter-status').value='pending'; }
+      applyFilters();
+    }));
+    q('#refresh-list').addEventListener('click', ()=>{ renderList(); notify('列表已刷新','合同列表已刷新'); });
+    q('#per-page').addEventListener('change', (e)=>{ state.perPage = parseInt(e.target.value); renderList(); });
+    q('#prev-page').addEventListener('click', ()=>{ if(state.page>1) state.page--; renderList(); });
+    q('#next-page').addEventListener('click', ()=>{ state.page++; renderList(); });
+    q('#view-list').addEventListener('click', ()=>{ /* stub for toggle */ });
+    q('#view-card').addEventListener('click', ()=>{ /* stub for toggle */ });
+    q('#save-comment').addEventListener('click', saveComment);
+    q('#action-approve').addEventListener('click', ()=>performAction('approve'));
+    q('#action-reject').addEventListener('click', ()=>performAction('reject'));
+    q('#action-transfer').addEventListener('click', ()=>performAction('transfer'));
+    q('#action-request').addEventListener('click', ()=>performAction('request_changes'));
+    q('#action-freeze').addEventListener('click', ()=>performAction('freeze'));
+    q('#action-addsign').addEventListener('click', ()=>performAction('addsign'));
+    q('#open-full').addEventListener('click', ()=>{
+      alert('展开为全屏阅读器（示例）');
+    });
+    q('#export-audit').addEventListener('click', ()=>{
+      const id = state.selectedId; if(!id) return alert('请选择合同');
+      // create mock export
+      const data = {contractId:id, logs: state.auditLogs[id]||[]};
+      const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download = `audit_${id}.json`; a.click(); URL.revokeObjectURL(url);
+      notify('审计已导出', `合同 ${id} 审计导出成功`);
+    });
+
+    // language toggle
+    q('#lang-toggle').addEventListener('click', ()=>{
+      LANG = (LANG==='zh') ? 'en' : 'zh';
+      // update a few texts for demo
+      q('#filters-title').textContent = t('filters');
+      q('#main-title').textContent = t('list');
+      q('#open-full').textContent = t('details');
+      q('#action-approve').textContent = t('approve');
+      q('#action-reject').textContent = t('reject');
+      q('#action-transfer').textContent = t('transfer');
+    });
+
+    // comments smart extract
+    q('#auto-highlight').addEventListener('click', ()=>{
+      if(!state.selectedId) return alert('请选择合同');
+      // naive: extract first sentence
+      const c = state.contracts.find(x=>x.id===state.selectedId);
+      const text = c.body.split('。')[0] || c.body;
+      q('#comment-input').value = `建议关注：${text}`;
+    });
+
+    // compare acceptance stub
+    q('#accept-change').addEventListener('click', ()=>{
+      alert('逐项接受（示例）'); pushAudit(state.selectedId, 'accept_change', '接受了部分变更');
+    });
+
+    // initial render
+    applyFilters();
+    renderList();
+    openTab('meta');
+
+    // keyboard focus and accessibility
+    q('#doc-viewer').setAttribute('role','document');
+
+    // Simulate some audit logs
+    pushAudit(1,'created','合同创建');
+    pushAudit(1,'assigned','分配给 李律师');
+    pushAudit(2,'created','合同创建');
+
+    // small integration: when selecting row checkbox, enabling bulk approve
+    q('#select-all').addEventListener('change', (e)=>{
+      qa('.row-check').forEach(cb => cb.checked = e.target.checked);
+    });
+    q('#bulk-approve').addEventListener('click', ()=>{
+      const checked = qa('.row-check:checked').map(cb=>parseInt(cb.dataset.id));
+      if(checked.length===0) return alert('请选择合同');
+      checked.forEach(id => {
+        const c = state.contracts.find(x=>x.id===id);
+        if(c && c.status==='pending') c.status='approved', pushAudit(id,'approve','批量通过');
+      });
+      renderList();
+      notify('批量通过完成', `${checked.length} 项已处理`);
+    });
+
+    // Accessibility: focus outlines and high contrast toggle (demo)
+    document.addEventListener('keydown', (e)=>{ if(e.key==='F2'){ document.body.classList.toggle('high-contrast'); } });
+
+  </script>
+</body>
+</html>
