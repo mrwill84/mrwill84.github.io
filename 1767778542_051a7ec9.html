@@ -1,0 +1,913 @@
+<think>
+**Planning HTML Contract Management UI**
+
+I'm tasked with producing a 400-line HTML page with Tailwind CDN for a contract management UI. I'll make sure it includes features like a list view with filters, pagination, and batch actions. There will be a contract detail page that simulates a document viewer with PDF.js and includes a toolbar for annotations. I'll also include real-time collaboration features and an approval workflow area for commands like approval and comments. Confirmation dialogs and real-time status updates are necessary too.**Designing Contract Management UI**
+
+I'm focusing on a mostly UI-driven approach with JavaScript simulated functions, avoiding the need for a real backend. I'll use Tailwind for styling and provide components for lists, filters, tables or cards, and infinite scroll features. Batch operations will include checkboxes and CSV import functionality. 
+
+I’ll embed JavaScript with the required script tag and consider using CDNs like pdf.js, but I might opt for a simple iframe to showcase sample PDFs. I also want to incorporate annotations, confirmation modals, and mechanisms to prevent duplicate submissions, all while implementing pagination that simulates loading more data.**Creating Command Panel Functionality**
+
+I'm working on implementing a command panel that features text input to detect slash commands and provide suggestions. It will parse arguments and execute operations on selected contracts or open a specific contract. I want to include an undo function that stores the last operation, allowing users to reverse it within 5 seconds.
+
+Additionally, I'll simulate real-time updates using setInterval to randomly refresh the status of some contracts. I need to ensure the design looks professional by using Tailwind while keeping the code size around 350-450 lines. Let's get started!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云 AI 平台1.0 - 合同管理</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    /* 小幅自定义样式 */
+    .glass { background: rgba(255,255,255,0.6); backdrop-filter: blur(6px); }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .avatar { width:34px; height:34px; border-radius:8px; }
+    .doc-canvas { border:1px solid #e5e7eb; border-radius:6px; background:#fff; }
+    .tag { padding: 2px 8px; border-radius:12px; font-size:12px; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 60; }
+    .cmd-suggestion { min-width: 220px; }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-700">
+  <div class="min-h-screen flex">
+    <!-- 左侧导航 -->
+    <aside class="w-72 border-r border-gray-200 bg-white p-4">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="bg-indigo-600 text-white rounded-md p-2">智</div>
+        <div>
+          <div class="font-semibold">智律云 AI 平台</div>
+          <div class="text-xs text-gray-500">合同审核 1.0</div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="text-xs text-gray-500 mb-2">视图</div>
+        <ul class="space-y-2">
+          <li class="p-2 rounded hover:bg-gray-50 cursor-pointer flex items-center gap-3">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 11h18M3 15h18M3 19h18" /></svg>
+            <span>合同列表</span>
+          </li>
+          <li class="p-2 rounded hover:bg-gray-50 cursor-pointer flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h6" /></svg>
+            <span>审批流程</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="mt-6">
+        <div class="text-xs text-gray-500 mb-2">快捷操作</div>
+        <button id="new-contract" class="w-full bg-indigo-600 text-white py-2 rounded">新建合同（示例）</button>
+      </div>
+    </aside>
+
+    <!-- 主区 -->
+    <main class="flex-1 p-6">
+      <!-- 顶部工具栏 -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <h1 class="text-2xl font-semibold">合同管理</h1>
+          <div class="text-sm text-gray-500">聚焦合同审核与审批</div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <input id="global-search" placeholder="搜索合同编号/对方/标签" class="border rounded-md px-3 py-2 w-80" />
+            <button id="clear-search" class="absolute right-2 top-1.5 text-gray-400 hidden">×</button>
+          </div>
+          <button id="command-toggle" class="bg-slate-800 text-white px-3 py-2 rounded">指令面板</button>
+        </div>
+      </div>
+
+      <!-- 内容分区： 列表 & 详情 -->
+      <div class="grid grid-cols-12 gap-6">
+        <!-- 列表 -->
+        <section class="col-span-5 bg-white border rounded p-4 h-[78vh] overflow-hidden flex flex-col">
+          <!-- 筛选区 -->
+          <div class="space-y-3 mb-4">
+            <div class="flex gap-2">
+              <select id="filter-status" class="border rounded px-3 py-2 w-36">
+                <option value="">全部状态</option>
+                <option value="draft">草稿</option>
+                <option value="under_review">评审中</option>
+                <option value="approved">已通过</option>
+                <option value="rejected">已驳回</option>
+                <option value="expired">已到期</option>
+              </select>
+              <select id="filter-creator" class="border rounded px-3 py-2 w-36">
+                <option value="">所有创建人</option>
+                <option value="alice">Alice</option>
+                <option value="bob">Bob</option>
+                <option value="carol">Carol</option>
+              </select>
+              <input id="filter-counter" placeholder="对方公司" class="border rounded px-3 py-2 w-48" />
+            </div>
+            <div class="flex gap-2 items-center">
+              <input id="filter-tag" placeholder="标签（逗号分隔）" class="border rounded px-3 py-2 flex-1" />
+              <input id="filter-expiry" type="date" class="border rounded px-3 py-2" />
+              <button id="apply-filters" class="bg-indigo-600 text-white px-3 py-2 rounded">筛选</button>
+              <button id="reset-filters" class="px-3 py-2 rounded border">重置</button>
+            </div>
+          </div>
+
+          <!-- 批量操作 -->
+          <div class="flex items-center justify-between border-t pt-3 pb-3">
+            <div class="flex items-center gap-3">
+              <input id="select-all" type="checkbox" />
+              <span class="text-sm">选择当前页</span>
+              <button id="batch-approve" class="bg-green-600 text-white px-3 py-1 rounded text-sm">批量审批通过</button>
+              <button id="batch-reject" class="bg-red-500 text-white px-3 py-1 rounded text-sm">批量驳回</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-500">导入CSV</label>
+              <input id="csv-input" type="file" accept=".csv" class="text-sm" />
+            </div>
+          </div>
+
+          <!-- 列表展示 -->
+          <div id="contract-list" class="mt-3 overflow-auto flex-1 space-y-3 scrollbar-hide pr-2"></div>
+
+          <!-- 加载更多 / 分页 -->
+          <div class="mt-3 flex items-center justify-center gap-3">
+            <button id="load-more" class="px-4 py-2 border rounded">加载更多</button>
+            <div id="infinite-switch" class="flex items-center gap-2 text-sm">
+              <input id="infinite-toggle" type="checkbox" /> <span>无限滚动</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 详情 -->
+        <section id="detail-area" class="col-span-7 bg-white border rounded p-4 h-[78vh] overflow-auto">
+          <div id="detail-empty" class="h-full flex items-center justify-center text-gray-400">
+            请选择合同查看详情或双击合同打开
+          </div>
+
+          <div id="detail-view" class="hidden">
+            <!-- 元数据 -->
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="text-sm text-gray-500">合同编号</div>
+                <div id="meta-id" class="text-lg font-semibold">--</div>
+                <div class="mt-2 text-sm text-gray-500">版本 / 标签</div>
+                <div id="meta-version" class="mt-1 text-sm">--</div>
+                <div class="mt-3 flex gap-2 items-center">
+                  <div class="text-sm text-gray-500">责任人</div>
+                  <div id="meta-owner" class="ml-2 text-sm font-medium">--</div>
+                  <div class="ml-4 text-sm text-gray-500">有效期</div>
+                  <div id="meta-valid" class="ml-2 text-sm">--</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm text-gray-500">当前状态</div>
+                <div id="meta-status" class="mt-1 px-3 py-1 rounded-full text-white inline-block">--</div>
+                <div class="mt-3">
+                  <button id="edit-metadata" class="px-3 py-1 border rounded mr-2">编辑元数据</button>
+                  <button id="download-meta" class="px-3 py-1 bg-indigo-600 text-white rounded">下载CSV</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-4">
+              <!-- 文档查看器 -->
+              <div class="bg-gray-50 p-3 rounded">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="font-medium">文档查看器</div>
+                    <select id="version-switch" class="border rounded px-2 py-1 text-sm">
+                      <option value="v1">版本 v1</option>
+                      <option value="v2">版本 v2</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button id="toggle-highlight" class="px-2 py-1 border rounded text-sm">高亮</button>
+                    <button id="toggle-annotate" class="px-2 py-1 border rounded text-sm">注释</button>
+                    <button id="download-doc" class="px-2 py-1 bg-indigo-600 text-white rounded text-sm">下载</button>
+                  </div>
+                </div>
+
+                <div class="h-[46vh] bg-white rounded p-2 doc-canvas relative">
+                  <iframe id="pdf-frame" src="https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf" class="w-full h-full rounded" title="document viewer"></iframe>
+                  <canvas id="anno-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                </div>
+              </div>
+
+              <!-- 评审/审批区 -->
+              <div class="bg-gray-50 p-3 rounded flex flex-col h-[46vh]">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="font-medium">评审与评论</div>
+                  <div class="text-sm text-gray-500">实时协作 • 支持 @提及</div>
+                </div>
+
+                <div id="comments" class="overflow-auto flex-1 space-y-3 mb-3 pr-2"></div>
+
+                <div class="pt-2 border-t">
+                  <div class="flex items-start gap-2">
+                    <textarea id="comment-input" placeholder="输入评论，支持 /指令 或 @用户" class="flex-1 border rounded px-3 py-2"></textarea>
+                    <div class="flex flex-col gap-2">
+                      <button id="send-comment" class="bg-indigo-600 text-white px-3 py-1 rounded">发送</button>
+                      <button id="open-mention" class="px-3 py-1 border rounded">提及</button>
+                    </div>
+                  </div>
+                  <div id="cmd-suggestions" class="hidden mt-2 bg-white border rounded p-2 cmd-suggestion">
+                    <div class="text-sm text-gray-600">命令提示</div>
+                    <ul id="cmd-list" class="mt-2 text-sm space-y-1"></ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 审批流程 -->
+            <div class="mt-4 bg-white rounded border p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-medium">审批流程</div>
+                <div class="text-sm text-gray-500">流程配置 • 串行/并行</div>
+              </div>
+
+              <div class="flex gap-4">
+                <div class="flex-1">
+                  <div class="text-sm text-gray-500 mb-2">当前节点</div>
+                  <div id="flow-current" class="mb-3"></div>
+
+                  <div class="text-sm text-gray-500 mb-2">历史节点</div>
+                  <div id="flow-history" class="text-sm text-gray-700"></div>
+                </div>
+
+                <div class="w-80 border-l pl-4">
+                  <div class="text-sm text-gray-500 mb-2">工作流配置</div>
+                  <div class="space-y-2">
+                    <select id="workflow-mode" class="border rounded px-2 py-1 w-full">
+                      <option value="serial">串行审批</option>
+                      <option value="parallel">并行审批</option>
+                    </select>
+                    <input id="assign-to" placeholder="分配人（@user）" class="border rounded px-2 py-1 w-full" />
+                    <input id="priority" type="number" placeholder="优先级（数值）" class="border rounded px-2 py-1 w-full" />
+                    <input id="deadline" type="datetime-local" class="border rounded px-2 py-1 w-full" />
+                    <div class="flex gap-2">
+                      <button id="save-workflow" class="bg-indigo-600 text-white px-3 py-1 rounded flex-1">保存</button>
+                      <button id="transfer-workflow" class="px-3 py-1 border rounded">转交</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="mt-4 flex items-center gap-3 justify-end">
+              <button id="approve-btn" class="bg-green-600 text-white px-4 py-2 rounded">批准</button>
+              <button id="reject-btn" class="bg-red-500 text-white px-4 py-2 rounded">驳回</button>
+              <button id="assign-btn" class="px-4 py-2 border rounded">分配</button>
+              <button id="more-actions" class="px-3 py-2 border rounded">更多</button>
+            </div>
+
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- 指令面板浮层 -->
+  <div id="command-panel" class="hidden fixed right-8 bottom-8 w-[520px] max-w-full bg-white border rounded shadow-lg z-50">
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-medium">指令面板</div>
+        <div class="text-sm text-gray-500">支持 /approve /reject /assign @user /comment</div>
+      </div>
+      <textarea id="command-input" placeholder="输入 / 开头的命令，例如：/approve 通过理由" class="w-full border rounded px-3 py-2 h-28"></textarea>
+      <div class="mt-3 flex items-center justify-between">
+        <div class="text-sm text-gray-500">参数提示： <span id="param-hint" class="ml-2 text-indigo-600"></span></div>
+        <div class="flex gap-2">
+          <button id="cmd-execute" class="bg-indigo-600 text-white px-4 py-1 rounded">执行</button>
+          <button id="cmd-cancel" class="px-4 py-1 border rounded">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模态 -->
+  <div id="modal-root"></div>
+
+  <!-- Toast -->
+  <div id="toast-root" class="toast"></div>
+
+  <script>
+    // 数据模拟
+    const users = [{id:'alice',name:'Alice'},{id:'bob',name:'Bob'},{id:'carol',name:'Carol'}];
+    let contracts = [];
+    let page = 0;
+    const pageSize = 8;
+    let infinite = false;
+    let selectedIds = new Set();
+    let currentDetail = null;
+    let lastOperation = null;
+    let preventDuplicate = new Set();
+
+    // 初始化示例数据
+    function seedData() {
+      const tags = ['采购','销售','保密','重要','外包'];
+      for (let i=1;i<=30;i++) {
+        const status = ['draft','under_review','approved','rejected','expired'][Math.floor(Math.random()*5)];
+        const owner = users[Math.floor(Math.random()*users.length)];
+        contracts.push({
+          id: 'CT-' + String(1000+i),
+          title: '合同-' + i,
+          version: 'v' + (Math.floor(Math.random()*3)+1),
+          counterparty: ['A公司','B公司','C集团','环球科技'][Math.floor(Math.random()*4)],
+          tags: [tags[Math.floor(Math.random()*tags.length)]],
+          createdBy: users[Math.floor(Math.random()*users.length)].id,
+          owner: owner.name,
+          validUntil: randomFutureDate(),
+          status,
+          updatedAt: new Date().toISOString(),
+          versions: [
+            {ver:'v1',url:'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'},
+            {ver:'v2',url:'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'}
+          ],
+          comments: []
+        });
+      }
+    }
+    function randomFutureDate() {
+      const d = new Date();
+      d.setDate(d.getDate() + Math.floor(Math.random()*365));
+      return d.toISOString().split('T')[0];
+    }
+
+    // 渲染列表
+    function renderList(reset=false) {
+      if (reset) {
+        page = 0;
+        document.getElementById('contract-list').innerHTML = '';
+      }
+      const start = page * pageSize;
+      const slice = contracts.slice(start, start+pageSize);
+      const container = document.getElementById('contract-list');
+      slice.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'p-3 border rounded flex items-start gap-3 hover:shadow-sm cursor-pointer';
+        el.innerHTML = `
+          <div class="flex-shrink-0">
+            <input class="select-checkbox" data-id="${c.id}" type="checkbox" ${selectedIds.has(c.id)?'checked':''}/>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-semibold">${c.title} <span class="text-xs text-gray-400">(${c.id})</span></div>
+                <div class="text-xs text-gray-500">对方：${c.counterparty} • 创建人：${c.createdBy}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-sm ${statusClass(c.status)}">${statusText(c.status)}</div>
+                <div class="text-xs text-gray-400">${c.validUntil}</div>
+              </div>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              ${c.tags.map(t=>`<div class="tag bg-gray-100">${t}</div>`).join('')}
+              <button data-id="${c.id}" class="open-detail text-sm text-indigo-600">查看</button>
+            </div>
+          </div>
+        `;
+        // double click open
+        el.querySelector('.open-detail').addEventListener('click', ()=>openDetail(c.id));
+        el.addEventListener('dblclick', ()=>openDetail(c.id));
+        el.querySelector('.select-checkbox').addEventListener('change', (e)=> {
+          const id = e.target.dataset.id;
+          if (e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
+          document.getElementById('select-all').checked = isAllSelectedOnPage();
+        });
+        container.appendChild(el);
+      });
+      page++;
+    }
+
+    function statusText(s) {
+      return {draft:'草稿',under_review:'评审中',approved:'已通过',rejected:'已驳回',expired:'已到期'}[s] || s;
+    }
+    function statusClass(s) {
+      return {draft:'bg-gray-200 text-gray-800',under_review:'bg-yellow-500 text-white',approved:'bg-green-600 text-white',rejected:'bg-red-500 text-white',expired:'bg-gray-400 text-white'}[s] || 'bg-gray-200';
+    }
+
+    function isAllSelectedOnPage() {
+      const checkboxes = Array.from(document.querySelectorAll('#contract-list .select-checkbox'));
+      return checkboxes.length>0 && checkboxes.every(cb=>cb.checked);
+    }
+
+    // 详情打开
+    function openDetail(id) {
+      currentDetail = contracts.find(c=>c.id===id);
+      if(!currentDetail) return;
+      document.getElementById('detail-empty').classList.add('hidden');
+      document.getElementById('detail-view').classList.remove('hidden');
+      document.getElementById('meta-id').textContent = currentDetail.id;
+      document.getElementById('meta-version').textContent = `${currentDetail.version} / ${currentDetail.tags.join(', ')}`;
+      document.getElementById('meta-owner').textContent = currentDetail.owner;
+      document.getElementById('meta-valid').textContent = currentDetail.validUntil;
+      const statusEl = document.getElementById('meta-status');
+      statusEl.textContent = statusText(currentDetail.status);
+      statusEl.className = 'mt-1 px-3 py-1 rounded-full text-white inline-block ' + statusClass(currentDetail.status);
+      // load comments
+      const comments = document.getElementById('comments');
+      comments.innerHTML = '';
+      currentDetail.comments.forEach(cm => {
+        const d = document.createElement('div');
+        d.className = 'p-2 border rounded bg-white';
+        d.innerHTML = `<div class="text-sm"><strong>${cm.author}</strong> <span class="text-xs text-gray-400 ml-2">${new Date(cm.time).toLocaleString()}</span></div><div class="mt-1 text-sm">${cm.text}</div>`;
+        comments.appendChild(d);
+      });
+      // flow
+      renderFlow();
+      // load doc
+      const iframe = document.getElementById('pdf-frame');
+      const url = currentDetail.versions[0].url;
+      iframe.src = url;
+    }
+
+    function renderFlow() {
+      const cur = document.getElementById('flow-current');
+      const hist = document.getElementById('flow-history');
+      cur.innerHTML = `<div class="p-2 bg-white border rounded">节点：评审中 • 审批人：${currentDetail.owner}</div>`;
+      hist.innerHTML = `<div class="space-y-2">${currentDetail.comments.map(c=>`<div class="p-2 bg-gray-50 border rounded text-xs">${c.author} • ${new Date(c.time).toLocaleString()} • ${c.text}</div>`).join('') || '无历史记录'}</div>`;
+    }
+
+    // 事件：加载更多 / 无限滚动
+    document.getElementById('load-more').addEventListener('click', ()=>renderList());
+    document.getElementById('infinite-toggle').addEventListener('change', (e)=> {
+      infinite = e.target.checked;
+      if (infinite) {
+        document.getElementById('load-more').classList.add('hidden');
+      } else document.getElementById('load-more').classList.remove('hidden');
+    });
+
+    // 滚动触发无限加载
+    const listEl = document.getElementById('contract-list');
+    listEl.addEventListener('scroll', ()=> {
+      if (!infinite) return;
+      if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 100) {
+        renderList();
+      }
+    });
+
+    // 选择全部
+    document.getElementById('select-all').addEventListener('change', (e)=> {
+      const checkboxes = Array.from(document.querySelectorAll('#contract-list .select-checkbox'));
+      checkboxes.forEach(cb=> {
+        cb.checked = e.target.checked;
+        const id = cb.dataset.id;
+        if (e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
+      });
+    });
+
+    // 批量操作：审批通过 / 驳回
+    document.getElementById('batch-approve').addEventListener('click', ()=>batchAction('approved'));
+    document.getElementById('batch-reject').addEventListener('click', ()=>batchAction('rejected'));
+
+    function batchAction(targetStatus) {
+      const ids = Array.from(selectedIds);
+      if (ids.length===0) return toast('请先选择合同');
+      if (preventDuplicate.has('batch-'+targetStatus)) return toast('操作处理中，请勿重复提交');
+      if (!confirm(`确定要将 ${ids.length} 个合同标记为 ${statusText(targetStatus)} 吗？`)) return;
+      preventDuplicate.add('batch-'+targetStatus);
+      // simulate server
+      setTimeout(()=> {
+        contracts.forEach(c=> { if (ids.includes(c.id)) { c.status = targetStatus; c.updatedAt = new Date().toISOString(); }});
+        preventDuplicate.delete('batch-'+targetStatus);
+        renderAllReset();
+        toast('批量操作已完成');
+        lastOperation = {type:'batch', action:targetStatus, ids, undo: ()=> {
+          contracts.forEach(c=> { if (ids.includes(c.id)) { c.status='under_review'; }});
+          renderAllReset();
+        }};
+        showUndo();
+      }, 800);
+    }
+
+    // CSV 导入
+    document.getElementById('csv-input').addEventListener('change', (e)=> {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const text = ev.target.result;
+        const rows = text.split(/\r?\n/).filter(r=>r.trim());
+        for (let r of rows) {
+          const cols = r.split(',');
+          contracts.unshift({
+            id: cols[0] || 'CT-' + (Date.now()%10000),
+            title: cols[1] || '导入合同',
+            version: 'v1',
+            counterparty: cols[2] || '未知',
+            tags: (cols[3]||'').split(';').filter(Boolean),
+            createdBy: 'import',
+            owner: cols[4] || '系统',
+            validUntil: cols[5] || randomFutureDate(),
+            status: 'under_review',
+            updatedAt: new Date().toISOString(),
+            versions:[{ver:'v1',url:'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'}],
+            comments: []
+          });
+        }
+        renderAllReset();
+        toast('CSV 导入完成');
+      };
+      reader.readAsText(file);
+    });
+
+    // 详情区评论发送 & 命令提示
+    const cmdListEl = document.getElementById('cmd-list');
+    const cmdSuggestions = [
+      {cmd:'/approve',desc:'批准合同，可带备注'},
+      {cmd:'/reject',desc:'驳回合同，需填写理由'},
+      {cmd:'/assign',desc:'assign @user 指派负责人'},
+      {cmd:'/comment',desc:'添加评审意见'}
+    ];
+    function showCmdSuggestions(q='') {
+      const box = document.getElementById('cmd-suggestions');
+      const list = cmdSuggestions.filter(c=>c.cmd.startsWith(q) || c.cmd.includes(q));
+      if (list.length===0) { box.classList.add('hidden'); return; }
+      cmdListEl.innerHTML = list.map(it=>`<li class="cursor-pointer p-1 hover:bg-gray-100" data-cmd="${it.cmd}"><strong>${it.cmd}</strong> <span class="text-xs text-gray-500"> ${it.desc}</span></li>`).join('');
+      box.classList.remove('hidden');
+      Array.from(cmdListEl.querySelectorAll('li')).forEach(li=> {
+        li.addEventListener('click', ()=> {
+          document.getElementById('comment-input').value = li.dataset.cmd + ' ';
+          box.classList.add('hidden');
+          document.getElementById('comment-input').focus();
+        });
+      });
+    }
+
+    document.getElementById('comment-input').addEventListener('input', (e)=> {
+      const v = e.target.value.trim();
+      if (v.startsWith('/')) showCmdSuggestions(v.split(' ')[0]);
+      else document.getElementById('cmd-suggestions').classList.add('hidden');
+    });
+
+    document.getElementById('send-comment').addEventListener('click', ()=> {
+      const txt = document.getElementById('comment-input').value.trim();
+      if (!currentDetail) return toast('请先打开合同');
+      if (!txt) return;
+      if (preventDuplicate.has('send-comment')) return toast('发送中...');
+      preventDuplicate.add('send-comment',true);
+      preventDuplicate.add('send-comment');
+      // detect command
+      if (txt.startsWith('/')) {
+        executeCommandText(txt);
+        document.getElementById('comment-input').value = '';
+        preventDuplicate.delete('send-comment');
+        return;
+      }
+      const comment = {author:'You', text:txt, time:new Date().toISOString()};
+      currentDetail.comments.push(comment);
+      renderCommentsLocal();
+      document.getElementById('comment-input').value = '';
+      preventDuplicate.delete('send-comment');
+      lastOperation = {type:'comment', data:comment, undo: ()=> {
+        currentDetail.comments = currentDetail.comments.filter(c=>c!==comment);
+        renderCommentsLocal();
+      }};
+      showUndo();
+    });
+
+    function renderCommentsLocal() {
+      const comments = document.getElementById('comments');
+      comments.innerHTML = '';
+      currentDetail.comments.forEach(cm => {
+        const d = document.createElement('div');
+        d.className = 'p-2 border rounded bg-white';
+        d.innerHTML = `<div class="text-sm"><strong>${cm.author}</strong> <span class="text-xs text-gray-400 ml-2">${new Date(cm.time).toLocaleString()}</span></div><div class="mt-1 text-sm">${cm.text}</div>`;
+        comments.appendChild(d);
+      });
+      renderFlow();
+    }
+
+    // 指令面板 & 命令执行
+    document.getElementById('command-toggle').addEventListener('click', ()=> {
+      document.getElementById('command-panel').classList.toggle('hidden');
+    });
+    document.getElementById('cmd-cancel').addEventListener('click', ()=> {
+      document.getElementById('command-panel').classList.add('hidden');
+    });
+    document.getElementById('command-input').addEventListener('input', (e)=> {
+      const v = e.target.value.trim();
+      const hint = document.getElementById('param-hint');
+      if (v.startsWith('/assign')) hint.textContent = '格式：/assign @user';
+      else if (v.startsWith('/approve')) hint.textContent = '/approve [备注]';
+      else if (v.startsWith('/reject')) hint.textContent = '/reject [理由]';
+      else if (v.startsWith('/comment')) hint.textContent = '/comment 内容';
+      else hint.textContent = '';
+    });
+    document.getElementById('cmd-execute').addEventListener('click', ()=> {
+      const txt = document.getElementById('command-input').value.trim();
+      if (!txt) return;
+      document.getElementById('command-panel').classList.add('hidden');
+      executeCommandText(txt);
+      document.getElementById('command-input').value = '';
+    });
+
+    function executeCommandText(txt) {
+      // parse command
+      const parts = txt.split(/\s+/);
+      const cmd = parts[0];
+      if (cmd === '/approve') {
+        // if contract open => act on detail else on selected
+        const note = parts.slice(1).join(' ');
+        performActionOnTarget('approved', note);
+      } else if (cmd === '/reject') {
+        const reason = parts.slice(1).join(' ') || '无理由';
+        performActionOnTarget('rejected', reason);
+      } else if (cmd === '/assign') {
+        const user = parts.slice(1).join(' ') || '@unassigned';
+        performAssign(user);
+      } else if (cmd === '/comment') {
+        const comment = parts.slice(1).join(' ');
+        if (!comment) return toast('评论为空');
+        if (currentDetail) {
+          currentDetail.comments.push({author:'You', text:comment, time:new Date().toISOString()});
+          renderCommentsLocal();
+        } else {
+          toast('请先打开合同以评论或选中合同后使用批量指令');
+        }
+      } else {
+        toast('未知指令');
+      }
+    }
+
+    function performActionOnTarget(status, note) {
+      if (currentDetail) {
+        if (preventDuplicate.has(currentDetail.id+'-'+status)) return toast('操作处理中');
+        if (!confirm(`确定对 ${currentDetail.id} 执行 ${statusText(status)}？`)) return;
+        preventDuplicate.add(currentDetail.id+'-'+status);
+        setTimeout(()=> {
+          currentDetail.status = status;
+          currentDetail.comments.push({author:'系统', text: note || (status==='approved'?'批准':'驳回'), time:new Date().toISOString()});
+          renderAllReset();
+          preventDuplicate.delete(currentDetail.id+'-'+status);
+          toast('操作完成');
+          lastOperation = {type:'single', id:currentDetail.id, prevStatus: currentDetail.status === status ? 'under_review' : currentDetail.status, action:status, undo: ()=> {
+            const c = contracts.find(x=>x.id===currentDetail.id);
+            if (c) c.status='under_review';
+            renderAllReset();
+          }};
+          showUndo();
+        }, 700);
+      } else {
+        const ids = Array.from(selectedIds);
+        if (ids.length===0) return toast('请先打开合同或选择合同');
+        if (!confirm(`确定对 ${ids.length} 个合同执行 ${statusText(status)}？`)) return;
+        ids.forEach(id => {
+          const c = contracts.find(x=>x.id===id);
+          if (c) { c.status = status; c.comments.push({author:'系统', text:note||'', time:new Date().toISOString()}); }
+        });
+        renderAllReset();
+        toast('批量指令已执行');
+      }
+    }
+
+    function performAssign(user) {
+      if (!currentDetail) {
+        return toast('请先打开合同以分配负责人');
+      }
+      if (!confirm(`将 ${currentDetail.id} 分配给 ${user}？`)) return;
+      currentDetail.owner = user;
+      renderAllReset();
+      toast('分配成功');
+      lastOperation = {type:'assign', id:currentDetail.id, prevOwner:currentDetail.owner, undo: ()=> {
+        const c = contracts.find(x=>x.id===currentDetail.id);
+        if (c) c.owner = lastOperation.prevOwner;
+        renderAllReset();
+      }};
+      showUndo();
+    }
+
+    // Undo prompt
+    function showUndo() {
+      const root = document.getElementById('toast-root');
+      root.innerHTML = `<div id="undo-toast" class="bg-white border p-3 rounded shadow">操作已完成 <button id="undo-btn" class="ml-3 text-indigo-600">撤销</button></div>`;
+      document.getElementById('undo-btn').addEventListener('click', ()=> {
+        if (lastOperation && lastOperation.undo) {
+          lastOperation.undo();
+          toast('已撤销');
+          lastOperation = null;
+          root.innerHTML = '';
+        }
+      });
+      // auto hide
+      setTimeout(()=> {
+        const el = document.getElementById('undo-toast');
+        if (el) el.remove();
+      }, 7000);
+    }
+
+    // toast
+    function toast(msg) {
+      const root = document.getElementById('toast-root');
+      const id = 't-' + Date.now();
+      const el = document.createElement('div');
+      el.id = id;
+      el.className = 'bg-white border p-3 rounded shadow mb-2';
+      el.textContent = msg;
+      root.appendChild(el);
+      setTimeout(()=> {
+        const e = document.getElementById(id);
+        if (e) e.remove();
+      }, 4000);
+    }
+
+    // 搜索与筛选
+    document.getElementById('apply-filters').addEventListener('click', ()=> {
+      applyFilters();
+    });
+    document.getElementById('reset-filters').addEventListener('click', ()=> {
+      document.getElementById('filter-status').value = '';
+      document.getElementById('filter-creator').value = '';
+      document.getElementById('filter-counter').value = '';
+      document.getElementById('filter-tag').value = '';
+      document.getElementById('filter-expiry').value = '';
+      renderAllReset();
+    });
+
+    function applyFilters() {
+      const status = document.getElementById('filter-status').value;
+      const creator = document.getElementById('filter-creator').value;
+      const counter = document.getElementById('filter-counter').value.toLowerCase();
+      const tags = document.getElementById('filter-tag').value.split(',').map(t=>t.trim()).filter(Boolean);
+      const expiry = document.getElementById('filter-expiry').value;
+      // filter in-memory
+      let res = contracts.slice();
+      if (status) res = res.filter(c=>c.status===status);
+      if (creator) res = res.filter(c=>c.createdBy===creator);
+      if (counter) res = res.filter(c=>c.counterparty.toLowerCase().includes(counter));
+      if (tags.length) res = res.filter(c=>tags.every(t=>c.tags.includes(t)));
+      if (expiry) res = res.filter(c=>c.validUntil <= expiry);
+      // show
+      document.getElementById('contract-list').innerHTML = '';
+      page = 0;
+      // put res into view by temporarily replacing contracts shown
+      const backup = contracts;
+      contracts = res;
+      renderList(true);
+      contracts = backup;
+    }
+
+    // 防重复提交：在简单情况下用set
+    // 操作按钮
+    document.getElementById('approve-btn').addEventListener('click', ()=> executeCommandText('/approve 经UI批准'));
+    document.getElementById('reject-btn').addEventListener('click', ()=> executeCommandText('/reject 未通过'));
+    document.getElementById('assign-btn').addEventListener('click', ()=> {
+      const user = prompt('输入分配人 @user', '@bob');
+      if (user) performAssign(user);
+    });
+
+    // 新建示例合同
+    document.getElementById('new-contract').addEventListener('click', ()=> {
+      const id = 'CT-' + (10000 + Math.floor(Math.random()*90000));
+      contracts.unshift({
+        id, title: '新合同 ' + id, version:'v1', counterparty:'示例公司', tags:['重要'], createdBy:'You', owner:'You', validUntil:randomFutureDate(), status:'draft', updatedAt:new Date().toISOString(), versions:[{ver:'v1',url:'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf'}], comments:[]
+      });
+      renderAllReset();
+      toast('新建合同已创建');
+    });
+
+    // 渲染全部重置
+    function renderAllReset() {
+      document.getElementById('contract-list').innerHTML = '';
+      page = 0;
+      selectedIds.clear();
+      renderList(true);
+      if (currentDetail) {
+        // refresh detail from contracts
+        currentDetail = contracts.find(c=>c.id===currentDetail.id) || null;
+        if (currentDetail) openDetail(currentDetail.id);
+        else {
+          document.getElementById('detail-view').classList.add('hidden');
+          document.getElementById('detail-empty').classList.remove('hidden');
+        }
+      }
+    }
+
+    // 模拟实时更新（WebSocket）
+    function simulateRealtime() {
+      setInterval(()=> {
+        // 随机将某合同状态变更以模拟外部审批结果
+        if (contracts.length===0) return;
+        const idx = Math.floor(Math.random()*contracts.length);
+        const c = contracts[idx];
+        const old = c.status;
+        if (old === 'under_review' && Math.random() < 0.3) {
+          c.status = Math.random()<0.5 ? 'approved' : 'rejected';
+          c.comments.push({author:'系统', text:'自动审核结果：' + c.status, time:new Date().toISOString()});
+          // 如果当前打开，刷新详情
+          if (currentDetail && currentDetail.id === c.id) openDetail(c.id);
+          // refresh list UI labels
+          document.querySelectorAll('#contract-list .open-detail').forEach(btn=>{
+            // naive rerender list
+          });
+          renderAllReset();
+        }
+      }, 6000);
+    }
+
+    // Canvas 注释（简易高亮与画笔）
+    let annotateMode = false, highlightMode = false;
+    const annoCanvas = document.getElementById('anno-canvas');
+    const ctx = annoCanvas.getContext('2d');
+    function resizeCanvas() {
+      annoCanvas.width = annoCanvas.clientWidth;
+      annoCanvas.height = annoCanvas.clientHeight;
+      ctx.clearRect(0,0,annoCanvas.width, annoCanvas.height);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    document.getElementById('toggle-annotate').addEventListener('click', ()=> {
+      annotateMode = !annotateMode;
+      annoCanvas.style.pointerEvents = annotateMode ? 'auto' : 'none';
+      document.getElementById('toggle-annotate').classList.toggle('bg-indigo-600');
+    });
+    document.getElementById('toggle-highlight').addEventListener('click', ()=> {
+      highlightMode = !highlightMode;
+      document.getElementById('toggle-highlight').classList.toggle('bg-yellow-400');
+      if (highlightMode) {
+        ctx.globalCompositeOperation = 'multiply';
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    });
+
+    let drawing = false;
+    let last = null;
+    annoCanvas.addEventListener('pointerdown', (e)=> {
+      if (!annotateMode) return;
+      drawing = true;
+      last = {x:e.offsetX, y:e.offsetY};
+      ctx.strokeStyle = highlightMode ? 'rgba(255,255,0,0.6)' : 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = highlightMode ? 18 : 2;
+      ctx.lineCap = 'round';
+    });
+    annoCanvas.addEventListener('pointermove', (e)=> {
+      if (!drawing) return;
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      last = {x:e.offsetX, y:e.offsetY};
+    });
+    annoCanvas.addEventListener('pointerup', ()=> drawing = false);
+    annoCanvas.addEventListener('pointerleave', ()=> drawing = false);
+
+    // 批量/单个下载CSV（简单导出当前合同元数据）
+    document.getElementById('download-meta').addEventListener('click', ()=> {
+      const rows = [['id','title','counterparty','owner','validUntil','status'].join(',')];
+      contracts.forEach(c=> rows.push([c.id,c.title,c.counterparty,c.owner,c.validUntil,c.status].join(',')));
+      const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'contracts_meta.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 命令面板：撤销确认机制 & 防重复
+    // 全局搜索
+    document.getElementById('global-search').addEventListener('input', (e)=> {
+      const v = e.target.value.trim();
+      document.getElementById('clear-search').style.display = v ? 'inline' : 'none';
+      document.getElementById('contract-list').innerHTML = '';
+      page = 0;
+      if (!v) renderAllReset();
+      else {
+        const res = contracts.filter(c=> (c.id+c.title+c.counterparty+c.tags.join(' ')).toLowerCase().includes(v.toLowerCase()));
+        const backup = contracts;
+        contracts = res;
+        renderList(true);
+        contracts = backup;
+      }
+    });
+    document.getElementById('clear-search').addEventListener('click', ()=> {
+      document.getElementById('global-search').value = '';
+      document.getElementById('clear-search').style.display = 'none';
+      renderAllReset();
+    });
+
+    // init
+    seedData();
+    renderList(true);
+    simulateRealtime();
+
+    // small helper: click outside to hide command-suggestions
+    document.addEventListener('click', (e)=> {
+      if (!e.target.closest('#cmd-suggestions') && !e.target.closest('#comment-input')) {
+        document.getElementById('cmd-suggestions').classList.add('hidden');
+      }
+    });
+
+    // keyboard shortcuts: "/" focus command input
+    document.addEventListener('keydown', (e)=> {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        document.getElementById('comment-input').focus();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('command-panel').classList.add('hidden');
+      }
+    });
+
+  </script>
+</body>
+</html>
