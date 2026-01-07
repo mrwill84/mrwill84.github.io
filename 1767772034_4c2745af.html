@@ -1,0 +1,731 @@
+<think>
+**Planning push notifications and conflict simulation**
+
+I’m looking to implement simulated push notifications and update the approval progress timeline. I want to add a batch mode for checkboxes on the contract list and simulate potential conflicts if another user issues a command randomly. I'll use localStorage to store logs and snapshots, aiming for about 400 lines of code. The plan involves crafting this with HTML and styling it using Tailwind, all while keeping it to plain JavaScript and incorporating small icons through inline SVGs.
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI 平台1.0 - 合同审核指令面板</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    /* 简单滚动条美化 */
+    ::-webkit-scrollbar { height: 10px; width: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 8px; }
+    /* OCR 层风格 */
+    .ocr-layer { mix-blend-mode: multiply; pointer-events:none; }
+    /* 小屏下侧栏收起 */
+    @media (max-width: 900px) {
+      .desktop-only { display: none; }
+    }
+  </style>
+</head>
+<body class="h-screen bg-slate-50 text-slate-800">
+  <div class="h-full flex flex-col">
+    <header class="flex items-center justify-between gap-4 px-4 py-3 border-b bg-white">
+      <div class="flex items-center gap-3">
+        <div class="text-2xl font-semibold text-indigo-600">智律云AI</div>
+        <div class="text-sm text-slate-500">合同审核 1.0</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded">
+          <label class="text-xs text-slate-600">当前角色</label>
+          <select id="roleSelect" class="bg-transparent text-sm outline-none">
+            <option value="审查员">审查员</option>
+            <option value="主管">主管</option>
+            <option value="法务">法务</option>
+            <option value="审计">审计</option>
+          </select>
+        </div>
+        <button id="notificationsBtn" class="relative p-2 rounded hover:bg-slate-100" title="通知">
+          <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span id="notifDot" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full hidden"></span>
+        </button>
+        <div class="h-10 w-px bg-slate-200"></div>
+        <div class="text-sm text-slate-600">团队: 智律AI</div>
+      </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+      <aside class="w-72 border-r bg-white flex flex-col overflow-auto">
+        <div class="p-4">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-medium">合同列表</div>
+            <button id="refreshContracts" class="text-xs text-indigo-600 hover:underline">刷新</button>
+          </div>
+          <div class="mt-2 text-xs text-slate-500">支持批量选择后下发指令</div>
+        </div>
+        <div class="px-3 pb-4 space-y-2">
+          <div class="flex items-center gap-2">
+            <input id="searchContracts" type="search" placeholder="搜索合同编号/对方" class="flex-1 px-3 py-2 text-sm rounded border bg-slate-50 focus:outline-none" />
+            <button id="batchToggle" class="px-3 py-2 text-xs rounded bg-indigo-50 text-indigo-600">批量模式</button>
+          </div>
+        </div>
+        <div id="contractList" class="flex-1 overflow-auto px-2">
+          <!-- 合同项由 JS 渲染 -->
+        </div>
+        <div class="p-3 border-t bg-slate-50 text-xs text-slate-600">
+          已缓存：<span id="cacheInfo">0</span> 合同
+        </div>
+      </aside>
+
+      <section class="flex-1 flex flex-col">
+        <div class="flex-1 flex overflow-hidden">
+          <div class="w-1/2 min-w-[420px] flex flex-col border-r bg-white overflow-hidden">
+            <div class="flex items-center justify-between p-3 border-b bg-white">
+              <div class="flex items-center gap-3">
+                <div class="text-sm font-medium" id="docTitle">合同 #00123 - 与 XX 公司 合作协议</div>
+                <div class="text-xs text-slate-500" id="docMeta">到期：2026-12-31 · 金额：¥2,500,000</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="zoomOut" class="px-2 py-1 rounded hover:bg-slate-100">-</button>
+                <div id="zoomLevel" class="text-sm w-12 text-center">100%</div>
+                <button id="zoomIn" class="px-2 py-1 rounded hover:bg-slate-100">+</button>
+                <div class="h-8 w-px bg-slate-100"></div>
+                <button id="ocrToggle" class="px-3 py-1 rounded bg-amber-50 text-amber-600">OCR 层</button>
+                <button id="textOnly" class="px-3 py-1 rounded hover:bg-slate-100">文本</button>
+                <div class="h-8 w-px bg-slate-100"></div>
+                <input id="pageInput" type="number" min="1" value="1" class="w-20 px-2 py-1 text-sm rounded border" />
+                <div class="text-xs text-slate-500"> / <span id="pageCount">5</span> 页</div>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-auto p-4 relative bg-gradient-to-b from-white to-slate-50">
+              <div id="docCanvas" class="mx-auto w-full max-w-3xl">
+                <!-- 模拟文档：每条条款可折叠、可注释 -->
+              </div>
+              <div id="ocrLayer" class="absolute inset-0 pointer-events-none ocr-layer hidden">
+                <!-- OCR 层文本高亮 -->
+              </div>
+            </div>
+
+            <div class="p-3 border-t bg-slate-50 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-3">
+                <button id="snapshotBtn" class="px-3 py-1 rounded bg-indigo-600 text-white text-sm">保存快照</button>
+                <button id="rollbackBtn" class="px-3 py-1 rounded hover:bg-slate-100">回滚版本</button>
+                <div class="text-slate-500">快照数: <span id="snapshotCount">0</span></div>
+              </div>
+              <div class="text-slate-500">识别置信度：<span id="ocrConfidence">92%</span></div>
+            </div>
+          </div>
+
+          <aside class="w-96 min-w-[360px] bg-slate-50 p-4 flex flex-col overflow-auto">
+            <div class="text-sm font-medium mb-3">指令 / 操作面板</div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">指令输入</label>
+              <div class="mt-2 relative">
+                <input id="commandInput" type="text" placeholder="例如：审核第123号合同并标注风险点" class="w-full px-3 py-2 rounded border bg-white text-sm" aria-label="指令输入" />
+                <div id="autocomplete" class="absolute left-0 right-0 mt-1 bg-white border rounded shadow-lg hidden z-10"></div>
+              </div>
+              <div class="flex items-center gap-2 mt-2 text-xs">
+                <button id="parseBtn" class="px-3 py-1 rounded bg-indigo-600 text-white">解析草案</button>
+                <button id="applyBtn" class="px-3 py-1 rounded bg-emerald-600 text-white">执行指令</button>
+                <button id="clearCmd" class="px-3 py-1 rounded hover:bg-slate-100">清空</button>
+                <div class="ml-auto text-xs text-slate-500">历史: <span id="historyCount">0</span></div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">常用模板</label>
+              <div class="mt-2 grid grid-cols-2 gap-2">
+                <button class="template px-2 py-1 text-xs rounded bg-white border text-slate-700">审核合同#{{id}}并标注风险</button>
+                <button class="template px-2 py-1 text-xs rounded bg-white border text-slate-700">批准并添加条件：需补齐签章</button>
+                <button class="template px-2 py-1 text-xs rounded bg-white border text-slate-700">拒绝并反馈：需修改付款条款</button>
+                <button class="template px-2 py-1 text-xs rounded bg-white border text-slate-700">转审给：主管</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">智能建议</label>
+              <div id="suggestions" class="mt-2 space-y-2 text-sm">
+                <div class="p-2 bg-white border rounded text-slate-700">AI 风险点：付款条款 - 分期付款无担保 · 置信度 87%</div>
+                <div class="p-2 bg-white border rounded text-slate-700">建议：对金额>¥1,000,000 的合同需主管复核</div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">操作按钮组</label>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="approve">快速批准</button>
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="reject">拒绝</button>
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="revise">需要修改</button>
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="transfer">转审</button>
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="cond">添加条件</button>
+                <button class="opBtn px-3 py-1 rounded bg-white border" data-op="todo">生成待办</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">评论与协作</label>
+              <div class="mt-2 bg-white border rounded p-2">
+                <textarea id="commentBox" rows="3" class="w-full text-sm p-2 rounded border" placeholder="@张三 请确认第3条款"></textarea>
+                <div class="flex items-center gap-2 mt-2">
+                  <input id="attachInput" type="file" class="text-xs" />
+                  <button id="mentionBtn" class="px-2 py-1 rounded bg-indigo-50 text-indigo-600 text-xs">@提及</button>
+                  <button id="postComment" class="px-3 py-1 rounded bg-indigo-600 text-white text-xs">发布</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="text-xs text-slate-600">审核进度与状态</label>
+              <div id="progressArea" class="mt-2 bg-white border rounded p-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 bg-amber-400 rounded-full"></div>
+                  <div>节点：初审</div>
+                  <div class="text-xs text-slate-400 ml-auto">预计 2 天</div>
+                </div>
+                <div class="mt-2 text-xs text-slate-500" id="historyStream">历史记录将显示在此处</div>
+              </div>
+            </div>
+
+            <div class="mt-auto pt-3 border-t">
+              <div class="text-xs text-slate-500 mb-2">审计日志（本地演示）</div>
+              <div id="auditLog" class="max-h-40 overflow-auto text-xs space-y-1">
+                <!-- 日志条目 -->
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="contractItemTpl">
+    <div class="contract-item flex items-start gap-3 p-3 rounded hover:bg-slate-50 border">
+      <div class="flex-none">
+        <input type="checkbox" class="select-contract hidden" />
+      </div>
+      <div class="flex-1">
+        <div class="font-medium contract-title"></div>
+        <div class="text-xs text-slate-500 contract-meta"></div>
+      </div>
+      <div class="text-xs text-slate-400">{status}</div>
+    </div>
+  </template>
+
+  <script>
+    // 基础数据与工具函数
+    const contracts = [
+      { id: '00123', title: '合同 #00123 - 与 XX 公司 合作协议', counterparty: 'XX 公司', expire: '2026-12-31', amount: 2500000, pages: 5, status: '待初审', ocrConfidence: 92 },
+      { id: '00124', title: '合同 #00124 - 与 YY 公司 服务协议', counterparty: 'YY 公司', expire: '2025-08-15', amount: 450000, pages: 3, status: '已审核', ocrConfidence: 98 },
+      { id: '00125', title: '合同 #00125 - 与 ZZ 公司 供货合同', counterparty: 'ZZ 公司', expire: '2027-01-10', amount: 1200000, pages: 7, status: '待复核', ocrConfidence: 85 },
+      { id: '00126', title: '合同 #00126 - 与 AB 公司 技术服务', counterparty: 'AB 公司', expire: '2024-11-30', amount: 80000, pages: 2, status: '草稿', ocrConfidence: 90 }
+    ];
+    const templates = [
+      '审核合同#{{id}}并标注风险点',
+      '批准并添加条件：需补齐签章',
+      '拒绝并反馈：需修改付款条款',
+      '转审给：主管'
+    ];
+    const storageKey = 'zlai_audit_logs_v1';
+    const snapshotsKey = 'zlai_snapshots_v1';
+    let state = {
+      currentContract: contracts[0],
+      zoom: 1,
+      page: 1,
+      batchMode: false,
+      selected: new Set(),
+      role: '审查员',
+      history: [],
+      auditLogs: JSON.parse(localStorage.getItem(storageKey) || '[]'),
+      snapshots: JSON.parse(localStorage.getItem(snapshotsKey) || '[]'),
+      optimisticToken: Math.random().toString(36).slice(2)
+    };
+
+    // DOM references
+    const contractListEl = document.getElementById('contractList');
+    const cacheInfoEl = document.getElementById('cacheInfo');
+    const docTitleEl = document.getElementById('docTitle');
+    const docMetaEl = document.getElementById('docMeta');
+    const docCanvas = document.getElementById('docCanvas');
+    const ocrLayer = document.getElementById('ocrLayer');
+    const ocrConfidenceEl = document.getElementById('ocrConfidence');
+    const zoomLevelEl = document.getElementById('zoomLevel');
+    const pageCountEl = document.getElementById('pageCount');
+    const pageInput = document.getElementById('pageInput');
+    const commandInput = document.getElementById('commandInput');
+    const autocompleteEl = document.getElementById('autocomplete');
+    const parseBtn = document.getElementById('parseBtn');
+    const applyBtn = document.getElementById('applyBtn');
+    const historyCountEl = document.getElementById('historyCount');
+    const auditLogEl = document.getElementById('auditLog');
+    const snapshotCountEl = document.getElementById('snapshotCount');
+    const snapshotBtn = document.getElementById('snapshotBtn');
+    const rollbackBtn = document.getElementById('rollbackBtn');
+    const roleSelect = document.getElementById('roleSelect');
+    const notifDot = document.getElementById('notifDot');
+    const notifBtn = document.getElementById('notificationsBtn');
+    const progressArea = document.getElementById('progressArea');
+
+    // 初始化界面
+    function renderContractList(filter='') {
+      contractListEl.innerHTML = '';
+      const tpl = document.getElementById('contractItemTpl').content;
+      const list = contracts.filter(c => `${c.id} ${c.counterparty} ${c.title}`.includes(filter));
+      list.forEach(c => {
+        const node = tpl.cloneNode(true);
+        const el = node.querySelector('.contract-item');
+        el.querySelector('.contract-title').textContent = `${c.title}`;
+        el.querySelector('.contract-meta').textContent = `到期：${c.expire} · 金额：¥${c.amount.toLocaleString()}`;
+        el.querySelector('.select-contract').classList.toggle('hidden', !state.batchMode);
+        el.addEventListener('click', (ev) => {
+          if (state.batchMode) {
+            const chk = el.querySelector('.select-contract');
+            chk.checked = !chk.checked;
+            if (chk.checked) state.selected.add(c.id); else state.selected.delete(c.id);
+            el.classList.toggle('bg-indigo-50', chk.checked);
+          } else {
+            selectContract(c.id);
+          }
+        });
+        contractListEl.appendChild(node);
+      });
+      cacheInfoEl.textContent = list.length;
+    }
+
+    function selectContract(id) {
+      const c = contracts.find(x => x.id === id);
+      if (!c) return;
+      state.currentContract = c;
+      state.page = 1;
+      renderDocument();
+      updateMeta();
+    }
+
+    function updateMeta() {
+      const c = state.currentContract;
+      docTitleEl.textContent = c.title;
+      docMetaEl.textContent = `到期：${c.expire} · 金额：¥${c.amount.toLocaleString()}`;
+      pageCountEl.textContent = c.pages;
+      ocrConfidenceEl.textContent = c.ocrConfidence + '%';
+      pageInput.value = state.page;
+    }
+
+    function renderDocument() {
+      const c = state.currentContract;
+      docCanvas.innerHTML = '';
+      for (let i = 1; i <= c.pages; i++) {
+        const page = document.createElement('div');
+        page.className = 'mb-6 bg-white border rounded p-4 shadow-sm transform origin-top-left';
+        page.style.transform = `scale(${state.zoom})`;
+        page.style.transformOrigin = 'top left';
+        page.dataset.page = i;
+        const header = document.createElement('div');
+        header.className = 'text-xs text-slate-400 mb-2';
+        header.textContent = `页 ${i} / ${c.pages}`;
+        page.appendChild(header);
+
+        // 模拟条款
+        const clauseCount = 6;
+        for (let j = 1; j <= clauseCount; j++) {
+          const clause = document.createElement('div');
+          clause.className = 'mb-2 bg-slate-50 p-3 rounded';
+          clause.tabIndex = 0;
+          clause.dataset.clause = `${i}-${j}`;
+          const title = document.createElement('div');
+          title.className = 'flex items-center justify-between';
+          const tspan = document.createElement('div');
+          tspan.innerHTML = `<strong>第 ${j} 条</strong> 条款标题`;
+          const btn = document.createElement('button');
+          btn.className = 'text-xs text-indigo-600 px-2 py-0.5 rounded hidden hover:bg-indigo-50';
+          btn.textContent = '注释';
+          title.appendChild(tspan);
+          title.appendChild(btn);
+          clause.appendChild(title);
+
+          const content = document.createElement('div');
+          content.className = 'mt-2 text-sm text-slate-700';
+          content.textContent = `这是模拟条款内容（第 ${j} 条），可能包含金额、交付、违约等条款。若含有风险词将被AI提示。`;
+          clause.appendChild(content);
+
+          // 折叠功能
+          const collapseBtn = document.createElement('button');
+          collapseBtn.className = 'text-xs text-slate-500 mt-2';
+          collapseBtn.textContent = '折叠';
+          collapseBtn.addEventListener('click', () => {
+            content.classList.toggle('hidden');
+            collapseBtn.textContent = content.classList.contains('hidden') ? '展开' : '折叠';
+          });
+          clause.appendChild(collapseBtn);
+
+          // 点击注释示例
+          btn.addEventListener('click', () => {
+            const note = prompt('添加注释：', '');
+            if (note) {
+              addAnnotation(c.id, page.dataset.page, clause.dataset.clause, note);
+            }
+          });
+
+          // hover 显示注释按钮
+          clause.addEventListener('mouseenter', () => btn.classList.remove('hidden'));
+          clause.addEventListener('mouseleave', () => btn.classList.add('hidden'));
+
+          page.appendChild(clause);
+        }
+        docCanvas.appendChild(page);
+      }
+    }
+
+    function addAnnotation(contractId, page, clause, text) {
+      const log = {
+        type: 'annotation',
+        contractId, page, clause, text,
+        user: state.role,
+        time: new Date().toISOString()
+      };
+      pushAudit(log);
+      showNotification(`${state.role} 在 ${contractId} 添加注释`);
+      renderAudit();
+    }
+
+    function pushAudit(entry) {
+      state.auditLogs.unshift(entry);
+      localStorage.setItem(storageKey, JSON.stringify(state.auditLogs));
+    }
+
+    function renderAudit() {
+      auditLogEl.innerHTML = '';
+      state.auditLogs.slice(0, 50).forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'p-2 bg-white border rounded';
+        el.innerHTML = `<div class="flex items-center justify-between"><div class="font-medium text-xs">${item.type}</div><div class="text-xs text-slate-400">${(new Date(item.time)).toLocaleString()}</div></div><div class="text-xs text-slate-600 mt-1">用户: ${item.user}</div><div class="text-xs text-slate-700 mt-1">${escapeHtml(JSON.stringify(item))}</div>`;
+        auditLogEl.appendChild(el);
+      });
+    }
+
+    function escapeHtml(v) {
+      return String(v).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // 指令解析（模拟 AI 解析）
+    function parseCommand(raw, targets=[]) {
+      const start = Date.now();
+      return new Promise((resolve) => {
+        // 模拟解析延迟 <2s
+        const delay = 600 + Math.random() * 800;
+        setTimeout(() => {
+          const lower = raw.toLowerCase();
+          const result = {
+            original: raw,
+            actions: [],
+            metadata: {},
+            confidence: Math.floor(70 + Math.random() * 28),
+            parseTime: Date.now() - start
+          };
+          // 识别动作
+          if (lower.includes('审核') || lower.includes('check')) result.actions.push('审核');
+          if (lower.includes('批准') || lower.includes('approve')) result.actions.push('批准');
+          if (lower.includes('拒绝') || lower.includes('reject')) result.actions.push('拒绝');
+          if (lower.includes('添加条件') || lower.includes('condition')) result.actions.push('添加条件');
+          if (lower.includes('转审') || lower.includes('转给') || lower.includes('transfer')) result.actions.push('转审');
+          if (lower.includes('生成待办') || lower.includes('todo')) result.actions.push('生成待办');
+          if (lower.includes('标注风险') || lower.includes('风险')) result.actions.push('标注风险');
+
+          // 参数提取：合同号、金额、到期日
+          const idMatch = raw.match(/#?(\d{3,6})/);
+          if (idMatch) result.metadata.contractId = idMatch[1];
+          const amountMatch = raw.match(/¥?([\d,]+)\s*万元|¥?([\d,]+)\s*元|¥([\d,]+)/);
+          if (amountMatch) result.metadata.amount = parseInt((amountMatch[1]||amountMatch[2]||amountMatch[3]).replace(/,/g,'')) || undefined;
+
+          // 高风险判定示例
+          result.metadata.highRisk = (result.metadata.amount && result.metadata.amount >= 1000000) || lower.includes('高风险');
+
+          // 目标合同列表
+          result.targets = targets.length ? targets : [state.currentContract.id];
+
+          resolve(result);
+        }, delay);
+      });
+    }
+
+    function presentDraft(parsed) {
+      const draftBox = document.createElement('div');
+      draftBox.className = 'fixed inset-0 flex items-center justify-center z-50';
+      draftBox.innerHTML = `<div class="w-full max-w-2xl bg-white border rounded shadow-lg p-4">
+        <div class="flex items-center justify-between"><div class="font-medium">解析草案</div><button id="closeDraft" class="text-slate-500">关闭</button></div>
+        <div class="mt-3 text-sm text-slate-700"><pre id="draftContent" class="text-xs bg-slate-50 p-3 rounded max-h-64 overflow-auto"></pre></div>
+        <div class="mt-3 flex items-center gap-2">
+          <button id="confirmDraft" class="px-3 py-1 rounded bg-emerald-600 text-white">确认执行</button>
+          <button id="editDraft" class="px-3 py-1 rounded bg-indigo-50 text-indigo-600">编辑草案</button>
+        </div>
+      </div>`;
+      document.body.appendChild(draftBox);
+      const content = draftBox.querySelector('#draftContent');
+      const txt = `原文：${parsed.original}\n动作：${parsed.actions.join(', ')}\n目标合同：${parsed.targets.join(', ')}\n高风险：${parsed.metadata.highRisk ? '是' : '否'}\n金额：${parsed.metadata.amount || '-'}\nAI置信度：${parsed.confidence}\n解析耗时：${parsed.parseTime} ms`;
+      content.textContent = txt;
+
+      draftBox.querySelector('#closeDraft').addEventListener('click', () => draftBox.remove());
+      draftBox.querySelector('#editDraft').addEventListener('click', () => {
+        commandInput.value = parsed.original;
+        draftBox.remove();
+      });
+      draftBox.querySelector('#confirmDraft').addEventListener('click', async () => {
+        draftBox.remove();
+        await executeParsedCommand(parsed);
+      });
+    }
+
+    // 权限校验与二次确认
+    async function executeParsedCommand(parsed) {
+      // 检查权限示例
+      const needSupervisor = parsed.actions.includes('批准') && parsed.metadata.highRisk;
+      if (needSupervisor && state.role !== '主管') {
+        alert('当前用户无权限直接批准高风险合同，请转审或请求主管确认。');
+        pushAudit({ type: 'permission_block', original: parsed.original, user: state.role, time: new Date().toISOString() });
+        renderAudit();
+        return;
+      }
+
+      // 二次确认（若涉及资金或跳过节点）
+      const needsConfirm = parsed.metadata.highRisk || parsed.actions.includes('批准') || parsed.actions.includes('转审');
+      if (needsConfirm) {
+        if (!confirm(`确认要对合同 ${parsed.targets.join(',')} 执行：${parsed.actions.join(', ')} 吗？`)) {
+          pushAudit({ type: 'canceled', original: parsed.original, user: state.role, time: new Date().toISOString() });
+          renderAudit();
+          return;
+        }
+      }
+
+      // 乐观锁：检查 token
+      const clientToken = state.optimisticToken;
+      // 模拟并发冲突：有 20% 概率发生冲突
+      const conflict = Math.random() < 0.2;
+      if (conflict) {
+        const keep = confirm('检测到并发变更冲突，是否合并（确定）或放弃（取消）？');
+        pushAudit({ type: 'conflict', original: parsed.original, user: state.role, conflictResolved: keep, time: new Date().toISOString() });
+        renderAudit();
+        if (!keep) return;
+      }
+
+      // 执行动作（模拟）
+      parsed.targets.forEach(t => {
+        pushAudit({
+          type: 'execute',
+          user: state.role,
+          original: parsed.original,
+          parsed,
+          contractId: t,
+          time: new Date().toISOString()
+        });
+      });
+
+      // 对文档注释与审批流的即时更新（模拟）
+      parsed.actions.forEach(act => {
+        if (act === '标注风险') {
+          showAnnotationOnDoc('发现风险点（AI 标注）');
+        }
+      });
+
+      showNotification(`指令已执行：${parsed.actions.join(', ')}`);
+      renderAudit();
+      // 更新 progress 流
+      updateProgressAfterAction(parsed);
+    }
+
+    function showAnnotationOnDoc(text) {
+      // 在文档顶部插入提醒
+      const badge = document.createElement('div');
+      badge.className = 'fixed top-20 right-8 bg-amber-100 text-amber-800 px-3 py-2 rounded shadow';
+      badge.textContent = text;
+      document.body.appendChild(badge);
+      setTimeout(() => badge.remove(), 5000);
+    }
+
+    function updateProgressAfterAction(parsed) {
+      const last = parsed.actions[0] || '操作';
+      const node = document.createElement('div');
+      node.className = 'p-2 bg-white border rounded mt-2 text-sm';
+      node.innerHTML = `<div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-400 rounded-full"></div><div>${last} by ${state.role}</div><div class="text-xs text-slate-400 ml-auto">${(new Date()).toLocaleString()}</div></div>`;
+      progressArea.prepend(node);
+    }
+
+    // 历史记录、自动补全、模板绑定
+    function attachTemplates() {
+      document.querySelectorAll('.template').forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          commandInput.value = templates[i];
+        });
+      });
+    }
+
+    commandInput.addEventListener('input', () => {
+      const val = commandInput.value.trim();
+      if (!val) { autocompleteEl.classList.add('hidden'); return; }
+      const suggestions = templates.filter(t => t.toLowerCase().includes(val.toLowerCase())).slice(0,5);
+      if (suggestions.length === 0) { autocompleteEl.classList.add('hidden'); return; }
+      autocompleteEl.innerHTML = suggestions.map(s => `<div class="px-3 py-2 hover:bg-slate-100 cursor-pointer">${s}</div>`).join('');
+      autocompleteEl.querySelectorAll('div').forEach((d, idx) => {
+        d.addEventListener('click', () => {
+          commandInput.value = suggestions[idx];
+          autocompleteEl.classList.add('hidden');
+        });
+      });
+      autocompleteEl.classList.remove('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!autocompleteEl.contains(e.target) && e.target !== commandInput) autocompleteEl.classList.add('hidden');
+    });
+
+    parseBtn.addEventListener('click', async () => {
+      const raw = commandInput.value.trim();
+      if (!raw) return alert('请输入指令');
+      const targets = state.batchMode ? Array.from(state.selected) : [state.currentContract.id];
+      const parsed = await parseCommand(raw, targets);
+      // 保存历史
+      state.history.unshift({ raw, parsed, time: new Date().toISOString(), user: state.role });
+      historyCountEl.textContent = state.history.length;
+      presentDraft(parsed);
+    });
+
+    applyBtn.addEventListener('click', async () => {
+      const raw = commandInput.value.trim();
+      if (!raw) return alert('请输入指令');
+      const targets = state.batchMode ? Array.from(state.selected) : [state.currentContract.id];
+      const parsed = await parseCommand(raw, targets);
+      // 直接执行（不展示草案）
+      await executeParsedCommand(parsed);
+    });
+
+    // 操作按钮绑定
+    document.querySelectorAll('.opBtn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const op = btn.dataset.op;
+        let cmd = '';
+        if (op === 'approve') cmd = '批准并记录条件：无';
+        if (op === 'reject') cmd = '拒绝并反馈：请修改';
+        if (op === 'revise') cmd = '需要修改：请补充附件';
+        if (op === 'transfer') cmd = '转审给：主管';
+        if (op === 'cond') cmd = '添加条件：需补齐签章';
+        if (op === 'todo') cmd = '生成待办：安排复核';
+        commandInput.value = cmd;
+      });
+    });
+
+    // 历史/注释发布
+    document.getElementById('postComment').addEventListener('click', () => {
+      const txt = document.getElementById('commentBox').value.trim();
+      if (!txt) return alert('请输入评论内容');
+      pushAudit({ type: 'comment', text: txt, user: state.role, time: new Date().toISOString() });
+      renderAudit();
+      document.getElementById('commentBox').value = '';
+    });
+
+    // 快照与回滚
+    snapshotBtn.addEventListener('click', () => {
+      const snap = {
+        contract: state.currentContract,
+        timestamp: new Date().toISOString(),
+        id: Math.random().toString(36).slice(2)
+      };
+      state.snapshots.unshift(snap);
+      localStorage.setItem(snapshotsKey, JSON.stringify(state.snapshots));
+      snapshotCountEl.textContent = state.snapshots.length;
+      pushAudit({ type: 'snapshot', id: snap.id, user: state.role, time: snap.timestamp });
+      renderAudit();
+    });
+
+    rollbackBtn.addEventListener('click', () => {
+      if (!state.snapshots.length) return alert('无快照可回滚');
+      const last = state.snapshots[0];
+      if (!confirm(`回滚到快照 ${last.id} ?`)) return;
+      state.currentContract = last.contract;
+      renderDocument();
+      updateMeta();
+      pushAudit({ type: 'rollback', id: last.id, user: state.role, time: new Date().toISOString() });
+      renderAudit();
+    });
+
+    // OCR toggle
+    document.getElementById('ocrToggle').addEventListener('click', () => {
+      ocrLayer.classList.toggle('hidden');
+    });
+
+    // 缩放
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      state.zoom = Math.min(2, +(state.zoom + 0.1).toFixed(2));
+      zoomLevelEl.textContent = Math.round(state.zoom * 100) + '%';
+      renderDocument();
+    });
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      state.zoom = Math.max(0.5, +(state.zoom - 0.1).toFixed(2));
+      zoomLevelEl.textContent = Math.round(state.zoom * 100) + '%';
+      renderDocument();
+    });
+
+    pageInput.addEventListener('change', () => {
+      const v = parseInt(pageInput.value) || 1;
+      state.page = Math.min(Math.max(1, v), state.currentContract.pages);
+      pageInput.value = state.page;
+      // 简单跳页：滚动到对应页面
+      const pageEl = docCanvas.querySelector(`[data-page="${state.page}"]`);
+      if (pageEl) pageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    // 选择合同与批量模式
+    document.getElementById('batchToggle').addEventListener('click', () => {
+      state.batchMode = !state.batchMode;
+      document.querySelectorAll('.select-contract').forEach(c => c.classList.toggle('hidden', !state.batchMode));
+      state.selected.clear();
+      renderContractList(document.getElementById('searchContracts').value);
+    });
+
+    document.getElementById('refreshContracts').addEventListener('click', () => renderContractList(document.getElementById('searchContracts').value));
+
+    document.getElementById('searchContracts').addEventListener('input', (e) => {
+      renderContractList(e.target.value);
+    });
+
+    // role change
+    roleSelect.addEventListener('change', (e) => {
+      state.role = e.target.value;
+      pushAudit({ type: 'role_change', user: state.role, time: new Date().toISOString() });
+      renderAudit();
+    });
+
+    // 通知模拟
+    function showNotification(text) {
+      notifDot.classList.remove('hidden');
+      setTimeout(() => notifDot.classList.add('hidden'), 3000);
+      const n = document.createElement('div');
+      n.className = 'fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-2 rounded shadow z-50';
+      n.textContent = text;
+      document.body.appendChild(n);
+      setTimeout(() => n.remove(), 4000);
+    }
+
+    notifBtn.addEventListener('click', () => {
+      alert('通知面板（演示）\n最近通知已显示在屏幕右下角。');
+    });
+
+    // 模拟并发其它用户下发指令（会产生冲突示例）
+    setInterval(() => {
+      if (Math.random() < 0.05) {
+        const other = ['系统批量更新条款', '法务@李四 添加注释', '自动化脚本 标记已读'][Math.floor(Math.random()*3)];
+        pushAudit({ type: 'remote_action', original: other, user: '系统', time: new Date().toISOString() });
+        renderAudit();
+      }
+    }, 8000);
+
+    // 初始化
+    function init() {
+      renderContractList();
+      selectContract(contracts[0].id);
+      attachTemplates();
+      renderAudit();
+      snapshotCountEl.textContent = state.snapshots.length;
+      historyCountEl.textContent = state.history.length;
+      notifDot.classList.add('hidden');
+      zoomLevelEl.textContent = Math.round(state.zoom * 100) + '%';
+    }
+
+    init();
+  </script>
+</body>
+</html>
