@@ -1,0 +1,666 @@
+<think>
+**Planning dashboard layout**
+
+I could use SortableJS CDN for a drag-and-drop feature. The developer has allowed a JS CDN, and I see the Tailwind CDN provided is the @tailwindcss/browser plugin, which supports Tailwind in the browser. I should probably include a <script> for some Tailwind configuration to enable usage of class names.
+
+I need to implement sample data and charts via Chart.js CDN, along with a search input for filtering the list. It’ll have a role selector for changing the dashboard view and a config panel for widget management. Keeping it around 400 lines is the goal!**Designing mobile responsiveness**
+
+I need to implement mobile-responsive changes, like hiding the sidebar and showing a bottom action bar or floating action button (FAB). I should ensure I include script tags for Tailwind, Chart.js, and SortableJS. 
+
+I'll write some small JavaScript for features like drag-and-drop functionality, saving the order in localStorage, and adding a time range filter that influences both the chart and recent activities. The role selector will toggle widget visibility. For a command palette, I’ll set up an input to parse commands like "new contract" or "open contract #1234." 
+
+Using Tailwind classes will help me style everything nicely, and I'll avoid external images by providing logos through SVG. I need to keep the code between 400-450 lines, with a target of around 380 lines. Let's write the code, but I must remember not to include markdown fences!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云 AI 平台 1.0 - 仪表盘</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    /* 小幅度自定义 */
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(6px); }
+    .card { box-shadow: 0 6px 18px rgba(15,23,42,0.06); border-radius: 12px; }
+    .drag-handle { cursor: grab; }
+    .no-select { user-select: none; -webkit-user-select: none; }
+    /* 命令面板动画 */
+    .fade-enter { opacity: 0; transform: translateY(8px); }
+    .fade-enter-active { opacity: 1; transform: translateY(0); transition: all 180ms ease-out; }
+    .fade-exit { opacity: 1; }
+    .fade-exit-active { opacity: 0; transition: opacity 120ms ease-in; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen antialiased">
+  <div id="app" class="min-h-screen">
+
+    <!-- 登录遮罩（模拟登录） -->
+    <div id="login" class="fixed inset-0 flex items-center justify-center z-50 bg-gradient-to-br from-slate-900/90 to-slate-800/60">
+      <div class="w-full max-w-md p-8 card glass">
+        <div class="flex items-center gap-3 mb-6">
+          <svg class="w-10 h-10 text-indigo-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7v6c0 5 3.8 9.7 10 13 6.2-3.3 10-8 10-13V7L12 2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 12h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <div class="text-lg font-semibold">智律云 AI 平台 1.0</div>
+            <div class="text-xs text-slate-300">聚焦合同审核 · 仪表盘</div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <input id="login-username" class="w-full px-4 py-2 rounded bg-slate-800 border border-slate-700" placeholder="用户名 / 邮箱" />
+          <input id="login-password" type="password" class="w-full px-4 py-2 rounded bg-slate-800 border border-slate-700" placeholder="密码" />
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-slate-400">演示账号: demo / demo</div>
+            <button id="login-btn" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded text-white">登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="main" class="hidden">
+      <!-- 顶部 -->
+      <header class="flex items-center justify-between gap-4 p-4 border-b border-slate-800 sticky top-0 bg-slate-900/80 z-40">
+        <div class="flex items-center gap-4">
+          <button id="sidebar-toggle" class="p-2 rounded-md hover:bg-slate-800 hidden md:inline-flex">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <div class="flex items-center gap-3 pr-4 border-r border-slate-800">
+            <div class="flex items-center gap-2">
+              <svg class="w-8 h-8 text-indigo-400" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7v6c0 5 3.8 9.7 10 13 6.2-3.3 10-8 10-13V7L12 2z" stroke="currentColor" stroke-width="1.2"/></svg>
+              <div class="text-sm">
+                <div class="font-semibold">智律云</div>
+                <div class="text-xs text-slate-400">合同审核平台</div>
+              </div>
+            </div>
+          </div>
+          <nav class="hidden lg:flex items-center gap-1 ml-4">
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>合同</span></a>
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>审核</span></a>
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>报表</span></a>
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>通知</span></a>
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>设置</span></a>
+            <a class="px-3 py-2 rounded hover:bg-slate-800 text-sm flex items-center gap-2" href="#"><span>帮助</span></a>
+          </nav>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="relative hidden sm:block">
+            <input id="global-search" type="search" placeholder="按合同编号 / 公司 / 关键词搜索 (Ctrl+K)" class="w-72 px-3 py-2 rounded bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-600" />
+            <div id="search-suggestions" class="absolute mt-1 left-0 w-full bg-slate-800 border border-slate-700 rounded shadow-lg hidden z-50"></div>
+          </div>
+
+          <select id="role-select" class="hidden sm:block bg-slate-800 border border-slate-700 px-3 py-2 rounded text-sm">
+            <option value="all">显示：全部角色</option>
+            <option value="auditor">审计员视图</option>
+            <option value="creator">创建者视图</option>
+            <option value="manager">管理员视图</option>
+          </select>
+
+          <button id="command-btn" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm">命令面板 ⌘K</button>
+
+          <div class="ml-2 relative">
+            <button id="user-btn" class="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded">
+              <span class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm">D</span>
+              <span class="hidden sm:inline-block text-sm">Demo 用户</span>
+            </button>
+            <div id="user-menu" class="hidden absolute right-0 mt-2 w-40 bg-slate-800 border border-slate-700 rounded shadow-lg p-2">
+              <button class="w-full text-left px-2 py-2 hover:bg-slate-700 rounded text-sm">个人资料</button>
+              <button class="w-full text-left px-2 py-2 hover:bg-slate-700 rounded text-sm">退出登录</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex">
+        <!-- 侧边栏 -->
+        <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800 min-h-[calc(100vh-64px)] hidden md:block">
+          <div class="p-4">
+            <div class="text-xs text-slate-400 uppercase mb-3">主导航</div>
+            <ul class="space-y-1">
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-800" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M3 7h18M3 12h12M3 17h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> 合同</a></li>
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded bg-indigo-600/20 text-indigo-300" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M12 8v8m4-4H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> 审核</a></li>
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-800" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M3 3h18v6H3zM3 15h12v6H3z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> 报表</a></li>
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-800" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M12 3v1M21 12h1M3 12H2M12 21v-1M5.6 5.6l.7.7M18.7 18.7l.7.7M18.7 5.6l-.7.7M5.6 18.7l-.7.7" stroke="currentColor" stroke-width="1.2"/></svg> 通知</a></li>
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-800" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M12 3v1M12 20v1M4 12h1M19 12h1" stroke="currentColor" stroke-width="1.2"/></svg> 设置</a></li>
+              <li><a class="flex items-center gap-3 px-3 py-2 rounded hover:bg-slate-800" href="#"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M12 2l3 7h7l-6 5 2 8-6-4-6 4 2-8L2 9h7z" stroke="currentColor" stroke-width="1.2"/></svg> 帮助</a></li>
+            </ul>
+
+            <div class="mt-6">
+              <div class="text-xs text-slate-400 uppercase mb-2">仪表盘组件</div>
+              <div class="text-sm text-slate-300">可拖拽调整位置，配置后会记忆布局。</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 主要内容 -->
+        <main class="flex-1 p-4">
+          <!-- 面包屑 -->
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <nav class="text-sm text-slate-400 flex items-center gap-2">
+                <span>仪表盘</span>
+                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span class="text-slate-200">首页</span>
+              </nav>
+              <div class="text-xl font-semibold mt-1">仪表盘 · 合同审核总览</div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div class="text-sm text-slate-400">时间范围</div>
+              <select id="time-range" class="bg-slate-800 border border-slate-700 px-3 py-2 rounded text-sm">
+                <option value="7">最近7天</option>
+                <option value="14">最近14天</option>
+                <option value="30" selected>最近30天</option>
+                <option value="90">最近90天</option>
+              </select>
+              <button id="reset-layout" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm">重置布局</button>
+            </div>
+          </div>
+
+          <!-- 仪表盘网格 -->
+          <div id="grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-layout-key="dashboard-layout">
+            <!-- 待办合同数量 -->
+            <div class="card p-4 bg-slate-850 draggable-widget" data-id="todo-count">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm text-slate-400">待办合同</div>
+                  <div id="todo-num" class="text-3xl font-bold mt-2">0</div>
+                  <div class="text-xs text-slate-400 mt-1">待您处理的合同数量</div>
+                </div>
+                <div class="text-indigo-400 text-sm no-select drag-handle" title="拖拽调整">
+                  <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none"><path d="M10 6h8M10 12h8M10 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+
+              <div class="mt-4 flex gap-2">
+                <button id="btn-new" class="flex-1 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 rounded text-sm">新建合同</button>
+                <button id="btn-review" class="flex-1 px-3 py-2 bg-amber-600 hover:bg-amber-700 rounded text-sm">发起审核</button>
+                <button id="btn-upload" class="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded text-sm">批量上传</button>
+              </div>
+            </div>
+
+            <!-- 审核通过率图 -->
+            <div class="card p-4 bg-slate-850 draggable-widget" data-id="pass-rate">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm text-slate-400">本周审核通过率</div>
+                  <div class="text-xl font-semibold mt-1">趋势</div>
+                </div>
+                <div class="text-slate-400 text-sm no-select drag-handle">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M10 6h8M10 12h8M10 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+              <div class="mt-3">
+                <canvas id="passChart" height="120"></canvas>
+              </div>
+              <div class="mt-3 flex items-center justify-between text-sm text-slate-400">
+                <div>通过率：<span id="pass-rate-val" class="text-indigo-300 font-medium">0%</span></div>
+                <div>
+                  <button id="view-detailed" class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs">查看详细</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 最近活动 -->
+            <div class="card p-4 bg-slate-850 draggable-widget" data-id="recent-activity">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm text-slate-400">最近活动</div>
+                  <div class="text-lg font-semibold mt-1">系统动态</div>
+                </div>
+                <div class="text-slate-400 text-sm no-select drag-handle">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M10 6h8M10 12h8M10 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+
+              <ul id="activity-list" class="mt-3 space-y-2 max-h-44 overflow-auto text-sm">
+                <!-- 动态插入 -->
+              </ul>
+              <div class="mt-3 text-right">
+                <button id="more-activity" class="px-3 py-1 text-xs bg-slate-800 border border-slate-700 rounded">更多活动</button>
+              </div>
+            </div>
+
+            <!-- 系统公告 -->
+            <div class="card p-4 bg-slate-850 draggable-widget" data-id="announcements">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm text-slate-400">系统公告</div>
+                  <div class="text-lg font-semibold mt-1">重要通知</div>
+                </div>
+                <div class="text-slate-400 text-sm no-select drag-handle">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M10 6h8M10 12h8M10 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+
+              <div id="announce-list" class="mt-3 space-y-2 text-sm text-slate-300 max-h-44 overflow-auto">
+                <!-- 公告 -->
+              </div>
+            </div>
+
+            <!-- 快速统计卡片 -->
+            <div class="card p-4 bg-slate-850 draggable-widget" data-id="stats">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-sm text-slate-400">统计概览</div>
+                  <div class="text-lg font-semibold mt-1">近期概览</div>
+                </div>
+                <div class="text-slate-400 text-sm no-select drag-handle">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><path d="M10 6h8M10 12h8M10 18h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
+                <div class="p-2 bg-slate-800 rounded">
+                  <div class="text-xs text-slate-400">今日新增</div>
+                  <div id="stat-new" class="font-semibold mt-1">0</div>
+                </div>
+                <div class="p-2 bg-slate-800 rounded">
+                  <div class="text-xs text-slate-400">待审</div>
+                  <div id="stat-pending" class="font-semibold mt-1">0</div>
+                </div>
+                <div class="p-2 bg-slate-800 rounded">
+                  <div class="text-xs text-slate-400">已完成</div>
+                  <div id="stat-done" class="font-semibold mt-1">0</div>
+                </div>
+              </div>
+
+              <div class="mt-3 text-right">
+                <button id="export-report" class="px-3 py-1 text-xs bg-slate-800 border border-slate-700 rounded">导出报表</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 移动端底部快捷 -->
+          <div class="fixed bottom-4 right-4 md:hidden flex gap-3">
+            <button id="mobile-new" class="p-3 rounded-full bg-indigo-500 text-white shadow-lg">新建</button>
+            <button id="mobile-action" class="p-3 rounded-full bg-amber-600 text-white shadow-lg">审核</button>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 命令面板 -->
+    <div id="command-panel" class="fixed inset-0 flex items-start justify-center z-50 pointer-events-none">
+      <div class="mt-24 w-full max-w-2xl pointer-events-auto card glass p-4 hidden" role="dialog" aria-modal="true">
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-slate-400">命令面板</div>
+          <div class="flex-1">
+            <input id="command-input" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded focus:outline-none" placeholder="输入命令（例如：新建合同、发起审核、打开 #CN-2025）" />
+          </div>
+          <div class="text-sm text-slate-400">按 Esc 关闭</div>
+        </div>
+        <div id="command-results" class="mt-3 max-h-44 overflow-auto text-sm text-slate-300"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 初始数据模拟
+    const mock = {
+      todos: 7,
+      stats: { new: 4, pending: 7, done: 120 },
+      activities: [
+        { t: '1小时前', text: '合同 CN-2025 提交审核，审核人: 王明' },
+        { t: '3小时前', text: '合同 CN-1999 已完成审核，审核结果: 通过' },
+        { t: '昨天', text: '系统通知：批量上传功能升级' },
+        { t: '2天前', text: '合同 CN-1977 被驳回，需补充资料' },
+      ],
+      announcements: [
+        { title: '平台维护通知', content: '本周六 02:00 - 04:00 进行系统维护，期间审核功能受限。' },
+        { title: '新功能上线', content: 'AI 合同要点识别支持更多条款类型，已在测试环境开放。' }
+      ],
+      passRateSeries: [0.65,0.7,0.6,0.8,0.72,0.77,0.81,0.79,0.85,0.82,0.88,0.9,0.86,0.87,0.89,0.91,0.92,0.9,0.88,0.87,0.85,0.82,0.8,0.78,0.76,0.73,0.75,0.78,0.8,0.83]
+    };
+
+    // DOM
+    const loginEl = document.getElementById('login');
+    const mainEl = document.getElementById('main');
+    const loginBtn = document.getElementById('login-btn');
+    const userBtn = document.getElementById('user-btn');
+    const userMenu = document.getElementById('user-menu');
+    const globalSearch = document.getElementById('global-search');
+    const searchSuggestions = document.getElementById('search-suggestions');
+    const roleSelect = document.getElementById('role-select');
+    const timeRange = document.getElementById('time-range');
+    const grid = document.getElementById('grid');
+    const todoNum = document.getElementById('todo-num');
+    const activityList = document.getElementById('activity-list');
+    const announceList = document.getElementById('announce-list');
+    const statNew = document.getElementById('stat-new');
+    const statPending = document.getElementById('stat-pending');
+    const statDone = document.getElementById('stat-done');
+    const passRateVal = document.getElementById('pass-rate-val');
+    const commandBtn = document.getElementById('command-btn');
+    const commandPanel = document.getElementById('command-panel');
+    const commandCard = commandPanel.querySelector('.card');
+    const commandInput = document.getElementById('command-input');
+    const commandResults = document.getElementById('command-results');
+    const loginUsername = document.getElementById('login-username');
+    const loginPassword = document.getElementById('login-password');
+
+    // 登录处理（演示）
+    function showDashboard() {
+      loginEl.classList.add('hidden');
+      mainEl.classList.remove('hidden');
+      renderDashboard();
+      initSortable();
+      initCharts();
+      loadLayout();
+    }
+
+    loginBtn.addEventListener('click', () => {
+      // 简单模拟验证
+      const u = loginUsername.value || 'demo';
+      const p = loginPassword.value || 'demo';
+      if (u && p) {
+        showDashboard();
+      }
+    });
+
+    // 用户菜单
+    userBtn.addEventListener('click', () => {
+      userMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (!userBtn.contains(e.target)) userMenu.classList.add('hidden');
+    });
+
+    // 全局搜索模拟建议
+    const sampleContracts = [
+      { id: 'CN-2025', name: '与 XX 公司合作协议' },
+      { id: 'CN-1999', name: '采购合同 - YY 有限公司' },
+      { id: 'CN-1977', name: '租赁合同 - ZZ 集团' },
+      { id: 'CN-1888', name: '服务合同 - ABC 科技' },
+    ];
+
+    globalSearch.addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      if (!q) { searchSuggestions.classList.add('hidden'); return; }
+      const results = sampleContracts.filter(c => c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q));
+      renderSearchSuggestions(results);
+    });
+
+    globalSearch.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPanel();
+      }
+    });
+
+    function renderSearchSuggestions(list) {
+      searchSuggestions.innerHTML = '';
+      if (!list.length) { searchSuggestions.classList.add('hidden'); return; }
+      list.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'px-3 py-2 hover:bg-slate-700 cursor-pointer';
+        el.textContent = item.id + ' · ' + item.name;
+        el.addEventListener('click', () => {
+          globalSearch.value = item.id;
+          searchSuggestions.classList.add('hidden');
+          alert('打开合同: ' + item.id);
+        });
+        searchSuggestions.appendChild(el);
+      });
+      searchSuggestions.classList.remove('hidden');
+    }
+
+    // 渲染仪表盘内容
+    function renderDashboard() {
+      todoNum.textContent = mock.todos;
+      statNew.textContent = mock.stats.new;
+      statPending.textContent = mock.stats.pending;
+      statDone.textContent = mock.stats.done;
+
+      activityList.innerHTML = '';
+      mock.activities.forEach(a => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-3 p-2 rounded hover:bg-slate-800';
+        li.innerHTML = `<div class="w-8 h-8 rounded bg-slate-700 text-xs flex items-center justify-center">${a.t}</div><div class="text-sm">${a.text}</div>`;
+        activityList.appendChild(li);
+      });
+
+      announceList.innerHTML = '';
+      mock.announcements.forEach(a => {
+        const d = document.createElement('div');
+        d.className = 'p-2 rounded bg-slate-800';
+        d.innerHTML = `<div class="font-medium">${a.title}</div><div class="text-xs text-slate-300 mt-1">${a.content}</div>`;
+        announceList.appendChild(d);
+      });
+
+      // 设置初始通过率文本
+      const avg = Math.round((mock.passRateSeries.slice(0,7).reduce((s,v)=>s+v,0)/7)*100);
+      passRateVal.textContent = avg + '%';
+    }
+
+    // Chart.js 创建
+    let passChart = null;
+    function initCharts() {
+      const ctx = document.getElementById('passChart').getContext('2d');
+      passChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({length: mock.passRateSeries.length}, (_,i)=>`D-${mock.passRateSeries.length-i}`),
+          datasets: [{
+            label: '通过率',
+            data: mock.passRateSeries.map(v=>Math.round(v*100)),
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.12)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              ticks: { callback: v => v + '%' },
+              max: 100,
+              min: 0
+            }
+          }
+        }
+      });
+    }
+
+    // 时间范围切换（影响图表和活动）
+    timeRange.addEventListener('change', () => {
+      const days = parseInt(timeRange.value, 10);
+      // 简单示例：取后 days 项数据计算平均
+      const data = mock.passRateSeries.slice(-days).map(v=>Math.round(v*100));
+      passChart.data.labels = data.map((_,i)=>`D-${data.length-i}`);
+      passChart.data.datasets[0].data = data;
+      passChart.update();
+      const avg = Math.round(data.reduce((s,v)=>s+v,0)/Math.max(data.length,1));
+      passRateVal.textContent = avg + '%';
+    });
+
+    // 可配置组件与拖拽布局：使用 SortableJS
+    let sortable = null;
+    function initSortable() {
+      sortable = new Sortable(grid, {
+        animation: 150,
+        handle: '.drag-handle',
+        draggable: '.draggable-widget',
+        onEnd: saveLayout
+      });
+    }
+
+    function saveLayout() {
+      const order = Array.from(grid.children).map(c => c.dataset.id);
+      localStorage.setItem(grid.dataset.layoutKey, JSON.stringify(order));
+    }
+
+    function loadLayout() {
+      const key = grid.dataset.layoutKey;
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      try {
+        const order = JSON.parse(raw);
+        const map = {};
+        Array.from(grid.children).forEach(c => map[c.dataset.id]=c);
+        order.forEach(id => {
+          const el = map[id];
+          if (el) grid.appendChild(el);
+        });
+      } catch(e) { /* ignore */ }
+    }
+
+    // 重置布局
+    const resetLayoutBtn = document.getElementById('reset-layout');
+    resetLayoutBtn.addEventListener('click', () => {
+      localStorage.removeItem(grid.dataset.layoutKey);
+      location.reload();
+    });
+
+    // 命令面板逻辑
+    function openCommandPanel() {
+      commandCard.classList.remove('hidden');
+      commandInput.value = '';
+      commandResults.innerHTML = '<div class="text-slate-500 p-2">输入帮助命令，例如：新建合同 / 发起审核 / 打开 #CN-2025</div>';
+      setTimeout(()=>commandInput.focus(),50);
+      commandPanel.style.pointerEvents = 'auto';
+    }
+
+    function closeCommandPanel() {
+      commandCard.classList.add('hidden');
+      commandPanel.style.pointerEvents = 'none';
+    }
+
+    commandBtn.addEventListener('click', openCommandPanel);
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPanel();
+      }
+      if (e.key === 'Escape') closeCommandPanel();
+    });
+
+    // 命令解析
+    commandInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      renderCommandSuggestions(q);
+    });
+
+    commandInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        executeCommand(commandInput.value.trim());
+      }
+    });
+
+    function renderCommandSuggestions(q) {
+      if (!q) {
+        commandResults.innerHTML = [
+          '新建合同',
+          '发起审核',
+          '批量上传',
+          '打开 #合同编号 （例如：#CN-2025）',
+          '切换角色：auditor/creator/manager'
+        ].map(t => `<div class="p-2 hover:bg-slate-800 cursor-pointer" onclick="executeCommand('${t.replace(/'/g,"\\'")}')">${t}</div>`).join('');
+        return;
+      }
+      const suggestions = [];
+      if (/^新建/.test(q)) suggestions.push('新建合同');
+      if (/发起/.test(q)) suggestions.push('发起审核');
+      if (/上传/.test(q) || /批量/.test(q)) suggestions.push('批量上传');
+      const openMatch = q.match(/#([A-Za-z0-9\-]+)/);
+      if (openMatch) suggestions.push('打开 #' + openMatch[1]);
+      if (/auditor|creator|manager/.test(q)) suggestions.push('切换角色：' + q.match(/auditor|creator|manager/)[0]);
+      if (!suggestions.length) suggestions.push('无匹配命令');
+      commandResults.innerHTML = suggestions.map(s => `<div class="p-2 hover:bg-slate-800 cursor-pointer" onclick="executeCommand('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('');
+    }
+
+    function executeCommand(cmd) {
+      if (!cmd) return;
+      if (/新建/.test(cmd)) { alert('打开 新建合同 表单'); closeCommandPanel(); return; }
+      if (/发起/.test(cmd)) { alert('发起审核：请选择合同'); closeCommandPanel(); return; }
+      if (/上传/.test(cmd)) { alert('打开 批量上传 窗口'); closeCommandPanel(); return; }
+      const open = cmd.match(/#([A-Za-z0-9\-]+)/);
+      if (open) { alert('打开合同：' + open[1]); closeCommandPanel(); return; }
+      const role = cmd.match(/auditor|creator|manager/);
+      if (role) { roleSelect.value = role[0]; applyRole(role[0]); closeCommandPanel(); return; }
+      alert('无法识别命令：' + cmd);
+      closeCommandPanel();
+    }
+
+    // 命令从结果项可调用 executeCommand 全局
+    window.executeCommand = executeCommand;
+
+    // 搜索建议点击外部隐藏
+    document.addEventListener('click', (e) => {
+      if (!globalSearch.contains(e.target)) searchSuggestions.classList.add('hidden');
+    });
+
+    // 角色选择影响视图示例
+    roleSelect.addEventListener('change', (e) => {
+      applyRole(e.target.value);
+    });
+
+    function applyRole(role) {
+      // 简化示例：根据角色显示或隐藏某些卡片
+      const pendingCard = grid.querySelector('[data-id="todo-count"]');
+      const passCard = grid.querySelector('[data-id="pass-rate"]');
+      if (role === 'auditor') {
+        pendingCard.style.display = '';
+        passCard.style.display = '';
+      } else if (role === 'creator') {
+        pendingCard.style.display = '';
+        passCard.style.display = 'none';
+      } else if (role === 'manager') {
+        pendingCard.style.display = '';
+        passCard.style.display = '';
+      } else {
+        pendingCard.style.display = '';
+        passCard.style.display = '';
+      }
+    }
+
+    // 快捷按钮绑定
+    document.getElementById('btn-new').addEventListener('click', ()=>alert('打开：新建合同'));
+    document.getElementById('btn-review').addEventListener('click', ()=>alert('操作：发起审核'));
+    document.getElementById('btn-upload').addEventListener('click', ()=>alert('打开：批量上传'));
+    document.getElementById('mobile-new').addEventListener('click', ()=>alert('移动端：新建合同'));
+    document.getElementById('mobile-action').addEventListener('click', ()=>alert('移动端：发起审核'));
+    document.getElementById('more-activity').addEventListener('click', ()=>alert('更多活动 - 打开活动页'));
+    document.getElementById('export-report').addEventListener('click', ()=>alert('正在导出报表...'));
+    document.getElementById('view-detailed').addEventListener('click', ()=>alert('查看详细报表'));
+
+    // 侧边栏切换
+    document.getElementById('sidebar-toggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('hidden');
+    });
+
+    // 简单布局记忆：在卸载前保存
+    window.addEventListener('beforeunload', saveLayout);
+
+    // 初始快速登录 demo（为了截图方便）
+    // 自动填充默认 demo 凭证
+    loginUsername.value = 'demo';
+    loginPassword.value = 'demo';
+
+    // 如果在本地存储有已登录标记，可直接展示（演示不会持久）
+    // 不自动登录，以便用户触发登录动作
+
+    // 小屏幕响应提示
+    function handleResize() {
+      if (window.innerWidth < 768) {
+        // 隐藏侧边栏
+        document.getElementById('sidebar').classList.add('hidden');
+      } else {
+        document.getElementById('sidebar').classList.remove('hidden');
+      }
+    }
+    window.addEventListener('resize', handleResize);
+    handleResize();
+  </script>
+</body>
+</html>
