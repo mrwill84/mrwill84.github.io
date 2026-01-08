@@ -1,0 +1,384 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云合同审核平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .strength-weak { background-color: #ef4444; width: 33%; }
+        .strength-medium { background-color: #f59e0b; width: 66%; }
+        .strength-strong { background-color: #10b981; width: 100%; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div id="app" class="min-h-screen flex items-center justify-center p-4">
+        <!-- 登录页 -->
+        <div id="loginPage" class="w-full max-w-md fade-in">
+            <div class="bg-white rounded-lg shadow-xl p-8">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">智律云</h1>
+                    <p class="text-gray-500 mt-2">合同审核平台</p>
+                </div>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                        <input type="email" id="loginEmail" placeholder="请输入工作邮箱" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                        <input type="password" id="loginPassword" placeholder="请输入密码" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded">
+                            <span class="ml-2 text-sm text-gray-600">记住我</span>
+                        </label>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-800">忘记密码？</a>
+                    </div>
+                    <button type="button" onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200">登录</button>
+                </form>
+                <div class="mt-6 text-center">
+                    <p class="text-gray-600">还没有账号？<button type="button" onclick="switchToRegister()" class="text-blue-600 hover:text-blue-800 font-semibold">立即注册</button></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 注册页 -->
+        <div id="registerPage" class="w-full max-w-md hidden fade-in">
+            <div class="bg-white rounded-lg shadow-xl p-8">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">创建账号</h1>
+                    <p class="text-gray-500 mt-2">加入智律云平台</p>
+                </div>
+                <form id="registerForm" class="space-y-4">
+                    <!-- 步骤1: 基本信息 -->
+                    <div id="step1" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">姓名 <span class="text-red-500">*</span></label>
+                            <input type="text" id="regName" placeholder="请输入真实姓名" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                            <p id="nameError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">公司 <span class="text-red-500">*</span></label>
+                            <input type="text" id="regCompany" placeholder="请输入公司名称" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                            <p id="companyError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">工作邮箱 <span class="text-red-500">*</span></label>
+                            <input type="email" id="regEmail" placeholder="请输入工作邮箱" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                            <p id="emailError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">手机号 <span class="text-gray-400">(可选)</span></label>
+                            <input type="tel" id="regPhone" placeholder="请输入手机号" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                            <p id="phoneError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">密码 <span class="text-red-500">*</span></label>
+                            <input type="password" id="regPassword" placeholder="至少8个字符，包含大小写字母和数字" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" oninput="checkPasswordStrength()">
+                            <div class="mt-2 flex items-center gap-2">
+                                <div class="flex-1 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="strengthBar" class="password-strength"></div>
+                                </div>
+                                <span id="strengthText" class="text-xs text-gray-500">强度：弱</span>
+                            </div>
+                            <p id="passwordError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">重复密码 <span class="text-red-500">*</span></label>
+                            <input type="password" id="regPasswordConfirm" placeholder="请再次输入密码" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition">
+                            <p id="confirmError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <button type="button" onclick="proceedToVerification()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200">下一步</button>
+                    </div>
+
+                    <!-- 步骤2: 验证码 -->
+                    <div id="step2" class="space-y-4 hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-700">验证码已发送至 <span id="verifyEmail" class="font-semibold text-blue-600"></span></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">邮箱验证码 <span class="text-red-500">*</span></label>
+                            <div class="flex gap-2">
+                                <input type="text" id="emailCode" placeholder="请输入6位验证码" maxlength="6" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-center text-2xl tracking-widest">
+                                <button type="button" id="resendBtn" onclick="resendCode()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200 whitespace-nowrap">重新发送</button>
+                            </div>
+                            <p id="codeError" class="text-red-500 text-xs mt-1 hidden"></p>
+                        </div>
+                        <div id="smsOption" class="text-center">
+                            <p class="text-sm text-gray-600">或者 <button type="button" onclick="switchToSMS()" class="text-blue-600 hover:text-blue-800 font-semibold">使用短信验证</button></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="backToStep1()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">上一步</button>
+                            <button type="button" onclick="completeRegistration()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200">完成注册</button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <p class="text-gray-600">已有账号？<button type="button" onclick="switchToLogin()" class="text-blue-600 hover:text-blue-800 font-semibold">返回登录</button></p>
+                </div>
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <label class="flex items-start">
+                        <input type="checkbox" id="agreeTerms" class="w-4 h-4 text-blue-600 rounded mt-1">
+                        <span class="ml-2 text-xs text-gray-600">我已阅读并同意<button type="button" class="text-blue-600 hover:text-blue-800">《服务条款》</button>和<button type="button" class="text-blue-600 hover:text-blue-800">《隐私政策》</button></span>
+                    </label>
+                    <p id="termsError" class="text-red-500 text-xs mt-2 hidden">请同意服务条款和隐私政策</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 成功页 -->
+        <div id="successPage" class="w-full max-w-md hidden fade-in">
+            <div class="bg-white rounded-lg shadow-xl p-8 text-center">
+                <div class="mb-6">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">注册成功！</h2>
+                <p class="text-gray-600 mb-6">请检查邮箱完成账号激活</p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-gray-700">激活链接已发送至 <span id="successEmail" class="font-semibold text-blue-600"></span></p>
+                    <p class="text-xs text-gray-500 mt-2">请在24小时内点击链接完成激活</p>
+                </div>
+                <button type="button" onclick="switchToLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition duration-200 mb-3">返回登录</button>
+                <button type="button" onclick="switchToRegister()" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-200">创建另一个账号</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let registrationData = {};
+        let resendCountdown = 0;
+
+        function switchToRegister() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('registerPage').classList.remove('hidden');
+            document.getElementById('successPage').classList.add('hidden');
+            resetRegisterForm();
+        }
+
+        function switchToLogin() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('successPage').classList.add('hidden');
+            resetLoginForm();
+        }
+
+        function resetLoginForm() {
+            document.getElementById('loginForm').reset();
+        }
+
+        function resetRegisterForm() {
+            document.getElementById('registerForm').reset();
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            clearAllErrors();
+            document.getElementById('strengthBar').className = 'password-strength';
+            document.getElementById('strengthText').textContent = '强度：弱';
+        }
+
+        function clearAllErrors() {
+            document.querySelectorAll('[id$="Error"]').forEach(el => el.classList.add('hidden'));
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                alert('请填写邮箱和密码');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                alert('请输入有效的邮箱地址');
+                return;
+            }
+
+            alert('登录成功！');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function validatePhone(phone) {
+            if (!phone) return true;
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            return phoneRegex.test(phone);
+        }
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('regPassword').value;
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+
+            strengthBar.className = 'password-strength';
+
+            if (password.length < 8) {
+                strengthBar.classList.add('strength-weak');
+                strengthText.textContent = '强度：弱';
+                return;
+            }
+
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumbers = /\d/.test(password);
+            const hasSpecialChar = /[!@#$%^&*]/.test(password);
+
+            const strength = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length;
+
+            if (strength <= 2) {
+                strengthBar.classList.add('strength-weak');
+                strengthText.textContent = '强度：弱';
+            } else if (strength === 3) {
+                strengthBar.classList.add('strength-medium');
+                strengthText.textContent = '强度：中';
+            } else {
+                strengthBar.classList.add('strength-strong');
+                strengthText.textContent = '强度：强';
+            }
+        }
+
+        function proceedToVerification() {
+            clearAllErrors();
+
+            const name = document.getElementById('regName').value.trim();
+            const company = document.getElementById('regCompany').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const agreeTerms = document.getElementById('agreeTerms').checked;
+
+            let hasError = false;
+
+            if (!name) {
+                document.getElementById('nameError').textContent = '请输入姓名';
+                document.getElementById('nameError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (!company) {
+                document.getElementById('companyError').textContent = '请输入公司名称';
+                document.getElementById('companyError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (!email) {
+                document.getElementById('emailError').textContent = '请输入工作邮箱';
+                document.getElementById('emailError').classList.remove('hidden');
+                hasError = true;
+            } else if (!validateEmail(email)) {
+                document.getElementById('emailError').textContent = '邮箱格式不正确';
+                document.getElementById('emailError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (phone && !validatePhone(phone)) {
+                document.getElementById('phoneError').textContent = '手机号格式不正确';
+                document.getElementById('phoneError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (!password) {
+                document.getElementById('passwordError').textContent = '请输入密码';
+                document.getElementById('passwordError').classList.remove('hidden');
+                hasError = true;
+            } else if (password.length < 8) {
+                document.getElementById('passwordError').textContent = '密码至少8个字符';
+                document.getElementById('passwordError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (password !== passwordConfirm) {
+                document.getElementById('confirmError').textContent = '两次输入的密码不一致';
+                document.getElementById('confirmError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (!agreeTerms) {
+                document.getElementById('termsError').classList.remove('hidden');
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            registrationData = { name, company, email, phone, password };
+            document.getElementById('verifyEmail').textContent = email;
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            startResendCountdown();
+        }
+
+        function startResendCountdown() {
+            resendCountdown = 60;
+            const resendBtn = document.getElementById('resendBtn');
+            resendBtn.disabled = true;
+            resendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const interval = setInterval(() => {
+                resendCountdown--;
+                resendBtn.textContent = `重新发送(${resendCountdown}s)`;
+                if (resendCountdown <= 0) {
+                    clearInterval(interval);
+                    resendBtn.disabled = false;
+                    resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    resendBtn.textContent = '重新发送';
+                }
+            }, 1000);
+        }
+
+        function resendCode() {
+            alert('验证码已重新发送至 ' + registrationData.email);
+            startResendCountdown();
+        }
+
+        function switchToSMS() {
+            alert('短信验证功能开发中');
+        }
+
+        function backToStep1() {
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('emailCode').value = '';
+            clearAllErrors();
+        }
+
+        function completeRegistration() {
+            const code = document.getElementById('emailCode').value.trim();
+
+            if (!code) {
+                document.getElementById('codeError').textContent = '请输入验证码';
+                document.getElementById('codeError').classList.remove('hidden');
+                return;
+            }
+
+            if (code.length !== 6 || !/^\d+$/.test(code)) {
+                document.getElementById('codeError').textContent = '验证码格式不正确';
+                document.getElementById('codeError').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('successPage').classList.remove('hidden');
+            document.getElementById('successEmail').textContent = registrationData.email;
+        }
+    </script>
+</body>
+</html>
+```
