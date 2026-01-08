@@ -1,0 +1,662 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云合同审核平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex">
+        <!-- 侧边栏 -->
+        <div class="w-64 bg-gradient-to-b from-blue-900 to-blue-800 text-white shadow-lg">
+            <div class="p-6 border-b border-blue-700">
+                <h1 class="text-2xl font-bold">智律云</h1>
+                <p class="text-blue-200 text-sm mt-1">合同审核平台</p>
+            </div>
+            <nav class="mt-8">
+                <button onclick="switchPage('dashboard')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">📊</span>
+                    <span>仪表板</span>
+                </button>
+                <button onclick="switchPage('login')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">🔐</span>
+                    <span>登录注册</span>
+                </button>
+                <button onclick="switchPage('review')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">✅</span>
+                    <span>合同审核</span>
+                </button>
+                <button onclick="switchPage('management')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">📁</span>
+                    <span>合同管理</span>
+                </button>
+                <button onclick="switchPage('signing')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">✍️</span>
+                    <span>外发签约</span>
+                </button>
+                <button onclick="switchPage('collaboration')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">🤝</span>
+                    <span>协作分享</span>
+                </button>
+                <button onclick="switchPage('permissions')" class="nav-btn w-full text-left px-6 py-3 hover:bg-blue-700 transition flex items-center gap-3">
+                    <span class="text-xl">🔑</span>
+                    <span>权限管理</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex flex-col">
+            <!-- 顶部栏 -->
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-sm">
+                <h2 id="pageTitle" class="text-2xl font-bold text-gray-800">仪表板</h2>
+                <div class="flex items-center gap-4">
+                    <button onclick="showNotifications()" class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                        <span class="text-2xl">🔔</span>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div class="flex items-center gap-2 pl-4 border-l border-gray-200">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">👤</div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">用户</p>
+                            <p class="text-xs text-gray-500">管理员</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 页面内容 -->
+            <div class="flex-1 overflow-auto p-8">
+                <!-- 仪表板页面 -->
+                <div id="dashboard" class="page-content">
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                            <p class="text-gray-600 text-sm">待审核合同</p>
+                            <p class="text-3xl font-bold text-blue-600 mt-2">12</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                            <p class="text-gray-600 text-sm">已完成审核</p>
+                            <p class="text-3xl font-bold text-green-600 mt-2">48</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
+                            <p class="text-gray-600 text-sm">待签约</p>
+                            <p class="text-3xl font-bold text-yellow-600 mt-2">8</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                            <p class="text-gray-600 text-sm">活跃分享</p>
+                            <p class="text-3xl font-bold text-purple-600 mt-2">5</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">最近活动</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                <span class="text-gray-700">合同审核流程启动</span>
+                                <span class="text-xs text-gray-500">2小时前</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                <span class="text-gray-700">分享链接已过期</span>
+                                <span class="text-xs text-gray-500">5小时前</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                <span class="text-gray-700">新用户权限已授予</span>
+                                <span class="text-xs text-gray-500">1天前</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 登录注册页面 -->
+                <div id="login" class="page-content hidden">
+                    <div class="max-w-md mx-auto">
+                        <div class="bg-white rounded-lg shadow-lg p-8">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-6">用户登录</h3>
+                            <form onsubmit="handleLogin(event)">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                                    <input type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入邮箱">
+                                </div>
+                                <div class="mb-6">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                                    <input type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入密码">
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold">登录</button>
+                            </form>
+                            <p class="text-center text-gray-600 mt-4">
+                                没有账户？<button onclick="switchPage('register')" class="text-blue-600 hover:underline">立即注册</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 注册页面 -->
+                <div id="register" class="page-content hidden">
+                    <div class="max-w-md mx-auto">
+                        <div class="bg-white rounded-lg shadow-lg p-8">
+                            <h3 class="text-2xl font-bold text-gray-800 mb-6">用户注册</h3>
+                            <form onsubmit="handleRegister(event)">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">姓名</label>
+                                    <input type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入姓名">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                                    <input type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入邮箱">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                                    <input type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入密码">
+                                </div>
+                                <div class="mb-6">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+                                    <input type="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请确认密码">
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold">注册</button>
+                            </form>
+                            <p class="text-center text-gray-600 mt-4">
+                                已有账户？<button onclick="switchPage('login')" class="text-blue-600 hover:underline">立即登录</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 合同审核页面 -->
+                <div id="review" class="page-content hidden">
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">合同审核</h3>
+                        <div class="flex gap-4 mb-6">
+                            <input type="text" placeholder="搜索合同..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <select class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option>全部状态</option>
+                                <option>待审核</option>
+                                <option>审核中</option>
+                                <option>已通过</option>
+                                <option>已拒绝</option>
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-800">采购合同-2024-001</h4>
+                                        <p class="text-sm text-gray-600 mt-1">供应商：ABC公司 | 金额：¥50,000</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">待审核</span>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button onclick="openReviewDetail()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">查看详情</button>
+                                    <button onclick="approveContract()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm">批准</button>
+                                    <button onclick="rejectContract()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm">拒绝</button>
+                                </div>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-800">服务合同-2024-002</h4>
+                                        <p class="text-sm text-gray-600 mt-1">服务商：XYZ公司 | 金额：¥100,000</p>
+                                    </div>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">审核中</span>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button onclick="openReviewDetail()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">查看详情</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 合同管理页面 -->
+                <div id="management" class="page-content hidden">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800">合同管理</h3>
+                            <button onclick="openUploadContract()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">上传合同</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">合同名称</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">合同类型</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">金额</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">状态</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 text-sm text-gray-800">采购合同-2024-001</td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">采购</td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">¥50,000</td>
+                                        <td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">已完成</span></td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <button onclick="viewContract()" class="text-blue-600 hover:underline mr-3">查看</button>
+                                            <button onclick="shareContract()" class="text-blue-600 hover:underline mr-3">分享</button>
+                                            <button onclick="deleteContract()" class="text-red-600 hover:underline">删除</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 text-sm text-gray-800">服务合同-2024-002</td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">服务</td>
+                                        <td class="px-6 py-4 text-sm text-gray-600">¥100,000</td>
+                                        <td class="px-6 py-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">进行中</span></td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <button onclick="viewContract()" class="text-blue-600 hover:underline mr-3">查看</button>
+                                            <button onclick="shareContract()" class="text-blue-600 hover:underline mr-3">分享</button>
+                                            <button onclick="deleteContract()" class="text-red-600 hover:underline">删除</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 外发签约页面 -->
+                <div id="signing" class="page-content hidden">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-6">外发签约</h3>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="border border-gray-200 rounded-lg p-6">
+                                <h4 class="font-semibold text-gray-800 mb-4">发起签约</h4>
+                                <form onsubmit="handleInitiateSigning(event)">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">选择合同</label>
+                                        <select required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option>请选择合同</option>
+                                            <option>采购合同-2024-001</option>
+                                            <option>服务合同-2024-002</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">签约方邮箱</label>
+                                        <input type="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="请输入邮箱">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">签约方名称</label>
+                                        <input type="text" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="请输入名称">
+                                    </div>
+                                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold">发起签约</button>
+                                </form>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg p-6">
+                                <h4 class="font-semibold text-gray-800 mb-4">签约状态</h4>
+                                <div class="space-y-3">
+                                    <div class="p-3 bg-gray-50 rounded">
+                                        <p class="text-sm font-medium text-gray-800">采购合同-2024-001</p>
+                                        <p class="text-xs text-gray-600 mt-1">签约方：ABC公司</p>
+                                        <span class="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">已签约</span>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 rounded">
+                                        <p class="text-sm font-medium text-gray-800">服务合同-2024-002</p>
+                                        <p class="text-xs text-gray-600 mt-1">签约方：XYZ公司</p>
+                                        <span class="inline-block mt-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">待签约</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 协作分享页面 -->
+                <div id="collaboration" class="page-content hidden">
+                    <div class="grid grid-cols-3 gap-6">
+                        <!-- 分享面板 -->
+                        <div class="col-span-2">
+                            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-6">分享合同</h3>
+                                <form onsubmit="handleShareContract(event)">
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">选择合同</label>
+                                        <select id="shareContractSelect" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option>请选择合同</option>
+                                            <option value="contract-001">采购合同-2024-001</option>
+                                            <option value="contract-002">服务合同-2024-002</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">收件人邮箱</label>
+                                        <input type="email" id="recipientEmail" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="请输入收件人邮箱">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">访问权限</label>
+                                        <select id="accessPermission" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="readonly">只读</option>
+                                            <option value="comment">评论</option>
+                                            <option value="edit">编辑</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">有效期</label>
+                                            <input type="number" id="validityDays" required min="1" max="365" value="7" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">单位</label>
+                                            <select id="validityUnit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                                <option value="days">天</option>
+                                                <option value="hours">小时</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">分享说明</label>
+                                        <textarea id="shareMessage" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="请输入分享说明（可选）"></textarea>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold">发送分享</button>
+                                        <button type="button" onclick="copyShareLink()" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition font-semibold">复制链接</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- 分享列表 -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">分享列表</h3>
+                            <div class="space-y-3 max-h-96 overflow-y-auto">
+                                <div class="border border-gray-200 rounded p-3 hover:shadow transition">
+                                    <p class="text-sm font-medium text-gray-800">采购合同-2024-001</p>
+                                    <p class="text-xs text-gray-600 mt-1">收件人：user@example.com</p>
+                                    <p class="text-xs text-gray-600">权限：只读</p>
+                                    <p class="text-xs text-gray-600">有效期：7天</p>
+                                    <div class="mt-2 flex gap-2">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">有效</span>
+                                        <button onclick="revokeShare()" class="text-xs text-red-600 hover:underline">撤销</button>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded p-3 hover:shadow transition">
+                                    <p class="text-sm font-medium text-gray-800">服务合同-2024-002</p>
+                                    <p class="text-xs text-gray-600 mt-1">收件人：partner@company.com</p>
+                                    <p class="text-xs text-gray-600">权限：评论</p>
+                                    <p class="text-xs text-gray-600">有效期：3天</p>
+                                    <div class="mt-2 flex gap-2">
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">即将过期</span>
+                                        <button onclick="revokeShare()" class="text-xs text-red-600 hover:underline">撤销</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分享审计日志 -->
+                    <div class="bg-white rounded-lg shadow p-6 mt-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">分享审计日志</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">操作时间</th>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">操作人</th>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">合同</th>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">收件人</th>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">操作类型</th>
+                                        <th class="px-6 py-3 text-left font-semibold text-gray-700">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4">2024-01-15 10:30</td>
+                                        <td class="px-6 py-4">张三</td>
+                                        <td class="px-6 py-4">采购合同-2024-001</td>
+                                        <td class="px-6 py-4">user@example.com</td>
+                                        <td class="px-6 py-4">分享</td>
+                                        <td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">成功</span></td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4">2024-01-15 09:15</td>
+                                        <td class="px-6 py-4">李四</td>
+                                        <td class="px-6 py-4">服务合同-2024-002</td>
+                                        <td class="px-6 py-4">partner@company.com</td>
+                                        <td class="px-6 py-4">撤销</td>
+                                        <td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">成功</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 权限管理页面 -->
+                <div id="permissions" class="page-content hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- 用户权限管理 -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6">用户权限管理</h3>
+                            <div class="mb-4">
+                                <button onclick="openAddUser()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">添加用户</button>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p class="font-semibold text-gray-800">张三</p>
+                                            <p class="text-sm text-gray-600">zhangsan@company.com</p>
+                                        </div>
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">管理员</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="editUserPermission()" class="text-sm text-blue-600 hover:underline">编辑</button>
+                                        <button onclick="removeUser()" class="text-sm text-red-600 hover:underline">移除</button>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p class="font-semibold text-gray-800">李四</p>
+                                            <p class="text-sm text-gray-600">lisi@company.com</p>
+                                        </div>
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">审核员</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="editUserPermission()" class="text-sm text-blue-600 hover:underline">编辑</button>
+                                        <button onclick="removeUser()" class="text-sm text-red-600 hover:underline">移除</button>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p class="font-semibold text-gray-800">王五</p>
+                                            <p class="text-sm text-gray-600">wangwu@company.com</p>
+                                        </div>
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">普通用户</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="editUserPermission()" class="text-sm text-blue-600 hover:underline">编辑</button>
+                                        <button onclick="removeUser()" class="text-sm text-red-600 hover:underline">移除</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 角色权限配置 -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-6">角色权限配置</h3>
+                            <div class="space-y-4">
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3">管理员</h4>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked disabled class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">查看所有合同</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked disabled class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">审核合同</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked disabled class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">管理用户</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked disabled class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">分享合同</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3">审核员</h4>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">查看分配合同</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">审核合同</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">管理用户</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" checked class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">分享合同</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="savePermissions()" class="w-full mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">保存配置</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分享合同模态框 -->
+    <div id="shareModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">分享合同</h3>
+            <p class="text-gray-600 mb-4">合同已成功分享！</p>
+            <button onclick="closeShareModal()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        function switchPage(pageName) {
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(page => page.classList.add('hidden'));
+            
+            const targetPage = document.getElementById(pageName);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+            }
+
+            const pageNames = {
+                'dashboard': '仪表板',
+                'login': '用户登录',
+                'register': '用户注册',
+                'review': '合同审核',
+                'management': '合同管理',
+                'signing': '外发签约',
+                'collaboration': '协作分享',
+                'permissions': '权限管理'
+            };
+            document.getElementById('pageTitle').textContent = pageNames[pageName] || '页面';
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            alert('登录成功！');
+            switchPage('dashboard');
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            alert('注册成功！');
+            switchPage('login');
+        }
+
+        function openReviewDetail() {
+            alert('打开合同详情页面');
+        }
+
+        function approveContract() {
+            alert('合同已批准');
+        }
+
+        function rejectContract() {
+            alert('合同已拒绝');
+        }
+
+        function openUploadContract() {
+            alert('打开上传合同对话框');
+        }
+
+        function viewContract() {
+            alert('查看合同详情');
+        }
+
+        function shareContract() {
+            switchPage('collaboration');
+        }
+
+        function deleteContract() {
+            if (confirm('确定要删除该合同吗？')) {
+                alert('合同已删除');
+            }
+        }
+
+        function handleInitiateSigning(event) {
+            event.preventDefault();
+            alert('签约邀请已发送');
+            event.target.reset();
+        }
+
+        function handleShareContract(event) {
+            event.preventDefault();
+            const email = document.getElementById('recipientEmail').value;
+            const permission = document.getElementById('accessPermission').value;
+            const days = document.getElementById('validityDays').value;
+            const unit = document.getElementById('validityUnit').value;
+            
+            alert(`已向 ${email} 分享合同，权限：${permission}，有效期：${days}${unit === 'days' ? '天' : '小时'}`);
+            event.target.reset();
+        }
+
+        function copyShareLink() {
+            const link = 'https://zhilv.cloud/share/abc123xyz789';
+            navigator.clipboard.writeText(link).then(() => {
+                alert('分享链接已复制到剪贴板');
+            });
+        }
+
+        function revokeShare() {
+            if (confirm('确定要撤销该分享吗？')) {
+                alert('分享已撤销');
+            }
+        }
+
+        function openAddUser() {
+            alert('打开添加用户对话框');
+        }
+
+        function editUserPermission() {
+            alert('编辑用户权限');
+        }
+
+        function removeUser() {
+            if (confirm('确定要移除该用户吗？')) {
+                alert('用户已移除');
+            }
+        }
+
+        function savePermissions() {
+            alert('权限配置已保存');
+        }
+
+        function showNotifications() {
+            alert('您有3条新通知');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
+```
