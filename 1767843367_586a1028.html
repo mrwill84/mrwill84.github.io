@@ -1,0 +1,655 @@
+<think>
+**Analyzing sample data usage**
+
+I think the instruction likely prohibits using "simulate," but sample data seems fine. I'll include sample data representing contracts for front-end demonstration, although I need to be cautious about the risk of forbidden phrases. Including sample items is essential for rendering; the developer wants a runnable page for screenshots. They might expect placeholders like {{USER_NAME}}. The design will utilize Tailwind CSS and possibly Alpine.js for interactivity, ensuring the script order is correct while incorporating Heroicons for icons.**Structuring UI components**
+
+I need to design several components, including a header with login/register buttons, a search/filter panel, a table, pagination, and bulk action buttons. I’ll have a side panel modal for details, including version history, rollback options, downloading, archiving/restoring, and an export modal with confirmation and simulated audit logs. 
+
+It's crucial that all buttons are clickable, so I need to attach event listeners. I'll set up a data array with various attributes, plus implement search/filter functions with a debounce for performance. The UI will feature checkboxes for bulk selection and handle CSV exports from selected items while ensuring archived items are logged correctly.**Building the restore functionality**
+
+Next, I'll focus on creating a details side panel that displays a full text preview using placeholder text. It will include a version history list with a rollback button that copies the content for a new version and marks it as current. For the download button, I'll simulate creating a blob for the content and, for attachments, mention simulated signed URLs.
+
+I'll implement pagination with a simple page size of 10, include filters for status, type, author, and date range, and ensure the export contains appropriate metadata fields. An audit log will be shown in a modal. 
+
+Since this is front-end only, I need to handle mock permission checks based on user roles and avoid excessive comments in the code.**Creating the page structure**
+
+I need to craft an HTML page using CSS and JavaScript, targeting around 400 lines. I'll ensure I include the provided CDN script for Tailwind CSS exactly as specified: <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>. 
+
+Additionally, I should incorporate a font and use Heroicons inline as SVG for a few icons to minimize extra CDN dependencies. Keeping things clean, I can use simple buttons. Now, let’s start producing the HTML content!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律合同审核AI 平台 - 合同管理</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --brand: #0f172a; --accent: #2563eb; }
+    html,body,#app { height:100%; }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f3f4f6; color: #0f172a; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(250,250,250,0.6)); backdrop-filter: blur(6px); }
+    .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; }
+    .scrollbar-thin::-webkit-scrollbar { height:8px; width:8px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.2); border-radius: 8px; }
+    .truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .side-panel { width: 520px; max-width: 92vw; }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen flex flex-col">
+    <header class="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
+      <div class="flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-indigo-600 to-sky-500 text-white font-bold">智</div>
+        <div>
+          <div class="text-lg font-semibold">智律合同审核AI 平台</div>
+          <div class="text-sm text-gray-500">合同管理 · 审核 · 分发</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <div class="text-sm text-gray-600">当前用户: <span id="currentUserName" class="font-medium">法务管理员</span></div>
+        <button id="btnLogin" class="px-3 py-1 rounded border border-slate-200 text-sm hover:bg-slate-50">登录</button>
+        <button id="btnRegister" class="px-3 py-1 rounded bg-slate-800 text-white text-sm hover:opacity-90">注册</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6">
+      <section class="glass p-5 rounded-lg shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center space-x-3">
+            <button id="btnNew" class="bg-gradient-to-r from-indigo-600 to-sky-500 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:opacity-95">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>新建合同</span>
+            </button>
+            <button id="btnExport" class="px-4 py-2 rounded-md border border-slate-200 hover:bg-slate-50">批量导出</button>
+            <button id="btnArchive" class="px-4 py-2 rounded-md border border-slate-200 hover:bg-slate-50">批量归档</button>
+            <button id="btnAuditLog" class="px-4 py-2 rounded-md border border-slate-200 hover:bg-slate-50">操作日志</button>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div class="relative">
+              <input id="searchInput" placeholder="关键字 / 合同编号" class="px-4 py-2 rounded-md border border-slate-200 w-80 focus:outline-none bg-white" />
+              <button id="btnClearSearch" class="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 px-2">×</button>
+            </div>
+            <div class="text-sm text-gray-500">总计: <span id="totalCount">0</span></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-4 mb-4">
+          <div class="col-span-3">
+            <label class="text-sm text-gray-600">状态</label>
+            <select id="filterStatus" class="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white">
+              <option value="">全部</option>
+              <option value="draft">草稿</option>
+              <option value="in_review">审核中</option>
+              <option value="approved">已通过</option>
+              <option value="rejected">已驳回</option>
+              <option value="archived">已归档</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <label class="text-sm text-gray-600">类型</label>
+            <select id="filterType" class="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white">
+              <option value="">全部</option>
+              <option value="nda">保密协议</option>
+              <option value="sale">销售合同</option>
+              <option value="service">服务合同</option>
+              <option value="employment">雇佣合同</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <label class="text-sm text-gray-600">起草人</label>
+            <select id="filterAuthor" class="mt-1 block w-full rounded-md border border-slate-200 px-3 py-2 bg-white">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="col-span-3">
+            <label class="text-sm text-gray-600">时间区间</label>
+            <div class="flex space-x-2 mt-1">
+              <input id="filterFrom" type="date" class="rounded-md border border-slate-200 px-3 py-2 bg-white w-1/2" />
+              <input id="filterTo" type="date" class="rounded-md border border-slate-200 px-3 py-2 bg-white w-1/2" />
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto bg-white rounded-md border border-slate-200">
+          <table class="min-w-full divide-y divide-slate-100">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left"><input id="selectAll" type="checkbox" class="w-4 h-4" /></th>
+                <th class="px-4 py-3 text-left">编号</th>
+                <th class="px-4 py-3 text-left">标题</th>
+                <th class="px-4 py-3 text-left">状态</th>
+                <th class="px-4 py-3 text-left">起草人</th>
+                <th class="px-4 py-3 text-left">到期日</th>
+                <th class="px-4 py-3 text-left">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-100">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <div class="text-sm text-gray-600">已选 <span id="selectedCount">0</span> 项</div>
+          <div class="flex items-center space-x-2">
+            <button id="prevPage" class="px-3 py-1 rounded-md border border-slate-200">上一页</button>
+            <div class="px-3 py-1 rounded-md border border-slate-200 bg-white" id="paginationInfo">1 / 1</div>
+            <button id="nextPage" class="px-3 py-1 rounded-md border border-slate-200">下一页</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="p-4 text-sm text-gray-500 text-center">
+      © 智律 • 合同审核平台
+    </footer>
+  </div>
+
+  <div id="detailPanel" class="fixed inset-y-0 right-0 transform translate-x-full transition-transform duration-300 z-50">
+    <div class="side-panel h-full bg-white shadow-xl p-5 overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <div id="detailTitle" class="text-xl font-semibold">合同详情</div>
+          <div id="detailMeta" class="text-sm text-gray-500 mt-1">编号 • 起草人 • 状态</div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="btnDownload" class="px-3 py-1 rounded border border-slate-200 text-sm">下载</button>
+          <button id="btnCloseDetail" class="px-3 py-1 rounded border border-slate-200 text-sm">关闭</button>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="text-sm text-gray-600">全文预览</div>
+        <div id="detailContent" class="mt-2 p-4 bg-slate-50 rounded-md text-sm leading-relaxed whitespace-pre-wrap"></div>
+      </div>
+
+      <div class="mt-6">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-medium">版本历史</div>
+          <div class="text-sm text-gray-500">可回退到任意历史版本</div>
+        </div>
+        <div id="versionList" class="mt-3 space-y-3"></div>
+      </div>
+
+      <div class="mt-6">
+        <div class="text-sm font-medium mb-2">操作</div>
+        <div class="flex items-center space-x-2">
+          <button id="btnStartReview" class="px-3 py-2 rounded bg-amber-500 text-white">发起审核</button>
+          <button id="btnRevert" class="px-3 py-2 rounded border border-slate-200">回退版本</button>
+          <button id="btnArchiveOne" class="px-3 py-2 rounded border border-slate-200">归档</button>
+          <button id="btnRestoreOne" class="px-3 py-2 rounded border border-slate-200">恢复</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalBackdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden z-40"></div>
+
+  <div id="modalConfirm" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-lg p-5 w-96 hidden z-50">
+    <div id="modalConfirmTitle" class="text-lg font-semibold">确认操作</div>
+    <div id="modalConfirmBody" class="text-sm text-gray-600 mt-2">确认执行该操作？</div>
+    <div class="mt-4 flex justify-end space-x-3">
+      <button id="modalCancel" class="px-3 py-1 rounded border border-slate-200">取消</button>
+      <button id="modalConfirmOk" class="px-3 py-1 rounded bg-red-600 text-white">确认</button>
+    </div>
+  </div>
+
+  <div id="modalExport" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-lg p-5 w-96 hidden z-50">
+    <div class="text-lg font-semibold">导出选中合同</div>
+    <div class="text-sm text-gray-600 mt-2">选择导出内容与格式</div>
+    <div class="mt-3">
+      <label class="block text-sm text-gray-600">格式</label>
+      <select id="exportFormat" class="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 bg-white">
+        <option value="csv">CSV（元数据）</option>
+        <option value="json">JSON（完整）</option>
+      </select>
+    </div>
+    <div class="mt-3 flex items-center">
+      <input id="exportDesensitize" type="checkbox" class="w-4 h-4" />
+      <label for="exportDesensitize" class="ml-2 text-sm text-gray-600">对敏感字段脱敏（按权限）</label>
+    </div>
+    <div class="mt-4 flex justify-end space-x-3">
+      <button id="exportCancel" class="px-3 py-1 rounded border border-slate-200">取消</button>
+      <button id="exportOk" class="px-3 py-1 rounded bg-emerald-600 text-white">导出</button>
+    </div>
+  </div>
+
+  <div id="modalAudit" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-md shadow-lg p-5 w-2/3 max-w-4xl hidden z-50">
+    <div class="flex items-center justify-between">
+      <div class="text-lg font-semibold">操作日志</div>
+      <div>
+        <button id="closeAudit" class="px-3 py-1 rounded border border-slate-200">关闭</button>
+      </div>
+    </div>
+    <div class="mt-3 overflow-y-auto max-h-80">
+      <table class="min-w-full divide-y divide-slate-100 mt-2">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-sm">时间</th>
+            <th class="px-4 py-2 text-left text-sm">操作人</th>
+            <th class="px-4 py-2 text-left text-sm">操作</th>
+            <th class="px-4 py-2 text-left text-sm">目标合同</th>
+            <th class="px-4 py-2 text-left text-sm">详情</th>
+          </tr>
+        </thead>
+        <tbody id="auditBody" class="divide-y divide-slate-100 text-sm"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const currentUser = { id: 'u-001', name: '法务管理员', role: 'admin' };
+    document.getElementById('currentUserName').textContent = currentUser.name;
+
+    const sampleContracts = [
+      { id: 'C-2025001', title: '客户A 销售合同（2025）', status: 'approved', author: '王小明', expire: '2026-03-12', type: 'sale', createdAt: '2025-01-15', archived: false, content: '销售合同正文：\n双方约定...', versions: [
+        { ver: 'v1', note: '初稿', content: '销售合同正文：\n初稿内容...', ts: '2025-01-10', author: '王小明' },
+        { ver: 'v2', note: '法务修改', content: '销售合同正文：\n法务修改后的内容...', ts: '2025-01-14', author: '法务管理员' },
+        { ver: 'v3', note: '最终版', content: '销售合同正文：\n最终确认内容...', ts: '2025-01-15', author: '王小明' }
+      ]},
+      { id: 'C-2025002', title: '供应商B 服务合同', status: 'in_review', author: '李丽', expire: '2026-10-01', type: 'service', createdAt: '2025-02-20', archived: false, content: '服务合同正文：\n服务约定...', versions: [
+        { ver: 'v1', note: '起草', content: '服务合同正文：\n起草内容...', ts: '2025-02-18', author: '李丽' },
+        { ver: 'v2', note: '补充条款', content: '服务合同正文：\n补充条款内容...', ts: '2025-02-20', author: '李丽' }
+      ]},
+      { id: 'C-2024999', title: '保密协议（NDA）', status: 'draft', author: '张强', expire: '2026-01-01', type: 'nda', createdAt: '2024-12-28', archived: false, content: '保密协议正文：\nNDA 内容...', versions: [
+        { ver: 'v1', note: '草稿', content: '保密协议正文：\n草稿内容...', ts: '2024-12-28', author: '张强' }
+      ]},
+      { id: 'C-2024007', title: '员工入职合同 - 张三', status: 'archived', author: '李华', expire: '2027-09-30', type: 'employment', createdAt: '2024-07-01', archived: true, content: '入职合同正文：\n劳动条款...', versions: [
+        { ver: 'v1', note: '签署版', content: '入职合同正文：\n签署版本...', ts: '2024-07-01', author: '李华' }
+      ]}
+    ];
+
+    let contracts = JSON.parse(JSON.stringify(sampleContracts));
+    const auditLogs = [];
+    let selectedIds = new Set();
+    let currentPage = 1;
+    const pageSize = 8;
+    let filtered = [...contracts];
+
+    function populateAuthorFilter() {
+      const authors = Array.from(new Set(contracts.map(c => c.author)));
+      const sel = document.getElementById('filterAuthor');
+      sel.innerHTML = '<option value="">全部</option>';
+      authors.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a; opt.textContent = a;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderTable() {
+      const body = document.getElementById('tableBody');
+      body.innerHTML = '';
+      const start = (currentPage-1)*pageSize;
+      const end = start + pageSize;
+      const pageItems = filtered.slice(start, end);
+      document.getElementById('totalCount').textContent = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      document.getElementById('paginationInfo').textContent = currentPage + ' / ' + totalPages;
+
+      pageItems.forEach(item => {
+        const tr = document.createElement('tr');
+        const checkboxTd = document.createElement('td');
+        checkboxTd.className = 'px-4 py-3';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox'; chk.className = 'w-4 h-4';
+        chk.checked = selectedIds.has(item.id);
+        chk.addEventListener('change', (e) => {
+          if (e.target.checked) selectedIds.add(item.id); else selectedIds.delete(item.id);
+          updateSelectedCount();
+        });
+        checkboxTd.appendChild(chk);
+        tr.appendChild(checkboxTd);
+
+        const idTd = document.createElement('td'); idTd.className = 'px-4 py-3 text-sm font-mono text-slate-700'; idTd.textContent = item.id; tr.appendChild(idTd);
+
+        const titleTd = document.createElement('td'); titleTd.className = 'px-4 py-3 text-sm';
+        const titleDiv = document.createElement('div'); titleDiv.className = 'font-medium truncate-2'; titleDiv.textContent = item.title;
+        const metaDiv = document.createElement('div'); metaDiv.className = 'text-xs text-gray-500'; metaDiv.textContent = item.type + ' · 创建于 ' + item.createdAt;
+        titleTd.appendChild(titleDiv); titleTd.appendChild(metaDiv); tr.appendChild(titleTd);
+
+        const statusTd = document.createElement('td'); statusTd.className = 'px-4 py-3';
+        const statusBadge = document.createElement('span'); statusBadge.className = 'badge';
+        if (item.archived) { statusBadge.style.background = '#f1f5f9'; statusBadge.textContent = '已归档'; }
+        else {
+          if (item.status === 'draft') { statusBadge.style.background = '#fef3c7'; statusBadge.textContent = '草稿'; }
+          if (item.status === 'in_review') { statusBadge.style.background = '#bfdbfe'; statusBadge.textContent = '审核中'; }
+          if (item.status === 'approved') { statusBadge.style.background = '#bbf7d0'; statusBadge.textContent = '已通过'; }
+          if (item.status === 'rejected') { statusBadge.style.background = '#fecaca'; statusBadge.textContent = '已驳回'; }
+        }
+        statusTd.appendChild(statusBadge); tr.appendChild(statusTd);
+
+        const authorTd = document.createElement('td'); authorTd.className = 'px-4 py-3 text-sm'; authorTd.textContent = item.author; tr.appendChild(authorTd);
+        const expireTd = document.createElement('td'); expireTd.className = 'px-4 py-3 text-sm'; expireTd.textContent = item.expire; tr.appendChild(expireTd);
+
+        const opTd = document.createElement('td'); opTd.className = 'px-4 py-3 text-sm space-x-2';
+        const btnView = document.createElement('button'); btnView.className = 'px-3 py-1 rounded border border-slate-200 text-sm'; btnView.textContent = '详情';
+        btnView.addEventListener('click', () => openDetail(item.id));
+        const btnDownload = document.createElement('button'); btnDownload.className = 'px-3 py-1 rounded border border-slate-200 text-sm'; btnDownload.textContent = '下载';
+        btnDownload.addEventListener('click', () => downloadContract(item.id));
+        const btnArchive = document.createElement('button'); btnArchive.className = 'px-3 py-1 rounded border border-slate-200 text-sm'; btnArchive.textContent = item.archived ? '恢复' : '归档';
+        btnArchive.addEventListener('click', () => toggleArchive([item.id]));
+        opTd.appendChild(btnView); opTd.appendChild(btnDownload); opTd.appendChild(btnArchive);
+        tr.appendChild(opTd);
+
+        body.appendChild(tr);
+      });
+
+      document.getElementById('selectAll').checked = pageItems.every(i => selectedIds.has(i.id));
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      document.getElementById('selectedCount').textContent = selectedIds.size;
+    }
+
+    function applyFilters() {
+      const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+      const status = document.getElementById('filterStatus').value;
+      const type = document.getElementById('filterType').value;
+      const author = document.getElementById('filterAuthor').value;
+      const from = document.getElementById('filterFrom').value;
+      const to = document.getElementById('filterTo').value;
+
+      document.getElementById('totalCount').textContent = '...';
+      setTimeout(() => {
+        filtered = contracts.filter(c => {
+          if (status && status === 'archived' && !c.archived) return false;
+          if (status && status !== 'archived' && c.status !== status) return false;
+          if (type && c.type !== type) return false;
+          if (author && c.author !== author) return false;
+          if (from && c.createdAt < from) return false;
+          if (to && c.createdAt > to) return false;
+          if (kw) {
+            return (c.title + ' ' + c.id + ' ' + c.author + ' ' + c.type).toLowerCase().includes(kw);
+          }
+          return true;
+        });
+        currentPage = 1;
+        renderTable();
+      }, 200);
+    }
+
+    document.getElementById('searchInput').addEventListener('input', debounce(() => applyFilters(), 300));
+    document.getElementById('btnClearSearch').addEventListener('click', () => { document.getElementById('searchInput').value=''; applyFilters(); });
+    document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    document.getElementById('filterType').addEventListener('change', applyFilters);
+    document.getElementById('filterAuthor').addEventListener('change', applyFilters);
+    document.getElementById('filterFrom').addEventListener('change', applyFilters);
+    document.getElementById('filterTo').addEventListener('change', applyFilters);
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage < totalPages) { currentPage++; renderTable(); }
+    });
+    document.getElementById('prevPage').addEventListener('click', () => {
+      if (currentPage > 1) { currentPage--; renderTable(); }
+    });
+
+    document.getElementById('selectAll').addEventListener('change', (e) => {
+      const start = (currentPage-1)*pageSize; const end = start + pageSize; const pageItems = filtered.slice(start, end);
+      pageItems.forEach(i => { if (e.target.checked) selectedIds.add(i.id); else selectedIds.delete(i.id); });
+      renderTable();
+    });
+
+    document.getElementById('btnNew').addEventListener('click', () => {
+      openConfirm('新建合同', '将创建一个空白合同草稿，是否继续？', () => {
+        const newId = 'C-' + (Math.floor(Math.random()*900000)+1000);
+        const now = new Date().toISOString().slice(0,10);
+        const newContract = { id: newId, title: '新合同草稿', status: 'draft', author: currentUser.name, expire: '', type: 'service', createdAt: now, archived: false, content: '新合同正文：\n请补充内容...', versions: [{ ver: 'v1', note: '初始版本', content: '新合同正文：\n请补充内容...', ts: now, author: currentUser.name }] };
+        contracts.unshift(newContract);
+        auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '创建合同', target: newId, detail: '创建草稿' });
+        populateAuthorFilter();
+        applyFilters();
+      });
+    });
+
+    document.getElementById('btnExport').addEventListener('click', () => {
+      if (selectedIds.size === 0) { alert('请先选择导出的合同'); return; }
+      openModal('modalExport');
+    });
+    document.getElementById('exportCancel').addEventListener('click', () => closeModal('modalExport'));
+    document.getElementById('exportOk').addEventListener('click', () => {
+      const format = document.getElementById('exportFormat').value;
+      const des = document.getElementById('exportDesensitize').checked;
+      const items = contracts.filter(c => selectedIds.has(c.id));
+      if (format === 'csv') {
+        const headers = ['编号','标题','状态','起草人','类型','创建时间','到期日','归档'];
+        const rows = items.map(i => {
+          const row = [i.id, des ? mask(i.title) : i.title, i.status, i.author, i.type, i.createdAt, i.expire, i.archived ? '是' : '否'];
+          return headers.map((h,idx)=>escapeCsv(row[idx])).join(',');
+        });
+        const csv = [headers.join(','), ...rows].join('\n');
+        downloadBlob(csv, 'contracts_export.csv', 'text/csv;charset=utf-8;');
+      } else {
+        const out = JSON.stringify(items.map(i => {
+          if (des) { return desensitize(i); } else return i;
+        }), null, 2);
+        downloadBlob(out, 'contracts_export.json', 'application/json;charset=utf-8;');
+      }
+      auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '批量导出', target: Array.from(selectedIds).join(','), detail: `format=${format}, desensitize=${des}` });
+      closeModal('modalExport');
+      renderAudit();
+    });
+
+    document.getElementById('btnArchive').addEventListener('click', () => {
+      if (selectedIds.size === 0) { alert('请选择要归档的合同'); return; }
+      openConfirm('批量归档', `确认将 ${selectedIds.size} 项合同归档？`, () => {
+        toggleArchive(Array.from(selectedIds));
+      });
+    });
+
+    function toggleArchive(ids) {
+      ids.forEach(id => {
+        const c = contracts.find(x => x.id === id);
+        if (!c) return;
+        if (c.archived) { c.archived = false; auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '恢复合同', target: c.id, detail: '恢复归档' }); }
+        else { c.archived = true; auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '归档合同', target: c.id, detail: '批量归档' }); }
+      });
+      applyFilters();
+      renderAudit();
+    }
+
+    document.getElementById('btnAuditLog').addEventListener('click', () => {
+      renderAudit();
+      openModal('modalAudit');
+    });
+    document.getElementById('closeAudit').addEventListener('click', () => closeModal('modalAudit'));
+
+    function renderAudit() {
+      const tbody = document.getElementById('auditBody');
+      tbody.innerHTML = '';
+      auditLogs.slice(0,200).forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="px-4 py-2">${a.ts}</td><td class="px-4 py-2">${a.user}</td><td class="px-4 py-2">${a.op}</td><td class="px-4 py-2">${a.target}</td><td class="px-4 py-2">${a.detail || ''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openDetail(id) {
+      const c = contracts.find(x => x.id === id);
+      if (!c) return;
+      document.getElementById('detailPanel').classList.remove('translate-x-full');
+      document.getElementById('detailTitle').textContent = c.title;
+      document.getElementById('detailMeta').textContent = `${c.id} • ${c.author} • ${c.status}${c.archived ? ' • 已归档' : ''}`;
+      document.getElementById('detailContent').textContent = c.content;
+      const verList = document.getElementById('versionList');
+      verList.innerHTML = '';
+      c.versions.slice().reverse().forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'p-3 rounded border border-slate-100 bg-white';
+        div.innerHTML = `<div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium">${v.ver} · ${v.note}</div>
+            <div class="text-xs text-gray-500">${v.author} · ${v.ts}</div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button class="px-2 py-1 rounded border text-sm btn-preview">预览</button>
+            <button class="px-2 py-1 rounded bg-sky-600 text-white text-sm btn-rollback">回退到此版</button>
+          </div>
+        </div>`;
+        const previewBtn = div.querySelector('.btn-preview');
+        const rollbackBtn = div.querySelector('.btn-rollback');
+        previewBtn.addEventListener('click', () => {
+          document.getElementById('detailContent').textContent = v.content;
+        });
+        rollbackBtn.addEventListener('click', () => {
+          openConfirm('回退版本', `确认回退 ${c.id} 到 ${v.ver} 版本？`, () => {
+            const now = new Date().toISOString().slice(0,10);
+            c.versions.push({ ver: 'v' + (c.versions.length+1), note: `回退至${v.ver}`, content: v.content, ts: now, author: currentUser.name });
+            c.content = v.content;
+            auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '版本回退', target: c.id, detail: `回退到 ${v.ver}` });
+            renderAudit();
+            openDetail(c.id);
+            applyFilters();
+          });
+        });
+        verList.appendChild(div);
+      });
+
+      document.getElementById('btnDownload').onclick = () => downloadContract(c.id);
+      document.getElementById('btnStartReview').onclick = () => {
+        openConfirm('发起审核', `将对 ${c.id} 发起审核流程？`, () => {
+          c.status = 'in_review';
+          auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '发起审核', target: c.id, detail: '流程开始' });
+          renderAudit();
+          applyFilters();
+        });
+      };
+      document.getElementById('btnRevert').onclick = () => {
+        alert('请在版本历史中选择要回退的版本并确认。');
+      };
+      document.getElementById('btnArchiveOne').onclick = () => {
+        openConfirm('归档合同', `确认归档 ${c.id}？`, () => {
+          c.archived = true;
+          auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '归档合同', target: c.id, detail: '单项归档' });
+          renderAudit(); applyFilters(); closeDetail();
+        });
+      };
+      document.getElementById('btnRestoreOne').onclick = () => {
+        openConfirm('恢复合同', `确认恢复 ${c.id}？`, () => {
+          c.archived = false;
+          auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '恢复合同', target: c.id, detail: '单项恢复' });
+          renderAudit(); applyFilters(); closeDetail();
+        });
+      };
+    }
+
+    function closeDetail() {
+      document.getElementById('detailPanel').classList.add('translate-x-full');
+    }
+    document.getElementById('btnCloseDetail').addEventListener('click', closeDetail);
+
+    function downloadContract(id) {
+      const c = contracts.find(x => x.id === id);
+      if (!c) return;
+      const filename = `${c.id}_${c.title.replace(/\s+/g,'_')}.txt`;
+      const body = `编号: ${c.id}\n标题: ${c.title}\n起草人: ${c.author}\n状态: ${c.status}\n创建时间: ${c.createdAt}\n\n正文:\n${c.content}\n\n版本数: ${c.versions.length}`;
+      downloadBlob(body, filename, 'text/plain;charset=utf-8;');
+      auditLogs.unshift({ ts: new Date().toISOString(), user: currentUser.name, op: '下载合同', target: c.id, detail: '前端下载' });
+      renderAudit();
+    }
+
+    function openModal(id) {
+      document.getElementById('modalBackdrop').classList.remove('hidden');
+      document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function openConfirm(title, body, onOk) {
+      document.getElementById('modalConfirmTitle').textContent = title;
+      document.getElementById('modalConfirmBody').textContent = body;
+      document.getElementById('modalBackdrop').classList.remove('hidden');
+      document.getElementById('modalConfirm').classList.remove('hidden');
+      const ok = document.getElementById('modalConfirmOk');
+      const cancel = document.getElementById('modalCancel');
+      const cleanup = () => {
+        document.getElementById('modalBackdrop').classList.add('hidden');
+        document.getElementById('modalConfirm').classList.add('hidden');
+        ok.removeEventListener('click', handleOk);
+        cancel.removeEventListener('click', handleCancel);
+      };
+      const handleOk = () => { onOk && onOk(); cleanup(); };
+      const handleCancel = () => { cleanup(); };
+      ok.addEventListener('click', handleOk);
+      cancel.addEventListener('click', handleCancel);
+    }
+
+    document.getElementById('modalCancel').addEventListener('click', () => {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+      document.getElementById('modalConfirm').classList.add('hidden');
+    });
+
+    function downloadBlob(content, filename, mime) {
+      const blob = new Blob([content], { type: mime || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function escapeCsv(v) {
+      if (v === undefined || v === null) return '';
+      v = String(v);
+      if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+        return '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    }
+
+    function mask(text) {
+      return text.replace(/.(?=.{2,}$)/g, '*');
+    }
+
+    function desensitize(obj) {
+      const clone = JSON.parse(JSON.stringify(obj));
+      if (clone.title) clone.title = mask(clone.title);
+      if (clone.author) clone.author = mask(clone.author);
+      if (clone.content) clone.content = '已脱敏';
+      return clone;
+    }
+
+    function debounce(fn, wait) {
+      let t;
+      return function(...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    document.getElementById('btnLogin').addEventListener('click', () => alert('跳转到登录页面（占位）'));
+    document.getElementById('btnRegister').addEventListener('click', () => alert('跳转到注册页面（占位）'));
+
+    populateAuthorFilter();
+    applyFilters();
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetail();
+        closeModal('modalExport');
+        closeModal('modalAudit');
+        document.getElementById('modalBackdrop').classList.add('hidden');
+        document.getElementById('modalConfirm').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('modalBackdrop').addEventListener('click', () => {
+      closeModal('modalExport'); closeModal('modalAudit');
+      document.getElementById('modalConfirm').classList.add('hidden');
+      document.getElementById('modalBackdrop').classList.add('hidden');
+    });
+
+    (function accessibility() {
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(b => { b.addEventListener('keydown', (e) => { if (e.key === 'Enter') b.click(); }); });
+    })();
+  </script>
+</body>
+</html>
