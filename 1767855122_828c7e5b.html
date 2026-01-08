@@ -1,0 +1,1178 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云1.0 AI合同审核平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1F7AE0;
+            --text-color: #222222;
+            --bg-color: #FFFFFF;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-color);
+            background-color: #f5f7fa;
+        }
+        .primary-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .primary-btn:hover {
+            background-color: #1563b8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(31, 122, 224, 0.3);
+        }
+        .secondary-btn {
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            border: 1px solid #d9d9d9;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .secondary-btn:hover {
+            background-color: #e6e6e6;
+        }
+        .danger-btn {
+            background-color: #ff4d4f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .danger-btn:hover {
+            background-color: #ff7875;
+        }
+        .success-btn {
+            background-color: #52c41a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .success-btn:hover {
+            background-color: #73d13d;
+        }
+        .header {
+            background-color: var(--bg-color);
+            border-bottom: 1px solid #e8e8e8;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .nav-menu {
+            display: flex;
+            gap: 24px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-menu li a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .nav-menu li a:hover {
+            background-color: #f0f0f0;
+            color: var(--primary-color);
+        }
+        .nav-menu li a.active {
+            color: var(--primary-color);
+            background-color: #e6f2ff;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: var(--bg-color);
+            border-right: 1px solid #e8e8e8;
+            padding: 16px 0;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+        }
+        .sidebar-item {
+            padding: 12px 16px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-item:hover {
+            background-color: #f5f5f5;
+            color: var(--primary-color);
+        }
+        .sidebar-item.active {
+            background-color: #e6f2ff;
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .container-wrapper {
+            display: flex;
+            height: calc(100vh - 64px);
+        }
+        .contract-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--bg-color);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .contract-table thead {
+            background-color: #fafafa;
+            border-bottom: 2px solid #e8e8e8;
+        }
+        .contract-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 13px;
+        }
+        .contract-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8e8e8;
+            font-size: 13px;
+        }
+        .contract-table tbody tr:hover {
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-pending {
+            background-color: #fff7e6;
+            color: #d46b08;
+        }
+        .status-approved {
+            background-color: #f6ffed;
+            color: #389e0d;
+        }
+        .status-rejected {
+            background-color: #fff1f0;
+            color: #cf1322;
+        }
+        .status-signed {
+            background-color: #e6f7ff;
+            color: #0050b3;
+        }
+        .detail-panel {
+            width: 350px;
+            background-color: var(--bg-color);
+            border-left: 1px solid #e8e8e8;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+        }
+        .detail-item {
+            margin-bottom: 16px;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .detail-value {
+            font-size: 14px;
+            color: var(--text-color);
+            word-break: break-word;
+        }
+        .document-viewer {
+            flex: 1;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            margin-right: 16px;
+        }
+        .viewer-toolbar {
+            background-color: var(--bg-color);
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            border-radius: 4px 4px 0 0;
+        }
+        .viewer-content {
+            flex: 1;
+            background-color: #e8e8e8;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0 0 4px 4px;
+        }
+        .pdf-placeholder {
+            background-color: var(--bg-color);
+            padding: 40px;
+            border-radius: 4px;
+            text-align: center;
+            max-width: 600px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .approval-panel {
+            background-color: var(--bg-color);
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .approval-section {
+            margin-bottom: 16px;
+        }
+        .approval-section-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+        .textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(31, 122, 224, 0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: var(--bg-color);
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-color);
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(31, 122, 224, 0.1);
+        }
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+        .timeline-item {
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 2px solid var(--bg-color);
+        }
+        .timeline-time {
+            font-size: 12px;
+            color: #999;
+        }
+        .timeline-content {
+            font-size: 13px;
+            color: var(--text-color);
+            margin-top: 4px;
+        }
+        .filter-bar {
+            background-color: var(--bg-color);
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 150px;
+        }
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .annotation-tool {
+            background-color: var(--bg-color);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .annotation-tool button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1563b8 100%);
+        }
+        .auth-form {
+            background-color: var(--bg-color);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+        }
+        .auth-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            text-align: center;
+        }
+        .auth-subtitle {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(31, 122, 224, 0.1);
+        }
+        .auth-button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+        .auth-button:hover {
+            background-color: #1563b8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(31, 122, 224, 0.3);
+        }
+        .auth-link {
+            text-align: center;
+            font-size: 13px;
+        }
+        .auth-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--bg-color);
+            padding: 16px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+            max-width: 400px;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .notification.success {
+            border-left: 4px solid #52c41a;
+        }
+        .notification.error {
+            border-left: 4px solid #ff4d4f;
+        }
+        .notification.info {
+            border-left: 4px solid var(--primary-color);
+        }
+        .notification-message {
+            font-size: 14px;
+            color: var(--text-color);
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="authPage" class="auth-container">
+        <div class="auth-form">
+            <div class="auth-title">智律云1.0</div>
+            <div class="auth-subtitle">AI合同审核平台</div>
+            <div id="loginForm">
+                <input type="email" class="auth-input" id="loginEmail" placeholder="请输入邮箱" required>
+                <input type="password" class="auth-input" id="loginPassword" placeholder="请输入密码" required>
+                <button class="auth-button" onclick="handleLogin()">登录</button>
+                <div class="auth-link">
+                    没有账户？<a onclick="switchToRegister()">立即注册</a>
+                </div>
+            </div>
+            <div id="registerForm" class="hidden">
+                <input type="text" class="auth-input" id="registerName" placeholder="请输入姓名" required>
+                <input type="email" class="auth-input" id="registerEmail" placeholder="请输入邮箱" required>
+                <input type="password" class="auth-input" id="registerPassword" placeholder="请输入密码" required>
+                <input type="password" class="auth-input" id="registerConfirm" placeholder="确认密码" required>
+                <button class="auth-button" onclick="handleRegister()">注册</button>
+                <div class="auth-link">
+                    已有账户？<a onclick="switchToLogin()">立即登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="hidden">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-file-contract"></i> 智律云1.0
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" class="nav-link active" onclick="switchPage('review')">合同审核</a></li>
+                <li><a href="#" class="nav-link" onclick="switchPage('dispatch')">合同外发</a></li>
+                <li><a href="#" class="nav-link" onclick="switchPage('sign')">合同签约</a></li>
+                <li><a href="#" class="nav-link" onclick="switchPage('manage')">合同管理</a></li>
+            </ul>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <span id="userDisplay" style="font-size: 13px; color: #666;"></span>
+                <button class="secondary-btn" onclick="handleLogout()">退出登录</button>
+            </div>
+        </div>
+
+        <div class="container-wrapper">
+            <div class="sidebar">
+                <div class="sidebar-item active" onclick="filterContracts('pending')">
+                    <i class="fas fa-hourglass-half"></i> 待审核
+                </div>
+                <div class="sidebar-item" onclick="filterContracts('approved')">
+                    <i class="fas fa-check-circle"></i> 已批准
+                </div>
+                <div class="sidebar-item" onclick="filterContracts('rejected')">
+                    <i class="fas fa-times-circle"></i> 已驳回
+                </div>
+                <div class="sidebar-item" onclick="filterContracts('signed')">
+                    <i class="fas fa-pen-fancy"></i> 已签署
+                </div>
+                <div class="sidebar-item" onclick="filterContracts('all')">
+                    <i class="fas fa-list"></i> 全部合同
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div id="reviewPage">
+                    <div class="page-title">合同审核</div>
+                    
+                    <div class="filter-bar">
+                        <input type="text" class="filter-input" id="searchInput" placeholder="搜索合同编号或标题..." onkeyup="searchContracts()">
+                        <select class="filter-input" id="statusFilter" onchange="applyFilters()">
+                            <option value="">全部状态</option>
+                            <option value="pending">待审核</option>
+                            <option value="approved">已批准</option>
+                            <option value="rejected">已驳回</option>
+                            <option value="signed">已签署</option>
+                        </select>
+                        <button class="primary-btn" onclick="openUploadModal()">
+                            <i class="fas fa-upload"></i> 上传合同
+                        </button>
+                    </div>
+
+                    <div style="display: flex; gap: 16px; height: calc(100vh - 200px);">
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <div style="background-color: var(--bg-color); border-radius: 4px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); flex: 1; display: flex; flex-direction: column;">
+                                <table class="contract-table" style="margin: 0;">
+                                    <thead>
+                                        <tr>
+                                            <th>合同编号</th>
+                                            <th>合同标题</th>
+                                            <th>签署方</th>
+                                            <th>金额</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contractTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="detail-panel">
+                            <div id="detailContent" style="text-align: center; color: #999;">
+                                <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px; display: block;"></i>
+                                <p>选择合同查看详情</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dispatchPage" class="hidden">
+                    <div class="page-title">合同外发</div>
+                    <div style="background-color: var(--bg-color); padding: 40px; border-radius: 4px; text-align: center;">
+                        <i class="fas fa-paper-plane" style="font-size: 48px; color: #ccc; margin-bottom: 16px; display: block;"></i>
+                        <p style="color: #999; font-size: 14px;">合同外发功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="signPage" class="hidden">
+                    <div class="page-title">合同签约</div>
+                    <div style="background-color: var(--bg-color); padding: 40px; border-radius: 4px; text-align: center;">
+                        <i class="fas fa-signature" style="font-size: 48px; color: #ccc; margin-bottom: 16px; display: block;"></i>
+                        <p style="color: #999; font-size: 14px;">合同签约功能开发中...</p>
+                    </div>
+                </div>
+
+                <div id="managePage" class="hidden">
+                    <div class="page-title">合同管理</div>
+                    <div style="background-color: var(--bg-color); padding: 40px; border-radius: 4px; text-align: center;">
+                        <i class="fas fa-folder-open" style="font-size: 48px; color: #ccc; margin-bottom: 16px; display: block;"></i>
+                        <p style="color: #999; font-size: 14px;">合同管理功能开发中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="detailModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <i class="fas fa-times" onclick="closeDetailModal()" style="float: right; cursor: pointer; color: #999;"></i>
+                合同详情
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <div class="document-viewer">
+                            <div class="viewer-toolbar">
+                                <button class="secondary-btn" onclick="previousPage()">
+                                    <i class="fas fa-chevron-left"></i> 上一页
+                                </button>
+                                <span id="pageInfo" style="font-size: 13px; color: #666;">第 1 页</span>
+                                <button class="secondary-btn" onclick="nextPage()">
+                                    下一页 <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="secondary-btn" onclick="toggleAnnotation()">
+                                    <i class="fas fa-highlighter"></i> 批注
+                                </button>
+                            </div>
+                            <div class="viewer-content">
+                                <div class="pdf-placeholder">
+                                    <i class="fas fa-file-pdf" style="font-size: 48px; color: #ccc; margin-bottom: 12px; display: block;"></i>
+                                    <p style="color: #999; margin: 0;">PDF文档预览</p>
+                                    <p id="documentName" style="color: #666; font-size: 12px; margin-top: 8px;"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="annotation-tool hidden" id="annotationTool">
+                            <button class="secondary-btn" onclick="addHighlight()">
+                                <i class="fas fa-marker"></i> 高亮
+                            </button>
+                            <button class="secondary-btn" onclick="addTextNote()">
+                                <i class="fas fa-sticky-note"></i> 文字批注
+                            </button>
+                            <button class="secondary-btn" onclick="clearAnnotations()">
+                                <i class="fas fa-eraser"></i> 清除
+                            </button>
+                        </div>
+
+                        <div class="approval-panel">
+                            <div class="approval-section">
+                                <div class="approval-section-title">审批意见</div>
+                                <textarea class="textarea" id="approvalComment" placeholder="请输入审批意见..."></textarea>
+                            </div>
+                            <div class="approval-section">
+                                <div class="approval-section-title">审批操作</div>
+                                <div class="button-group">
+                                    <button class="success-btn" onclick="approveContract()">
+                                        <i class="fas fa-check"></i> 通过
+                                    </button>
+                                    <button class="danger-btn" onclick="rejectContract()">
+                                        <i class="fas fa-times"></i> 驳回
+                                    </button>
+                                    <button class="primary-btn" onclick="openReassignModal()">
+                                        <i class="fas fa-share"></i> 转审
+                                    </button>
+                                    <button class="primary-btn" onclick="initiateSignature()">
+                                        <i class="fas fa-pen-fancy"></i> 发起电子签
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="width: 300px;">
+                        <div class="detail-item">
+                            <div class="detail-label">合同编号</div>
+                            <div class="detail-value" id="detailNumber">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">合同标题</div>
+                            <div class="detail-value" id="detailTitle">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">签署方</div>
+                            <div class="detail-value" id="detailParty">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">合同金额</div>
+                            <div class="detail-value" id="detailAmount">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">生效日期</div>
+                            <div class="detail-value" id="detailDate">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">当前状态</div>
+                            <div class="detail-value" id="detailStatus">-</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">附件</div>
+                            <div style="margin-top: 8px;">
+                                <button class="secondary-btn" onclick="downloadAttachment()" style="width: 100%;">
+                                    <i class="fas fa-download"></i> 下载附件
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e8e8e8;">
+                            <div class="approval-section-title">审批历史</div>
+                            <div class="timeline" id="approvalTimeline">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-times" onclick="closeUploadModal()" style="float: right; cursor: pointer; color: #999;"></i>
+                上传合同
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">合同标题</label>
+                    <input type="text" class="form-input" id="uploadTitle" placeholder="请输入合同标题">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">签署方</label>
+                    <input type="text" class="form-input" id="uploadParty" placeholder="请输入签署方">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">合同金额</label>
+                    <input type="number" class="form-input" id="uploadAmount" placeholder="请输入合同金额">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">生效日期</label>
+                    <input type="date" class="form-input" id="uploadDate">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">选择文件</label>
+                    <input type="file" class="form-input" id="uploadFile" accept=".pdf,.doc,.docx">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeUploadModal()">取消</button>
+                <button class="primary-btn" onclick="submitUpload()">上传</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reassignModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-times" onclick="closeReassignModal()" style="float: right; cursor: pointer; color: #999;"></i>
+                转审
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">选择审核人</label>
+                    <select class="form-input" id="reassignUser">
+                        <option value="">请选择审核人</option>
+                        <option value="user1">张三 - 法务部</option>
+                        <option value="user2">李四 - 合规部</option>
+                        <option value="user3">王五 - 业务部</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">转审说明</label>
+                    <textarea class="textarea" id="reassignReason" placeholder="请输入转审原因..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" onclick="closeReassignModal()">取消</button>
+                <button class="primary-btn" onclick="submitReassign()">确认转审</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentContract = null;
+        let contractsData = [];
+        let filteredContracts = [];
+        let currentFilter = 'pending';
+
+        function switchToRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+        }
+
+        function switchToLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showNotification('请填写邮箱和密码', 'error');
+                return;
+            }
+
+            currentUser = { email: email, name: email.split('@')[0] };
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userDisplay').textContent = `欢迎，${currentUser.name}`;
+            
+            initializeContracts();
+            showNotification('登录成功', 'success');
+        }
+
+        function handleRegister() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirm').value;
+
+            if (!name || !email || !password || !confirm) {
+                showNotification('请填写所有字段', 'error');
+                return;
+            }
+
+            if (password !== confirm) {
+                showNotification('两次密码不一致', 'error');
+                return;
+            }
+
+            currentUser = { email: email, name: name };
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userDisplay').textContent = `欢迎，${currentUser.name}`;
+            
+            initializeContracts();
+            showNotification('注册成功', 'success');
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            currentContract = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('authPage').classList.remove('hidden');
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            showNotification('已退出登录', 'info');
+        }
+
+        function initializeContracts() {
+            contractsData = [
+                { id: 'CT001', title: '采购合同', party: '供应商A', amount: 50000, date: '2024-01-15', status: 'pending', document: '采购合同.pdf' },
+                { id: 'CT002', title: '服务合同', party: '服务商B', amount: 30000, date: '2024-01-20', status: 'approved', document: '服务合同.pdf' },
+                { id: 'CT003', title: '租赁合同', party: '房东C', amount: 12000, date: '2024-02-01', status: 'pending', document: '租赁合同.pdf' },
+                { id: 'CT004', title: '销售合同', party: '客户D', amount: 100000, date: '2024-02-10', status: 'signed', document: '销售合同.pdf' },
+                { id: 'CT005', title: '合作协议', party: '合作方E', amount: 25000, date: '2024-02-15', status: 'rejected', document: '合作协议.pdf' }
+            ];
+            filterContracts('pending');
+        }
+
+        function filterContracts(status) {
+            currentFilter = status;
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.sidebar-item').classList.add('active');
+            
+            if (status === 'all') {
+                filteredContracts = contractsData;
+            } else {
+                filteredContracts = contractsData.filter(c => c.status === status);
+            }
+            
+            renderContractTable();
+        }
+
+        function searchContracts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            filteredContracts = contractsData.filter(c => {
+                const matchSearch = c.id.toLowerCase().includes(searchTerm) || c.title.toLowerCase().includes(searchTerm);
+                const matchStatus = !statusFilter || c.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+            
+            renderContractTable();
+        }
+
+        function applyFilters() {
+            searchContracts();
+        }
+
+        function renderContractTable() {
+            const tbody = document.getElementById('contractTableBody');
+            tbody.innerHTML = '';
+            
+            filteredContracts.forEach(contract => {
+                const row = document.createElement('tr');
+                const statusClass = `status-${contract.status}`;
+                const statusText = getStatusText(contract.status);
+                
+                row.innerHTML = `
+                    <td>${contract.id}</td>
+                    <td>${contract.title}</td>
+                    <td>${contract.party}</td>
+                    <td>¥${contract.amount.toLocaleString()}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>
+                        <button class="primary-btn" onclick="openDetailModal('${contract.id}')" style="padding: 4px 8px; font-size: 12px;">
+                            查看
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '待审核',
+                'approved': '已批准',
+                'rejected': '已驳回',
+                'signed': '已签署'
+            };
+            return statusMap[status] || status;
+        }
+
+        function openDetailModal(contractId) {
+            currentContract = contractsData.find(c => c.id === contractId);
+            if (!currentContract) return;
+            
+            document.getElementById('detailNumber').textContent = currentContract.id;
+            document.getElementById('detailTitle').textContent = currentContract.title;
+            document.getElementById('detailParty').textContent = currentContract.party;
+            document.getElementById('detailAmount').textContent = `¥${currentContract.amount.toLocaleString()}`;
+            document.getElementById('detailDate').textContent = currentContract.date;
+            document.getElementById('detailStatus').textContent = getStatusText(currentContract.status);
+            document.getElementById('documentName').textContent = currentContract.document;
+            
+            renderApprovalTimeline();
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('show');
+            document.getElementById('annotationTool').classList.add('hidden');
+        }
+
+        function renderApprovalTimeline() {
+            const timeline = document.getElementById('approvalTimeline');
+            timeline.innerHTML = `
+                <div class="timeline-item">
+                    <div class="timeline-time">2024-02-20 10:30</div>
+                    <div class="timeline-content">合同已上传</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-time">2024-02-20 14:15</div>
+                    <div class="timeline-content">张三开始审核</div>
+                </div>
+            `;
+        }
+
+        function toggleAnnotation() {
+            const tool = document.getElementById('annotationTool');
+            tool.classList.toggle('hidden');
+        }
+
+        function addHighlight() {
+            showNotification('已添加高亮批注', 'success');
+        }
+
+        function addTextNote() {
+            showNotification('已添加文字批注', 'success');
+        }
+
+        function clearAnnotations() {
+            showNotification('已清除所有批注', 'info');
+        }
+
+        function previousPage() {
+            showNotification('上一页', 'info');
+        }
+
+        function nextPage() {
+            showNotification('下一页', 'info');
+        }
+
+        function approveContract() {
+            if (!currentContract) return;
+            const comment = document.getElementById('approvalComment').value;
+            
+            if (!comment) {
+                showNotification('请输入审批意见', 'error');
+                return;
+            }
+            
+            currentContract.status = 'approved';
+            renderContractTable();
+            closeDetailModal();
+            showNotification('合同已批准', 'success');
+        }
+
+        function rejectContract() {
+            if (!currentContract) return;
+            const comment = document.getElementById('approvalComment').value;
+            
+            if (!comment) {
+                showNotification('请输入驳回原因', 'error');
+                return;
+            }
+            
+            currentContract.status = 'rejected';
+            renderContractTable();
+            closeDetailModal();
+            showNotification('合同已驳回', 'success');
+        }
+
+        function openReassignModal() {
+            document.getElementById('reassignModal').classList.add('show');
+        }
+
+        function closeReassignModal() {
+            document.getElementById('reassignModal').classList.remove('show');
+        }
+
+        function submitReassign() {
+            const user = document.getElementById('reassignUser').value;
+            const reason = document.getElementById('reassignReason').value;
+            
+            if (!user || !reason) {
+                showNotification('请选择审核人并输入转审原因', 'error');
+                return;
+            }
+            
+            closeReassignModal();
+            showNotification('已转审给相关人员', 'success');
+        }
+
+        function initiateSignature() {
+            if (!currentContract) return;
+            showNotification('已发起电子签，请等待签署方确认', 'success');
+        }
+
+        function downloadAttachment() {
+            if (!currentContract) return;
+            showNotification(`已下载 ${currentContract.document}`, 'success');
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.add('show');
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.remove('show');
+            document.getElementById('uploadTitle').value = '';
+            document.getElementById('uploadParty').value = '';
+            document.getElementById('uploadAmount').value = '';
+            document.getElementById('uploadDate').value = '';
+            document.getElementById('uploadFile').value = '';
+        }
+
+        function submitUpload() {
+            const title = document.getElementById('uploadTitle').value;
+            const party = document.getElementById('uploadParty').value;
+            const amount = document.getElementById('uploadAmount').value;
+            const date = document.getElementById('uploadDate').value;
+            const file = document.getElementById('uploadFile').value;
+            
+            if (!title || !party || !amount || !date || !file) {
+                showNotification('请填写所有字段并选择文件', 'error');
+                return;
+            }
+            
+            const newContract = {
+                id: `CT${String(contractsData.length + 1).padStart(3, '0')}`,
+                title: title,
+                party: party,
+                amount: parseInt(amount),
+                date: date,
+                status: 'pending',
+                document: file.split('\\').pop()
+            };
+            
+            contractsData.push(newContract);
+            filterContracts('pending');
+            closeUploadModal();
+            showNotification('合同已上传', 'success');
+        }
+
+        function switchPage(page) {
+            document.querySelectorAll('[id$="Page"]').forEach(p => p.classList.add('hidden'));
+            document.getElementById(page + 'Page').classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `<div class="notification-message">${message}</div>`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+```
