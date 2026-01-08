@@ -1,0 +1,1361 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云1.0 AI合同审核平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1E88E5;
+            --secondary: #FFFFFF;
+            --accent: #FFC107;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .sidebar-active {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #1565C0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+        }
+        .btn-secondary {
+            background-color: #F5F5F5;
+            color: #333;
+            border: 1px solid #DDD;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #EEEEEE;
+        }
+        .btn-accent {
+            background-color: var(--accent);
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-accent:hover {
+            background-color: #FFB300;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .permission-tree {
+            margin: 15px 0;
+            padding: 10px;
+            background: #F9F9F9;
+            border-radius: 6px;
+        }
+        .permission-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+        }
+        .permission-item input[type="checkbox"] {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .role-badge.admin {
+            background-color: #FFEBEE;
+            color: #C62828;
+        }
+        .role-badge.manager {
+            background-color: #E3F2FD;
+            color: #1565C0;
+        }
+        .role-badge.user {
+            background-color: #F3E5F5;
+            color: #6A1B9A;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background-color: #F5F5F5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #DDD;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #EEE;
+        }
+        tr:hover {
+            background-color: #FAFAFA;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-active {
+            background-color: #C8E6C9;
+            color: #2E7D32;
+        }
+        .status-inactive {
+            background-color: #FFCCBC;
+            color: #D84315;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #EEE;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .alert-success {
+            background-color: #C8E6C9;
+            color: #2E7D32;
+            border-left: 4px solid #2E7D32;
+        }
+        .alert-warning {
+            background-color: #FFF9C4;
+            color: #F57F17;
+            border-left: 4px solid #F57F17;
+        }
+        .alert-error {
+            background-color: #FFCDD2;
+            color: #C62828;
+            border-left: 4px solid #C62828;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #DDD;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 shadow-sm">
+            <div class="p-6 border-b border-gray-200">
+                <h1 class="text-2xl font-bold" style="color: var(--primary);">智律云1.0</h1>
+                <p class="text-sm text-gray-500 mt-1">AI合同审核平台</p>
+            </div>
+            <nav class="mt-6">
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">主菜单</div>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('dashboard')">
+                    <span class="text-lg mr-3">📊</span>仪表板
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('review')">
+                    <span class="text-lg mr-3">📋</span>合同审核
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('external')">
+                    <span class="text-lg mr-3">📤</span>合同外发
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('signing')">
+                    <span class="text-lg mr-3">✍️</span>合同签约
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('management')">
+                    <span class="text-lg mr-3">📁</span>合同管理
+                </button>
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6">系统管理</div>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('permissions')">
+                    <span class="text-lg mr-3">🔐</span>权限管理
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('audit')">
+                    <span class="text-lg mr-3">📝</span>审计日志
+                </button>
+                <button class="w-full text-left px-6 py-3 sidebar-item" onclick="switchPage('settings')">
+                    <span class="text-lg mr-3">⚙️</span>系统设置
+                </button>
+            </nav>
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 w-64">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full" style="background-color: var(--primary);"></div>
+                        <div class="ml-3">
+                            <p class="text-sm font-semibold">管理员</p>
+                            <p class="text-xs text-gray-500">admin@zhilv.com</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="text-gray-400 hover:text-gray-600">🚪</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Header -->
+            <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+                <div class="px-8 py-4 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">仪表板</h2>
+                    <div class="flex items-center gap-4">
+                        <button class="p-2 hover:bg-gray-100 rounded-lg">🔔</button>
+                        <button class="p-2 hover:bg-gray-100 rounded-lg">⚙️</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Content -->
+            <div class="p-8">
+                <!-- Dashboard Page -->
+                <div id="dashboard" class="page-content">
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <div class="card">
+                            <div class="text-gray-500 text-sm font-semibold">待审核合同</div>
+                            <div class="text-4xl font-bold mt-2" style="color: var(--primary);">24</div>
+                            <div class="text-xs text-gray-400 mt-2">↑ 12% 较上周</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-500 text-sm font-semibold">已签约合同</div>
+                            <div class="text-4xl font-bold mt-2" style="color: var(--accent);">156</div>
+                            <div class="text-xs text-gray-400 mt-2">↑ 8% 较上周</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-500 text-sm font-semibold">进行中合同</div>
+                            <div class="text-4xl font-bold mt-2" style="color: #4CAF50;">89</div>
+                            <div class="text-xs text-gray-400 mt-2">↓ 3% 较上周</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-500 text-sm font-semibold">已完成合同</div>
+                            <div class="text-4xl font-bold mt-2" style="color: #9C27B0;">342</div>
+                            <div class="text-xs text-gray-400 mt-2">↑ 5% 较上周</div>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3 class="text-lg font-semibold mb-4">合同审核趋势</h3>
+                            <canvas id="reviewChart"></canvas>
+                        </div>
+                        <div class="card">
+                            <h3 class="text-lg font-semibold mb-4">合同类型分布</h3>
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review Page -->
+                <div id="review" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">合同审核列表</h3>
+                            <button class="btn-primary" onclick="openReviewModal()">+ 新建审核</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="form-group">
+                                <label>合同名称</label>
+                                <input type="text" placeholder="搜索合同名称">
+                            </div>
+                            <div class="form-group">
+                                <label>审核状态</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>待审核</option>
+                                    <option>审核中</option>
+                                    <option>已通过</option>
+                                    <option>已驳回</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>合同类型</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>采购合同</option>
+                                    <option>销售合同</option>
+                                    <option>服务合同</option>
+                                    <option>劳动合同</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>合同编号</th>
+                                        <th>合同名称</th>
+                                        <th>合同类型</th>
+                                        <th>提交人</th>
+                                        <th>审核状态</th>
+                                        <th>提交时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>CT-2024-001</td>
+                                        <td>采购协议-A公司</td>
+                                        <td>采购合同</td>
+                                        <td>张三</td>
+                                        <td><span class="status-badge status-active">待审核</span></td>
+                                        <td>2024-01-15 10:30</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>CT-2024-002</td>
+                                        <td>销售合同-B公司</td>
+                                        <td>销售合同</td>
+                                        <td>李四</td>
+                                        <td><span class="status-badge status-active">审核中</span></td>
+                                        <td>2024-01-14 14:20</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>CT-2024-003</td>
+                                        <td>服务合同-C公司</td>
+                                        <td>服务合同</td>
+                                        <td>王五</td>
+                                        <td><span class="status-badge status-inactive">已驳回</span></td>
+                                        <td>2024-01-13 09:15</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- External Page -->
+                <div id="external" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">合同外发管理</h3>
+                            <button class="btn-primary" onclick="openExternalModal()">+ 新建外发</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="form-group">
+                                <label>收件人</label>
+                                <input type="text" placeholder="搜索收件人">
+                            </div>
+                            <div class="form-group">
+                                <label>外发状态</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>已发送</option>
+                                    <option>已查看</option>
+                                    <option>已反馈</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>外发时间</label>
+                                <input type="date">
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>外发编号</th>
+                                        <th>合同名称</th>
+                                        <th>收件人</th>
+                                        <th>外发状态</th>
+                                        <th>外发时间</th>
+                                        <th>截止时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>EX-2024-001</td>
+                                        <td>采购协议-A公司</td>
+                                        <td>contact@acompany.com</td>
+                                        <td><span class="status-badge status-active">已发送</span></td>
+                                        <td>2024-01-15 11:00</td>
+                                        <td>2024-01-22 23:59</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>EX-2024-002</td>
+                                        <td>销售合同-B公司</td>
+                                        <td>contact@bcompany.com</td>
+                                        <td><span class="status-badge status-active">已查看</span></td>
+                                        <td>2024-01-14 15:30</td>
+                                        <td>2024-01-21 23:59</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signing Page -->
+                <div id="signing" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">合同签约管理</h3>
+                            <button class="btn-primary" onclick="openSigningModal()">+ 新建签约</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="form-group">
+                                <label>合同名称</label>
+                                <input type="text" placeholder="搜索合同名称">
+                            </div>
+                            <div class="form-group">
+                                <label>签约状态</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>待签约</option>
+                                    <option>签约中</option>
+                                    <option>已签约</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>签约方</label>
+                                <input type="text" placeholder="搜索签约方">
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>签约编号</th>
+                                        <th>合同名称</th>
+                                        <th>签约方</th>
+                                        <th>签约状态</th>
+                                        <th>签约时间</th>
+                                        <th>有效期</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>SG-2024-001</td>
+                                        <td>采购协议-A公司</td>
+                                        <td>A公司</td>
+                                        <td><span class="status-badge status-active">已签约</span></td>
+                                        <td>2024-01-15 16:45</td>
+                                        <td>2024-01-15 至 2025-01-14</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>SG-2024-002</td>
+                                        <td>销售合同-B公司</td>
+                                        <td>B公司</td>
+                                        <td><span class="status-badge status-active">签约中</span></td>
+                                        <td>2024-01-14 10:20</td>
+                                        <td>待签约</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Management Page -->
+                <div id="management" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">合同管理</h3>
+                            <button class="btn-primary" onclick="openManagementModal()">+ 新建合同</button>
+                        </div>
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="form-group">
+                                <label>合同名称</label>
+                                <input type="text" placeholder="搜索合同名称">
+                            </div>
+                            <div class="form-group">
+                                <label>合同状态</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>草稿</option>
+                                    <option>审核中</option>
+                                    <option>已签约</option>
+                                    <option>已完成</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>合同类型</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>采购合同</option>
+                                    <option>销售合同</option>
+                                    <option>服务合同</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>创建时间</label>
+                                <input type="date">
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>合同编号</th>
+                                        <th>合同名称</th>
+                                        <th>合同类型</th>
+                                        <th>合同状态</th>
+                                        <th>创建人</th>
+                                        <th>创建时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>CT-2024-001</td>
+                                        <td>采购协议-A公司</td>
+                                        <td>采购合同</td>
+                                        <td><span class="status-badge status-active">已签约</span></td>
+                                        <td>张三</td>
+                                        <td>2024-01-10 09:00</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>CT-2024-002</td>
+                                        <td>销售合同-B公司</td>
+                                        <td>销售合同</td>
+                                        <td><span class="status-badge status-active">审核中</span></td>
+                                        <td>李四</td>
+                                        <td>2024-01-12 14:30</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>CT-2024-003</td>
+                                        <td>服务合同-C公司</td>
+                                        <td>服务合同</td>
+                                        <td><span class="status-badge status-inactive">已完成</span></td>
+                                        <td>王五</td>
+                                        <td>2024-01-08 11:15</td>
+                                        <td><button class="btn-secondary" onclick="alert('查看详情')">查看</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permissions Page -->
+                <div id="permissions" class="page-content" style="display: none;">
+                    <div class="alert alert-warning">
+                        ⚠️ 权限配置仅限具有管理权限的账户操作。关键操作需二次确认。
+                    </div>
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('roles', this)">角色管理</button>
+                        <button class="tab-btn" onclick="switchTab('users', this)">用户分配</button>
+                        <button class="tab-btn" onclick="switchTab('simulator', this)">权限模拟器</button>
+                        <button class="tab-btn" onclick="switchTab('audit-log', this)">审计日志</button>
+                    </div>
+
+                    <!-- Roles Tab -->
+                    <div id="roles" class="tab-content active">
+                        <div class="card mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold">角色列表</h3>
+                                <button class="btn-primary" onclick="openRoleModal()">+ 新增角色</button>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>角色名称</th>
+                                            <th>角色描述</th>
+                                            <th>权限数量</th>
+                                            <th>用户数量</th>
+                                            <th>状态</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="role-badge admin">系统管理员</span></td>
+                                            <td>拥有系统所有权限</td>
+                                            <td>45</td>
+                                            <td>3</td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td>2024-01-01 08:00</td>
+                                            <td>
+                                                <button class="btn-secondary" onclick="openRoleModal('edit')">编辑</button>
+                                                <button class="btn-secondary" onclick="alert('删除需二次确认')">删除</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge manager">合同经理</span></td>
+                                            <td>管理合同审核和签约</td>
+                                            <td>28</td>
+                                            <td>12</td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td>2024-01-02 10:30</td>
+                                            <td>
+                                                <button class="btn-secondary" onclick="openRoleModal('edit')">编辑</button>
+                                                <button class="btn-secondary" onclick="alert('删除需二次确认')">删除</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="role-badge user">普通员工</span></td>
+                                            <td>查看和提交合同</td>
+                                            <td>12</td>
+                                            <td>156</td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td>2024-01-03 14:15</td>
+                                            <td>
+                                                <button class="btn-secondary" onclick="openRoleModal('edit')">编辑</button>
+                                                <button class="btn-secondary" onclick="alert('删除需二次确认')">删除</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Users Tab -->
+                    <div id="users" class="tab-content" style="display: none;">
+                        <div class="card mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold">用户-角色分配</h3>
+                                <button class="btn-primary" onclick="openUserAssignModal()">+ 分配用户</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="form-group">
+                                    <label>搜索用户</label>
+                                    <input type="text" placeholder="输入用户名或邮箱">
+                                </div>
+                                <div class="form-group">
+                                    <label>按角色筛选</label>
+                                    <select>
+                                        <option>全部角色</option>
+                                        <option>系统管理员</option>
+                                        <option>合同经理</option>
+                                        <option>普通员工</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>用户名</th>
+                                            <th>邮箱</th>
+                                            <th>所属部门</th>
+                                            <th>分配角色</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>张三</td>
+                                            <td>zhangsan@zhilv.com</td>
+                                            <td>法务部</td>
+                                            <td><span class="role-badge admin">系统管理员</span></td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td><button class="btn-secondary" onclick="alert('修改角色')">修改</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>李四</td>
+                                            <td>lisi@zhilv.com</td>
+                                            <td>合同部</td>
+                                            <td><span class="role-badge manager">合同经理</span></td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td><button class="btn-secondary" onclick="alert('修改角色')">修改</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td>王五</td>
+                                            <td>wangwu@zhilv.com</td>
+                                            <td>销售部</td>
+                                            <td><span class="role-badge user">普通员工</span></td>
+                                            <td><span class="status-badge status-active">启用</span></td>
+                                            <td><button class="btn-secondary" onclick="alert('修改角色')">修改</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Tab -->
+                    <div id="simulator" class="tab-content" style="display: none;">
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold mb-4">权限模拟器</h3>
+                            <p class="text-sm text-gray-600 mb-4">输入用户名后，预览该用户在系统各页面的可见和可操作项。此操作仅用于预览，不会改变实际权限。</p>
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="form-group">
+                                    <label>选择用户</label>
+                                    <select id="simulatorUser">
+                                        <option>-- 请选择用户 --</option>
+                                        <option>张三 (系统管理员)</option>
+                                        <option>李四 (合同经理)</option>
+                                        <option>王五 (普通员工)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <button class="btn-primary" onclick="simulatePermissions()">开始模拟</button>
+                                </div>
+                            </div>
+                            <div id="simulatorResult" style="display: none;">
+                                <div class="alert alert-success">
+                                    ✓ 模拟成功。以下是该用户的权限预览：
+                                </div>
+                                <div class="permission-tree">
+                                    <h4 class="font-semibold mb-3">可访问功能</h4>
+                                    <div class="permission-item">
+                                        <input type="checkbox" checked disabled>
+                                        <span>仪表板 - 查看</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <input type="checkbox" checked disabled>
+                                        <span>合同审核 - 查看/编辑/审批</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <input type="checkbox" checked disabled>
+                                        <span>合同外发 - 查看/编辑</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <input type="checkbox" checked disabled>
+                                        <span>合同签约 - 查看/编辑</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <input type="checkbox" checked disabled>
+                                        <span>合同管理 - 查看/编辑/删除</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <input type="checkbox" disabled>
+                                        <span>权限管理 - 禁用</span>
+                                    </div>
+                                </div>
+                                <div class="permission-tree mt-4">
+                                    <h4 class="font-semibold mb-3">数据访问限制 (RLS)</h4>
+                                    <div class="permission-item">
+                                        <span>可见合同：仅限所属部门创建的合同</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <span>可见用户：仅限同部门用户</span>
+                                    </div>
+                                    <div class="permission-item">
+                                        <span>导出权限：受限于合同金额 ≤ 100万</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Log Tab -->
+                    <div id="audit-log" class="tab-content" style="display: none;">
+                        <div class="card mb-6">
+                            <h3 class="text-lg font-semibold mb-4">权限变更审计日志</h3>
+                            <div class="grid grid-cols-3 gap-4 mb-6">
+                                <div class="form-group">
+                                    <label>操作者</label>
+                                    <input type="text" placeholder="搜索操作者">
+                                </div>
+                                <div class="form-group">
+                                    <label>操作类型</label>
+                                    <select>
+                                        <option>全部</option>
+                                        <option>新增角色</option>
+                                        <option>修改角色</option>
+                                        <option>删除角色</option>
+                                        <option>分配用户</option>
+                                        <option>权限变更</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>操作时间</label>
+                                    <input type="date">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>操作时间</th>
+                                            <th>操作者</th>
+                                            <th>操作类型</th>
+                                            <th>操作对象</th>
+                                            <th>变更前</th>
+                                            <th>变更后</th>
+                                            <th>操作结果</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>2024-01-15 16:30</td>
+                                            <td>管理员</td>
+                                            <td>权限变更</td>
+                                            <td>合同经理角色</td>
+                                            <td>28项权限</td>
+                                            <td>30项权限</td>
+                                            <td><span class="status-badge status-active">成功</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-01-15 14:15</td>
+                                            <td>管理员</td>
+                                            <td>分配用户</td>
+                                            <td>李四</td>
+                                            <td>普通员工</td>
+                                            <td>合同经理</td>
+                                            <td><span class="status-badge status-active">成功</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>2024-01-15 10:45</td>
+                                            <td>管理员</td>
+                                            <td>新增角色</td>
+                                            <td>审计员</td>
+                                            <td>-</td>
+                                            <td>15项权限</td>
+                                            <td><span class="status-badge status-active">成功</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Page -->
+                <div id="audit" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <h3 class="text-lg font-semibold mb-4">系统审计日志</h3>
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="form-group">
+                                <label>操作用户</label>
+                                <input type="text" placeholder="搜索用户">
+                            </div>
+                            <div class="form-group">
+                                <label>操作类型</label>
+                                <select>
+                                    <option>全部</option>
+                                    <option>登录</option>
+                                    <option>合同操作</option>
+                                    <option>权限变更</option>
+                                    <option>系统配置</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>操作时间</label>
+                                <input type="date">
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button class="btn-primary" onclick="alert('导出审计日志')">导出</button>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>操作时间</th>
+                                        <th>操作用户</th>
+                                        <th>操作类型</th>
+                                        <th>操作内容</th>
+                                        <th>IP地址</th>
+                                        <th>操作结果</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>2024-01-15 17:00</td>
+                                        <td>张三</td>
+                                        <td>合同操作</td>
+                                        <td>审核合同 CT-2024-001</td>
+                                        <td>192.168.1.100</td>
+                                        <td><span class="status-badge status-active">成功</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>2024-01-15 16:45</td>
+                                        <td>李四</td>
+                                        <td>合同操作</td>
+                                        <td>提交合同 CT-2024-002</td>
+                                        <td>192.168.1.101</td>
+                                        <td><span class="status-badge status-active">成功</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>2024-01-15 16:30</td>
+                                        <td>管理员</td>
+                                        <td>权限变更</td>
+                                        <td>修改合同经理角色权限</td>
+                                        <td>192.168.1.50</td>
+                                        <td><span class="status-badge status-active">成功</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settings" class="page-content" style="display: none;">
+                    <div class="card mb-6">
+                        <h3 class="text-lg font-semibold mb-4">系统设置</h3>
+                        <div class="form-group">
+                            <label>系统名称</label>
+                            <input type="text" value="智律云1.0 AI合同审核平台">
+                        </div>
+                        <div class="form-group">
+                            <label>系统描述</label>
+                            <textarea rows="3">智律云1.0是一个专业的AI合同审核平台，提供合同审核、外发、签约和管理等功能。</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>主色调</label>
+                            <input type="color" value="#1E88E5">
+                        </div>
+                        <div class="form-group">
+                            <label>辅助色</label>
+                            <input type="color" value="#FFFFFF">
+                        </div>
+                        <div class="form-group">
+                            <label>强调色</label>
+                            <input type="color" value="#FFC107">
+                        </div>
+                        <button class="btn-primary" onclick="alert('设置已保存')">保存设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="roleModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">新增/编辑角色</h2>
+            <div class="form-group">
+                <label>角色名称</label>
+                <input type="text" placeholder="输入角色名称">
+            </div>
+            <div class="form-group">
+                <label>角色描述</label>
+                <textarea rows="3" placeholder="输入角色描述"></textarea>
+            </div>
+            <div class="form-group">
+                <label>权限配置</label>
+                <div class="permission-tree">
+                    <div class="permission-item">
+                        <input type="checkbox"> 仪表板 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同审核 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同审核 - 编辑
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同审核 - 审批
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同外发 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同外发 - 编辑
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同签约 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同签约 - 编辑
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同管理 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同管理 - 编辑
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 合同管理 - 删除
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 权限管理 - 查看
+                    </div>
+                    <div class="permission-item">
+                        <input type="checkbox"> 权限管理 - 编辑
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('roleModal')">保存</button>
+                <button class="btn-secondary" onclick="closeModal('roleModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="userAssignModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">分配用户到角色</h2>
+            <div class="form-group">
+                <label>选择用户</label>
+                <select>
+                    <option>-- 请选择用户 --</option>
+                    <option>张三</option>
+                    <option>李四</option>
+                    <option>王五</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>选择角色</label>
+                <select>
+                    <option>-- 请选择角色 --</option>
+                    <option>系统管理员</option>
+                    <option>合同经理</option>
+                    <option>普通员工</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>生效时间</label>
+                <input type="datetime-local">
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('userAssignModal')">确认分配</button>
+                <button class="btn-secondary" onclick="closeModal('userAssignModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">新建审核</h2>
+            <div class="form-group">
+                <label>合同编号</label>
+                <input type="text" placeholder="输入合同编号">
+            </div>
+            <div class="form-group">
+                <label>合同名称</label>
+                <input type="text" placeholder="输入合同名称">
+            </div>
+            <div class="form-group">
+                <label>合同类型</label>
+                <select>
+                    <option>采购合同</option>
+                    <option>销售合同</option>
+                    <option>服务合同</option>
+                </select>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('reviewModal')">创建</button>
+                <button class="btn-secondary" onclick="closeModal('reviewModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="externalModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">新建外发</h2>
+            <div class="form-group">
+                <label>合同名称</label>
+                <input type="text" placeholder="选择合同">
+            </div>
+            <div class="form-group">
+                <label>收件人邮箱</label>
+                <input type="email" placeholder="输入收件人邮箱">
+            </div>
+            <div class="form-group">
+                <label>截止时间</label>
+                <input type="datetime-local">
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('externalModal')">发送</button>
+                <button class="btn-secondary" onclick="closeModal('externalModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="signingModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">新建签约</h2>
+            <div class="form-group">
+                <label>合同名称</label>
+                <input type="text" placeholder="选择合同">
+            </div>
+            <div class="form-group">
+                <label>签约方</label>
+                <input type="text" placeholder="输入签约方名称">
+            </div>
+            <div class="form-group">
+                <label>签约时间</label>
+                <input type="datetime-local">
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('signingModal')">创建</button>
+                <button class="btn-secondary" onclick="closeModal('signingModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="managementModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">新建合同</h2>
+            <div class="form-group">
+                <label>合同名称</label>
+                <input type="text" placeholder="输入合同名称">
+            </div>
+            <div class="form-group">
+                <label>合同类型</label>
+                <select>
+                    <option>采购合同</option>
+                    <option>销售合同</option>
+                    <option>服务合同</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>合同金额</label>
+                <input type="number" placeholder="输入合同金额">
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn-primary" onclick="closeModal('managementModal')">创建</button>
+                <button class="btn-secondary" onclick="closeModal('managementModal')">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchPage(page) {
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(p => p.style.display = 'none');
+            document.getElementById(page).style.display = 'block';
+            
+            const titles = {
+                'dashboard': '仪表板',
+                'review': '合同审核',
+                'external': '合同外发',
+                'signing': '合同签约',
+                'management': '合同管理',
+                'permissions': '权限管理',
+                'audit': '审计日志',
+                'settings': '系统设置'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || '页面';
+            
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            sidebarItems.forEach(item => item.classList.remove('sidebar-active'));
+            event.target.classList.add('sidebar-active');
+            
+            if (page === 'dashboard') {
+                setTimeout(initCharts, 100);
+            }
+        }
+
+        function switchTab(tab, element) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(t => t.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(b => b.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function openRoleModal() {
+            document.getElementById('roleModal').classList.add('active');
+        }
+
+        function openUserAssignModal() {
+            document.getElementById('userAssignModal').classList.add('active');
+        }
+
+        function openReviewModal() {
+            document.getElementById('reviewModal').classList.add('active');
+        }
+
+        function openExternalModal() {
+            document.getElementById('externalModal').classList.add('active');
+        }
+
+        function openSigningModal() {
+            document.getElementById('signingModal').classList.add('active');
+        }
+
+        function openManagementModal() {
+            document.getElementById('managementModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function simulatePermissions() {
+            const user = document.getElementById('simulatorUser').value;
+            if (user === '-- 请选择用户 --') {
+                alert('请先选择用户');
+                return;
+            }
+            document.getElementById('simulatorResult').style.display = 'block';
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                alert('已退出登录');
+            }
+        }
+
+        function initCharts() {
+            const reviewCtx = document.getElementById('reviewChart');
+            if (reviewCtx && !reviewCtx.chart) {
+                reviewCtx.chart = new Chart(reviewCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                        datasets: [{
+                            label: '审核数量',
+                            data: [12, 19, 8, 15, 22, 18, 14],
+                            borderColor: '#1E88E5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const typeCtx = document.getElementById('typeChart');
+            if (typeCtx && !typeCtx.chart) {
+                typeCtx.chart = new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['采购合同', '销售合同', '服务合同', '劳动合同'],
+                        datasets: [{
+                            data: [30, 25, 20, 25],
+                            backgroundColor: ['#1E88E5', '#FFC107', '#4CAF50', '#9C27B0']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        window.addEventListener('click', function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstSidebarItem = document.querySelector('.sidebar-item');
+            if (firstSidebarItem) {
+                firstSidebarItem.classList.add('sidebar-active');
+            }
+            initCharts();
+        });
+    </script>
+</body>
+</html>
+```
