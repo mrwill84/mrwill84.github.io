@@ -1,0 +1,905 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云1.0 - AI合同审核平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333333;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            background: #FFFFFF;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: #1A73E8;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            color: white;
+            font-size: 28px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1A73E8;
+            margin-bottom: 5px;
+        }
+        
+        .logo-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            color: #999;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            margin-bottom: -2px;
+        }
+        
+        .tab-btn.active {
+            color: #1A73E8;
+            border-bottom-color: #1A73E8;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333333;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #FFFFFF;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #1A73E8;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+        
+        .form-input.error {
+            border-color: #dc3545;
+        }
+        
+        .input-group-wrapper {
+            position: relative;
+        }
+        
+        .input-suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #1A73E8;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+        
+        .input-suffix:hover {
+            text-decoration: underline;
+        }
+        
+        .input-suffix.disabled {
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            font-size: 12px;
+            color: #dc3545;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #1A73E8;
+        }
+        
+        .checkbox-label {
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        
+        .forgot-password a {
+            font-size: 13px;
+            color: #1A73E8;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #1A73E8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        
+        .login-btn:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+        }
+        
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .login-btn.loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: #ddd;
+        }
+        
+        .divider-text {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .sso-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .sso-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: #FFFFFF;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .sso-btn:hover {
+            border-color: #1A73E8;
+            background: #f8f9ff;
+        }
+        
+        .footer-text {
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            margin-top: 20px;
+        }
+        
+        .footer-text a {
+            color: #1A73E8;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+        
+        .password-strength {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        
+        .strength-bar {
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+        }
+        
+        .strength-fill.weak {
+            width: 33%;
+            background: #dc3545;
+        }
+        
+        .strength-fill.medium {
+            width: 66%;
+            background: #ffc107;
+        }
+        
+        .strength-fill.strong {
+            width: 100%;
+            background: #28a745;
+        }
+        
+        .strength-text {
+            color: #666;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .countdown {
+            color: #1A73E8;
+            font-weight: 600;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <i class="bi bi-file-earmark-check"></i>
+            </div>
+            <div class="logo-text">智律云1.0</div>
+            <div class="logo-subtitle">AI合同审核平台</div>
+        </div>
+        
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="login">登录</button>
+            <button class="tab-btn" data-tab="register">注册</button>
+        </div>
+        
+        <div id="login" class="tab-content active">
+            <div class="success-message" id="loginSuccess">
+                <i class="bi bi-check-circle"></i> 登录成功，正在跳转...
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">用户名/邮箱/手机</label>
+                    <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名、邮箱或手机号" required>
+                    <div class="error-message" id="usernameError"></div>
+                </div>
+                
+                <div id="passwordLoginSection">
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码" required>
+                        <div class="error-message" id="passwordError"></div>
+                    </div>
+                </div>
+                
+                <div id="smsLoginSection" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">验证码</label>
+                        <div class="input-group-wrapper">
+                            <input type="text" class="form-input" id="smsCode" placeholder="请输入6位验证码" maxlength="6">
+                            <span class="input-suffix" id="sendCodeBtn" onclick="sendSmsCode()">发送验证码</span>
+                        </div>
+                        <div class="error-message" id="smsCodeError"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">图形验证码</label>
+                    <div class="input-group-wrapper">
+                        <input type="text" class="form-input" id="captcha" placeholder="请输入验证码" maxlength="4" style="padding-right: 100px;">
+                        <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: #f0f0f0; padding: 6px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; user-select: none;" onclick="refreshCaptcha()">
+                            <span id="captchaText">刷新</span>
+                        </div>
+                    </div>
+                    <div class="error-message" id="captchaError"></div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox-input" id="rememberMe">
+                    <label class="checkbox-label" for="rememberMe">记住我</label>
+                </div>
+                
+                <div class="forgot-password">
+                    <a href="#" onclick="showForgotPassword(event)">忘记密码？</a>
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">登录</button>
+            </form>
+            
+            <div class="divider">
+                <div class="divider-line"></div>
+                <div class="divider-text">或使用</div>
+                <div class="divider-line"></div>
+            </div>
+            
+            <div class="sso-buttons">
+                <button class="sso-btn" onclick="loginWithSSO('wechat')">
+                    <i class="bi bi-chat-dots"></i> 微信
+                </button>
+                <button class="sso-btn" onclick="loginWithSSO('alipay')">
+                    <i class="bi bi-wallet2"></i> 支付宝
+                </button>
+                <button class="sso-btn" onclick="loginWithSSO('dingtalk')">
+                    <i class="bi bi-telephone"></i> 钉钉
+                </button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button type="button" class="login-btn" style="background: #f0f0f0; color: #333; flex: 1; margin-bottom: 0;" onclick="switchLoginMethod()">
+                    <span id="switchMethodText">使用短信登录</span>
+                </button>
+            </div>
+            
+            <div class="footer-text">
+                还没有账号？<a href="#" onclick="switchTab('register', event)">立即注册</a>
+            </div>
+        </div>
+        
+        <div id="register" class="tab-content">
+            <form id="registerForm">
+                <div class="form-group">
+                    <label class="form-label">手机号</label>
+                    <input type="tel" class="form-input" id="registerPhone" placeholder="请输入手机号" required>
+                    <div class="error-message" id="phoneError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">验证码</label>
+                    <div class="input-group-wrapper">
+                        <input type="text" class="form-input" id="registerCode" placeholder="请输入6位验证码" maxlength="6">
+                        <span class="input-suffix" id="registerSendCodeBtn" onclick="sendRegisterCode()">发送验证码</span>
+                    </div>
+                    <div class="error-message" id="registerCodeError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-input" id="registerPassword" placeholder="至少8位，包含大小写字母、数字和特殊字符" oninput="checkPasswordStrength()" required>
+                    <div class="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="strengthText">密码强度：弱</div>
+                    </div>
+                    <div class="error-message" id="registerPasswordError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">确认密码</label>
+                    <input type="password" class="form-input" id="registerPasswordConfirm" placeholder="请再次输入密码" required>
+                    <div class="error-message" id="registerPasswordConfirmError"></div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" class="checkbox-input" id="agreeTerms" required>
+                    <label class="checkbox-label" for="agreeTerms">
+                        我已阅读并同意<a href="#" style="color: #1A73E8; text-decoration: none;">用户协议</a>和<a href="#" style="color: #1A73E8; text-decoration: none;">隐私政策</a>
+                    </label>
+                </div>
+                
+                <button type="submit" class="login-btn" id="registerBtn">注册</button>
+            </form>
+            
+            <div class="footer-text">
+                已有账号？<a href="#" onclick="switchTab('login', event)">立即登录</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="forgotPasswordModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeForgotPassword()">&times;</button>
+            <div class="modal-header">重置密码</div>
+            <form id="forgotPasswordForm">
+                <div class="form-group">
+                    <label class="form-label">手机号/邮箱</label>
+                    <input type="text" class="form-input" id="forgotIdentifier" placeholder="请输入注册时的手机号或邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">验证码</label>
+                    <div class="input-group-wrapper">
+                        <input type="text" class="form-input" id="forgotCode" placeholder="请输入验证码" maxlength="6">
+                        <span class="input-suffix" id="forgotSendCodeBtn" onclick="sendForgotCode()">发送验证码</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">新密码</label>
+                    <input type="password" class="form-input" id="forgotNewPassword" placeholder="至少8位，包含大小写字母、数字和特殊字符" required>
+                </div>
+                <button type="submit" class="login-btn">重置密码</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isPasswordLogin = true;
+        let smsCountdown = 0;
+        let registerCountdown = 0;
+        let forgotCountdown = 0;
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                switchTab(this.dataset.tab);
+            });
+        });
+        
+        function switchTab(tabName, event) {
+            if (event) event.preventDefault();
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
+        
+        function switchLoginMethod() {
+            isPasswordLogin = !isPasswordLogin;
+            const passwordSection = document.getElementById('passwordLoginSection');
+            const smsSection = document.getElementById('smsLoginSection');
+            const switchBtn = document.getElementById('switchMethodText');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (isPasswordLogin) {
+                passwordSection.style.display = 'block';
+                smsSection.style.display = 'none';
+                switchBtn.textContent = '使用短信登录';
+                loginBtn.textContent = '登录';
+            } else {
+                passwordSection.style.display = 'none';
+                smsSection.style.display = 'block';
+                switchBtn.textContent = '使用密码登录';
+                loginBtn.textContent = '登录';
+            }
+        }
+        
+        function sendSmsCode() {
+            const btn = document.getElementById('sendCodeBtn');
+            if (btn.classList.contains('disabled')) return;
+            
+            const phone = document.getElementById('loginUsername').value;
+            if (!phone) {
+                showError('usernameError', '请先输入手机号');
+                return;
+            }
+            
+            btn.classList.add('disabled');
+            smsCountdown = 60;
+            updateCountdown('sendCodeBtn', smsCountdown);
+        }
+        
+        function sendRegisterCode() {
+            const btn = document.getElementById('registerSendCodeBtn');
+            if (btn.classList.contains('disabled')) return;
+            
+            const phone = document.getElementById('registerPhone').value;
+            if (!phone) {
+                showError('phoneError', '请先输入手机号');
+                return;
+            }
+            
+            btn.classList.add('disabled');
+            registerCountdown = 60;
+            updateCountdown('registerSendCodeBtn', registerCountdown);
+        }
+        
+        function sendForgotCode() {
+            const btn = document.getElementById('forgotSendCodeBtn');
+            if (btn.classList.contains('disabled')) return;
+            
+            const identifier = document.getElementById('forgotIdentifier').value;
+            if (!identifier) {
+                alert('请先输入手机号或邮箱');
+                return;
+            }
+            
+            btn.classList.add('disabled');
+            forgotCountdown = 60;
+            updateCountdown('forgotSendCodeBtn', forgotCountdown);
+        }
+        
+        function updateCountdown(btnId, seconds) {
+            const btn = document.getElementById(btnId);
+            const interval = setInterval(() => {
+                seconds--;
+                btn.textContent = `${seconds}秒后重试`;
+                
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    btn.textContent = '发送验证码';
+                    btn.classList.remove('disabled');
+                }
+            }, 1000);
+        }
+        
+        function refreshCaptcha() {
+            document.getElementById('captchaText').textContent = '刷新中...';
+            setTimeout(() => {
+                document.getElementById('captchaText').textContent = '刷新';
+            }, 500);
+        }
+        
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+        
+        function clearError(elementId) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.classList.remove('show');
+        }
+        
+        function checkPasswordStrength() {
+            const password = document.getElementById('registerPassword').value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            
+            strengthFill.classList.remove('weak', 'medium', 'strong');
+            
+            if (strength <= 2) {
+                strengthFill.classList.add('weak');
+                strengthText.textContent = '密码强度：弱';
+            } else if (strength <= 3) {
+                strengthFill.classList.add('medium');
+                strengthText.textContent = '密码强度：中';
+            } else {
+                strengthFill.classList.add('strong');
+                strengthText.textContent = '密码强度：强';
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            clearError('usernameError');
+            clearError('passwordError');
+            clearError('smsCodeError');
+            clearError('captchaError');
+            
+            const username = document.getElementById('loginUsername').value.trim();
+            const captcha = document.getElementById('captcha').value.trim();
+            
+            if (!username) {
+                showError('usernameError', '请输入用户名、邮箱或手机号');
+                return;
+            }
+            
+            if (!captcha) {
+                showError('captchaError', '请输入图形验证码');
+                return;
+            }
+            
+            if (isPasswordLogin) {
+                const password = document.getElementById('loginPassword').value;
+                if (!password) {
+                    showError('passwordError', '请输入密码');
+                    return;
+                }
+            } else {
+                const smsCode = document.getElementById('smsCode').value;
+                if (!smsCode || smsCode.length !== 6) {
+                    showError('smsCodeError', '请输入6位验证码');
+                    return;
+                }
+            }
+            
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.classList.add('loading');
+            loginBtn.textContent = '登录中...';
+            
+            setTimeout(() => {
+                document.getElementById('loginSuccess').classList.add('show');
+                setTimeout(() => {
+                    loginBtn.classList.remove('loading');
+                    loginBtn.textContent = '登录';
+                }, 2000);
+            }, 1500);
+        });
+        
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            clearError('phoneError');
+            clearError('registerCodeError');
+            clearError('registerPasswordError');
+            clearError('registerPasswordConfirmError');
+            
+            const phone = document.getElementById('registerPhone').value.trim();
+            const code = document.getElementById('registerCode').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirm = document.getElementById('registerPasswordConfirm').value;
+            const agreeTerms = document.getElementById('agreeTerms').checked;
+            
+            if (!phone) {
+                showError('phoneError', '请输入手机号');
+                return;
+            }
+            
+            if (!code || code.length !== 6) {
+                showError('registerCodeError', '请输入6位验证码');
+                return;
+            }
+            
+            if (!password) {
+                showError('registerPasswordError', '请输入密码');
+                return;
+            }
+            
+            if (password.length < 8) {
+                showError('registerPasswordError', '密码至少8位');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showError('registerPasswordConfirmError', '两次输入的密码不一致');
+                return;
+            }
+            
+            if (!agreeTerms) {
+                alert('请同意用户协议和隐私政策');
+                return;
+            }
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.classList.add('loading');
+            registerBtn.textContent = '注册中...';
+            
+            setTimeout(() => {
+                alert('注册成功！请登录');
+                registerBtn.classList.remove('loading');
+                registerBtn.textContent = '注册';
+                switchTab('login');
+            }, 1500);
+        });
+        
+        function showForgotPassword(e) {
+            e.preventDefault();
+            document.getElementById('forgotPasswordModal').classList.add('show');
+        }
+        
+        function closeForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('show');
+        }
+        
+        document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('密码重置链接已发送到您的邮箱，请检查并按照提示重置密码');
+            closeForgotPassword();
+        });
+        
+        function loginWithSSO(provider) {
+            alert(`正在跳转到${provider === 'wechat' ? '微信' : provider === 'alipay' ? '支付宝' : '钉钉'}登录...`);
+        }
+        
+        document.getElementById('loginUsername').addEventListener('input', function() {
+            clearError('usernameError');
+        });
+        
+        document.getElementById('loginPassword').addEventListener('input', function() {
+            clearError('passwordError');
+        });
+        
+        document.getElementById('smsCode').addEventListener('input', function() {
+            clearError('smsCodeError');
+        });
+        
+        document.getElementById('captcha').addEventListener('input', function() {
+            clearError('captchaError');
+        });
+        
+        document.getElementById('registerPhone').addEventListener('input', function() {
+            clearError('phoneError');
+        });
+        
+        document.getElementById('registerCode').addEventListener('input', function() {
+            clearError('registerCodeError');
+        });
+        
+        document.getElementById('registerPassword').addEventListener('input', function() {
+            clearError('registerPasswordError');
+        });
+        
+        document.getElementById('registerPasswordConfirm').addEventListener('input', function() {
+            clearError('registerPasswordConfirmError');
+        });
+        
+        document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeForgotPassword();
+            }
+        });
+    </script>
+</body>
+</html>
+```
