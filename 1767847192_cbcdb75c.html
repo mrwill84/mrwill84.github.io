@@ -1,0 +1,773 @@
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云合同审核AI平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 shadow-sm">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">智</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">智律云合同审核AI平台</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="showNotification('用户中心')" class="text-gray-600 hover:text-blue-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="logout()" class="px-4 py-2 text-gray-600 hover:text-red-600 transition font-medium">退出登录</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex gap-8">
+                    <button onclick="switchPage('dashboard')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="dashboard">
+                        仪表板
+                    </button>
+                    <button onclick="switchPage('contracts')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="contracts">
+                        合同审核
+                    </button>
+                    <button onclick="switchPage('signing')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="signing">
+                        外发签约
+                    </button>
+                    <button onclick="switchPage('management')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="management">
+                        合同管理
+                    </button>
+                    <button onclick="switchPage('sharing')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="sharing">
+                        文档分享
+                    </button>
+                    <button onclick="switchPage('permissions')" class="nav-btn py-4 px-2 border-b-2 border-transparent hover:border-blue-600 text-gray-700 hover:text-blue-600 transition font-medium" data-page="permissions">
+                        权限管理
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page-content">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600">
+                        <div class="text-gray-600 text-sm font-medium">待审核合同</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2">12</div>
+                        <div class="text-blue-600 text-xs mt-2">↑ 3 件新增</div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-400">
+                        <div class="text-gray-600 text-sm font-medium">已签约合同</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2">48</div>
+                        <div class="text-blue-400 text-xs mt-2">本月完成率 92%</div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                        <div class="text-gray-600 text-sm font-medium">分享文档</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2">28</div>
+                        <div class="text-blue-500 text-xs mt-2">活跃分享链接</div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-300">
+                        <div class="text-gray-600 text-sm font-medium">团队成员</div>
+                        <div class="text-3xl font-bold text-gray-900 mt-2">15</div>
+                        <div class="text-blue-300 text-xs mt-2">权限已配置</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                        <h2 class="text-lg font-bold text-gray-900 mb-4">最近活动</h2>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-4 pb-4 border-b border-gray-200">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 4a2 2 0 012-2h6a2 2 0 012 2v12a1 1 0 110 2h-6a1 1 0 110-2h6V4H6v12a1 1 0 110 2H4a2 2 0 01-2-2V4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-gray-900 font-medium">合同审核完成</p>
+                                    <p class="text-gray-600 text-sm">采购协议 2024-001 已通过审核</p>
+                                    <p class="text-gray-500 text-xs mt-1">2小时前</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4 pb-4 border-b border-gray-200">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-gray-900 font-medium">文档已分享</p>
+                                    <p class="text-gray-600 text-sm">服务合同已分享给 3 位外部合作方</p>
+                                    <p class="text-gray-500 text-xs mt-1">4小时前</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v2h8v-2zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-2a4 4 0 00-8 0v2h8z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-gray-900 font-medium">权限已更新</p>
+                                    <p class="text-gray-600 text-sm">李明已被授予合同审核权限</p>
+                                    <p class="text-gray-500 text-xs mt-1">1天前</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-lg font-bold text-gray-900 mb-4">快速操作</h2>
+                        <div class="space-y-3">
+                            <button onclick="switchPage('contracts')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition">
+                                审核合同
+                            </button>
+                            <button onclick="switchPage('signing')" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition">
+                                外发签约
+                            </button>
+                            <button onclick="switchPage('sharing')" class="w-full bg-blue-400 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition">
+                                分享文档
+                            </button>
+                            <button onclick="switchPage('management')" class="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 rounded-lg transition">
+                                管理合同
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contracts Review Page -->
+            <div id="contracts-page" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">合同审核</h2>
+                        <button onclick="openUploadModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition">
+                            上传合同
+                        </button>
+                    </div>
+
+                    <div class="flex gap-4 mb-6">
+                        <input type="text" placeholder="搜索合同名称..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                        <select class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                            <option>全部状态</option>
+                            <option>待审核</option>
+                            <option>审核中</option>
+                            <option>已通过</option>
+                            <option>已拒绝</option>
+                        </select>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">合同名称</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">类型</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">上传时间</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">状态</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">采购协议 2024-001</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">采购合同</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-15</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">待审核</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="openReviewModal('采购协议 2024-001')" class="text-blue-600 hover:text-blue-800 font-medium">审核</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">服务合同 2024-002</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">服务合同</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-14</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">审核中</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="openReviewModal('服务合同 2024-002')" class="text-blue-600 hover:text-blue-800 font-medium">查看</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">租赁协议 2024-003</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">租赁合同</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-13</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">已通过</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="openReviewModal('租赁协议 2024-003')" class="text-blue-600 hover:text-blue-800 font-medium">查看</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- External Signing Page -->
+            <div id="signing-page" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900">外发签约</h2>
+                        <button onclick="openSigningModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition">
+                            发起签约
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">合同名称</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">签约方</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">发起时间</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">签约状态</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">供应商协议 A</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">ABC供应链有限公司</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-15</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">待签署</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="showNotification('查看签约详情')" class="text-blue-600 hover:text-blue-800 font-medium">详情</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">合作框架协议</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">XYZ科技有限公司</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-10</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">已签署</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="showNotification('查看签约详情')" class="text-blue-600 hover:text-blue-800 font-medium">详情</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contract Management Page -->
+            <div id="management-page" class="page-content hidden">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">合同管理</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 012-2h6a2 2 0 012 2v12a1 1 0 110 2h-6a1 1 0 110-2h6V4H6v12a1 1 0 110 2H4a2 2 0 01-2-2V4z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">总合同数</p>
+                                <p class="text-2xl font-bold text-gray-900">156</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
+                            <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">已执行</p>
+                                <p class="text-2xl font-bold text-gray-900">128</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
+                            <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">即将到期</p>
+                                <p class="text-2xl font-bold text-gray-900">8</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">合同编号</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">合同名称</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">签署日期</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">到期日期</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">状态</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">HT-2024-001</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">采购协议</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2024-01-01</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2025-01-01</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">执行中</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="showNotification('查看合同详情')" class="text-blue-600 hover:text-blue-800 font-medium">查看</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm text-gray-900">HT-2024-002</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">服务合同</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">2023-06-15</td>
+                                    <td class="px-6 py-4 text-sm text-red-600 font-medium">2024-02-15</td>
+                                    <td class="px-6 py-4"><span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">即将到期</span></td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <button onclick="showNotification('查看合同详情')" class="text-blue-600 hover:text-blue-800 font-medium">查看</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Sharing Page -->
+            <div id="sharing-page" class="page-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Sharing Form -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-lg shadow p-6 sticky top-8">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">创建分享链接</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">选择文档</label>
+                                    <select id="shareDocument" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                        <option value="">-- 选择文档 --</option>
+                                        <option value="contract-001">采购协议 2024-001</option>
+                                        <option value="contract-002">服务合同 2024-002</option>
+                                        <option value="contract-003">租赁协议 2024-003</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">访问权限</label>
+                                    <select id="accessType" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                        <option value="view">仅查看</option>
+                                        <option value="comment">评论</option>
+                                        <option value="edit">编辑</option>
+                                        <option value="download">下载</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">有效期</label>
+                                    <select id="expireTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                        <option value="7">7天</option>
+                                        <option value="30">30天</option>
+                                        <option value="90">90天</option>
+                                        <option value="365">1年</option>
+                                        <option value="0">永久</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">密码保护（可选）</label>
+                                    <input type="password" id="sharePassword" placeholder="设置访问密码" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">接收人邮箱</label>
+                                    <input type="email" id="recipientEmail" placeholder="邮箱地址（可选）" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                </div>
+
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-xs text-blue-800">
+                                        <strong>安全提示：</strong>公开分享可能导致信息泄露，建议启用密码保护或限制访问权限。
+                                    </p>
+                                </div>
+
+                                <button onclick="createShareLink()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">
+                                    创建分享链接
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sharing List -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-lg shadow p-6 mb-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">活跃分享链接</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">采购协议 2024-001</h4>
+                                            <p class="text-sm text-gray-600 mt-1">权限：仅查看 | 有效期：30天</p>
+                                        </div>
+                                        <button onclick="revokeShare('share-001')" class="text-red-600 hover:text-red-800 text-sm font-medium">撤销</button>
+                                    </div>
+                                    <div class="bg-gray-50 rounded p-3 mb-3 flex items-center justify-between">
+                                        <code class="text-xs text-gray-700 break-all">https://zl.cloud/s/abc123def456</code>
+                                        <button onclick="copyToClipboard('https://zl.cloud/s/abc123def456')" class="ml-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex-shrink-0">复制</button>
+                                    </div>
+                                    <div class="text-xs text-gray-600">
+                                        <p>创建者：张三 | 创建时间：2024-01-15 10:30</p>
+                                        <p>访问次数：12 | 最后访问：2024-01-16 14:20</p>
+                                    </div>
+                                </div>
+
+                                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">服务合同 2024-002</h4>
+                                            <p class="text-sm text-gray-600 mt-1">权限：下载 | 有效期：7天 | 密码保护</p>
+                                        </div>
+                                        <button onclick="revokeShare('share-002')" class="text-red-600 hover:text-red-800 text-sm font-medium">撤销</button>
+                                    </div>
+                                    <div class="bg-gray-50 rounded p-3 mb-3 flex items-center justify-between">
+                                        <code class="text-xs text-gray-700 break-all">https://zl.cloud/s/xyz789uvw012</code>
+                                        <button onclick="copyToClipboard('https://zl.cloud/s/xyz789uvw012')" class="ml-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex-shrink-0">复制</button>
+                                    </div>
+                                    <div class="text-xs text-gray-600">
+                                        <p>创建者：李四 | 创建时间：2024-01-14 15:45</p>
+                                        <p>访问次数：5 | 最后访问：2024-01-15 09:10</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Access Log -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">访问日志</h3>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left font-semibold text-gray-900">访问者</th>
+                                            <th class="px-4 py-3 text-left font-semibold text-gray-900">文档</th>
+                                            <th class="px-4 py-3 text-left font-semibold text-gray-900">访问时间</th>
+                                            <th class="px-4 py-3 text-left font-semibold text-gray-900">操作</th>
+                                            <th class="px-4 py-3 text-left font-semibold text-gray-900">IP地址</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 text-gray-900">partner@example.com</td>
+                                            <td class="px-4 py-3 text-gray-600">采购协议 2024-001</td>
+                                            <td class="px-4 py-3 text-gray-600">2024-01-16 14:20</td>
+                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">查看</span></td>
+                                            <td class="px-4 py-3 text-gray-600 text-xs">192.168.1.100</td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 text-gray-900">supplier@company.com</td>
+                                            <td class="px-4 py-3 text-gray-600">服务合同 2024-002</td>
+                                            <td class="px-4 py-3 text-gray-600">2024-01-15 09:10</td>
+                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">下载</span></td>
+                                            <td class="px-4 py-3 text-gray-600 text-xs">203.0.113.45</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissions Management Page -->
+            <div id="permissions-page" class="page-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Add Member -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-lg shadow p-6 sticky top-8">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">添加成员</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">成员邮箱</label>
+                                    <input type="email" id="memberEmail" placeholder="输入邮箱地址" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">角色</label>
+                                    <select id="memberRole" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600">
+                                        <option value="viewer">查看者</option>
+                                        <option value="reviewer">审核员</option>
+                                        <option value="manager">管理员</option>
+                                        <option value="admin">超级管理员</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">权限范围</label>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded" checked>
+                                            <span class="ml-2 text-sm text-gray-700">合同审核</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded" checked>
+                                            <span class="ml-2 text-sm text-gray-700">外发签约</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">合同管理</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="checkbox" class="w-4 h-4 text-blue-600 rounded">
+                                            <span class="ml-2 text-sm text-gray-700">权限管理</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button onclick="addMember()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition">
+                                    添加成员
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Members List -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-lg shadow p-6 mb-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">团队成员</h3>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">成员名称</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">邮箱</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">角色</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">加入时间</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">张三</td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">zhangsan@company.com</td>
+                                            <td class="px-6 py-4"><span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">超级管理员</span></td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">2023-12-01</td>
+                                            <td class="px-6 py-4 text-sm">
+                                                <button onclick="editMember('member-001')" class="text-blue-600 hover:text-blue-800 font-medium">编辑</button>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">李四</td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">lisi@company.com</td>
+                                            <td class="px-6 py-4"><span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">管理员</span></td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">2024-01-05</td>
+                                            <td class="px-6 py-4 text-sm">
+                                                <button onclick="editMember('member-002')" class="text-blue-600 hover:text-blue-800 font-medium">编辑</button>
+                                            </td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900">王五</td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">wangwu@company.com</td>
+                                            <td class="px-6 py-4"><span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">审核员</span></td>
+                                            <td class="px-6 py-4 text-sm text-gray-600">2024-01-10</td>
+                                            <td class="px-6 py-4 text-sm">
+                                                <button onclick="editMember('member-003')" class="text-blue-600 hover:text-blue-800 font-medium">编辑</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Role Permissions -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">角色权限配置</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-gray-900">超级管理员</h4>
+                                        <button onclick="editRole('admin')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">编辑</button>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <p>权限：全部功能访问权限</p>
+                                    </div>
+                                </div>
+
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-gray-900">管理员</h4>
+                                        <button onclick="editRole('manager')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">编辑</button>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <p>权限：合同审核、外发签约、合同管理</p>
+                                    </div>
+                                </div>
+
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h4 class="font-semibold text-gray-900">审核员</h4>
+                                        <button onclick="editRole('reviewer')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">编辑</button>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <p>权限：合同审核、合同管理（查看）</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="reviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900">合同审核</h2>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">审核意见</label>
+                    <textarea id="reviewComment" placeholder="请输入审核意见..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 h-24"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="submitReview('approve')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-lg transition">
+                        通过审核
+                    </button>
+                    <button onclick="submitReview('reject')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition">
+                        拒绝审核
+                    </button>
+                    <button onclick="closeModal('reviewModal')" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-medium py-2 rounded-lg transition">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="hidden fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <p id="notificationText"></p>
+    </div>
+
+    <script>
+        let currentPage = 'dashboard';
+
+        function switchPage(page) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(page + '-page').classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-700');
+            });
+            
+            document.querySelector(`[data-page="${page}"]`).classList.add('border-blue-600', 'text-blue-600');
+            document.querySelector(`[data-page="${page}"]`).classList.remove('border-transparent', 'text-gray-700');
+            
+            currentPage = page;
+        }
+
+        function openReviewModal(contractName) {
+            document.getElementById('reviewModal').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function submitReview(action) {
+            const comment = document.getElementById('reviewComment').value;
+            showNotification(`审核${action === 'approve' ? '通过' : '拒绝'}成功`);
+            closeModal('reviewModal');
+            document.getElementById('reviewComment').value = '';
+        }
+
+        function openUploadModal() {
+            showNotification('打开上传合同对话框');
+        }
+
+        function openSigningModal() {
+            showNotification('打开发起签约对话框');
+        }
+
+        function createShareLink() {
+            const doc = document.getElementById('shareDocument').value;
+            const access = document.getElementById('accessType').value;
+            const expire = document.getElementById('expireTime').value;
+            const password = document.getElementById('sharePassword').value;
+            const email = document.getElementById('recipientEmail').value;
+
+            if (!doc) {
+                showNotification('请选择要分享的文档');
+                return;
+            }
+
+            showNotification('分享链接已创建，可复制分享');
+            document.getElementById('shareDocument').value = '';
+            document.getElementById('sharePassword').value = '';
+            document.getElementById('recipientEmail').value = '';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('链接已复制到剪贴板');
+            });
+        }
+
+        function revokeShare(shareId) {
+            showNotification('分享链接已撤销');
+        }
+
+        function addMember() {
+            const email = document.getElementById('memberEmail').value;
+            const role = document.getElementById('memberRole').value;
+
+            if (!email) {
+                showNotification('请输入成员邮箱');
+                return;
+            }
+
+            showNotification('成员已添加');
+            document.getElementById('memberEmail').value = '';
+        }
+
+        function editMember(memberId) {
+            showNotification('编辑成员权限');
+        }
+
+        function editRole(roleId) {
+            showNotification('编辑角色权限');
+        }
+
+        function logout() {
+            showNotification('已退出登录');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1500);
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            document.getElementById('notificationText').textContent = message;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Initialize
+        switchPage('dashboard');
+    </script>
+</body>
+</html>
+```
