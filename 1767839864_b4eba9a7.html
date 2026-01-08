@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI平台1.0 - 合同审核与管理</title>
+  <!-- cdn： <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --brand: #0f6fff; --muted: #6b7280; font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .glass { background: rgba(255,255,255,0.6); backdrop-filter: blur(6px); }
+    .shadow-soft { box-shadow: 0 6px 18px rgba(15,111,255,0.08); }
+    html,body,#app { height:100%; }
+    .scrollbar-thin::-webkit-scrollbar { height:8px; width:8px; }
+    .kbd { background:#111827;color:#fff;padding:2px 6px;border-radius:6px;font-size:12px; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-800">
+  <div id="app" class="min-h-screen flex flex-col">
+    <header class="w-full border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-soft">
+            ZL
+          </div>
+          <div>
+            <div class="text-lg font-semibold">智律云AI平台 1.0</div>
+            <div class="text-sm text-gray-500">智能合同审核与管理中心</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex items-center gap-4">
+            <div class="text-sm text-gray-500">审批时长：<span id="kpi-time" class="font-medium">2.3h</span></div>
+            <div class="text-sm text-gray-500">并发支持：<span id="kpi-concurrent" class="font-medium">500</span></div>
+            <div class="text-sm text-gray-500">通过率：<span id="kpi-rate" class="font-medium">92%</span></div>
+          </div>
+          <button id="btn-new-contract" class="px-4 py-2 bg-white border border-gray-200 rounded-md hover:shadow">
+            上传合同
+          </button>
+          <div class="flex items-center gap-3">
+            <div class="text-sm text-gray-600">管理员</div>
+            <div class="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-sm">A</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto px-6 py-8">
+      <div class="grid grid-cols-12 gap-6">
+        <aside class="col-span-3 bg-white rounded-xl p-4 border border-gray-100 shadow-sm h-fit">
+          <div class="text-sm text-gray-600 uppercase tracking-wide mb-3">导航</div>
+          <nav class="flex flex-col gap-1">
+            <button class="nav-btn flex items-center gap-3 p-3 rounded-md text-sm font-medium bg-gradient-to-r from-white to-white" data-view="dashboard">
+              <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3 13h8V3H3v10zM3 21h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z"/></svg>
+              仪表盘
+            </button>
+            <button class="nav-btn flex items-center gap-3 p-3 rounded-md text-sm font-medium" data-view="contracts">
+              <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M9 16h6M9 8h6M4 6h16v12H4z"/></svg>
+              合同管理
+            </button>
+            <button class="nav-btn flex items-center gap-3 p-3 rounded-md text-sm font-medium" data-view="review">
+              <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M12 6v.01M6.2 6A2.2 2.2 0 004 8.2v7.6A2.2 2.2 0 006.2 18h11.6A2.2 2.2 0 0020 15.8V8.2A2.2 2.2 0 0017.8 6H6.2z"/></svg>
+              合同审核
+            </button>
+            <button class="nav-btn flex items-center gap-3 p-3 rounded-md text-sm font-medium" data-view="reports">
+              <svg class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M11 3v2M11 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4M12 7a5 5 0 100 10 5 5 0 000-10z"/></svg>
+              报表与审计
+            </button>
+            <button class="nav-btn flex items-center gap-3 p-3 rounded-md text-sm font-medium" data-view="settings">
+              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317A9 9 0 014.317 10.325M19.683 13.675A9 9 0 0113.675 19.683M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              系统设置
+            </button>
+          </nav>
+
+          <div class="mt-6 pt-4 border-t border-gray-100">
+            <div class="text-xs text-gray-500 mb-2">快捷操作</div>
+            <div class="flex flex-col gap-2">
+              <button id="quick-upload" class="py-2 px-3 bg-indigo-600 text-white rounded-md text-sm">快速上传合同</button>
+              <button id="quick-review" class="py-2 px-3 bg-yellow-500 text-white rounded-md text-sm">待审合同</button>
+              <button id="quick-audit" class="py-2 px-3 bg-pink-500 text-white rounded-md text-sm">审计日志</button>
+            </div>
+          </div>
+        </aside>
+
+        <section class="col-span-9">
+          <div id="view-dashboard" class="view bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold">平台概览</h2>
+              <div class="text-sm text-gray-500">最新更新：<span id="last-update">刚刚</span></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="p-4 bg-gradient-to-br from-white to-indigo-50 rounded-lg border border-gray-100">
+                <div class="text-xs text-gray-500">待审合同</div>
+                <div class="text-2xl font-bold" id="stat-pending">8</div>
+                <div class="text-sm text-gray-500 mt-2">预计平均审批时长 <span class="font-medium">2.3h</span></div>
+              </div>
+              <div class="p-4 bg-gradient-to-br from-white to-green-50 rounded-lg border border-gray-100">
+                <div class="text-xs text-gray-500">已通过</div>
+                <div class="text-2xl font-bold" id="stat-approved">128</div>
+                <div class="text-sm text-gray-500 mt-2">本月通过率 <span class="font-medium">92%</span></div>
+              </div>
+              <div class="p-4 bg-gradient-to-br from-white to-pink-50 rounded-lg border border-gray-100">
+                <div class="text-xs text-gray-500">异常警告</div>
+                <div class="text-2xl font-bold text-red-500" id="stat-alerts">3</div>
+                <div class="text-sm text-gray-500 mt-2">高风险合同待处理</div>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-medium">最近合同活动</h3>
+                <div class="text-sm text-gray-500">显示最近 10 条</div>
+              </div>
+              <div id="recent-activities" class="space-y-3">
+                <!-- 动态插入活动 -->
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-lg font-medium mb-2">智能助手建议</h3>
+              <div class="p-4 bg-white rounded-lg border border-gray-100">
+                <div id="ai-suggestions" class="text-sm text-gray-700">
+                  正在根据合同语义模型生成高风险条款检测、变更建议与补充条款模板...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-contracts" class="view hidden bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold">合同管理</h2>
+              <div class="flex items-center gap-3">
+                <input id="search-contract" type="text" placeholder="搜索合同编号/名称/对方" class="px-3 py-2 border rounded-md text-sm w-64" />
+                <select id="filter-status" class="px-3 py-2 border rounded-md text-sm">
+                  <option value="">全部状态</option>
+                  <option value="pending">待审</option>
+                  <option value="approved">已通过</option>
+                  <option value="rejected">已拒绝</option>
+                </select>
+                <button id="btn-export" class="px-4 py-2 bg-indigo-600 text-white rounded-md">导出</button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm table-auto border-collapse">
+                <thead>
+                  <tr class="text-left text-xs text-gray-500 border-b">
+                    <th class="p-3">编号</th>
+                    <th class="p-3">名称</th>
+                    <th class="p-3">对方</th>
+                    <th class="p-3">类型</th>
+                    <th class="p-3">状态</th>
+                    <th class="p-3">创建时间</th>
+                    <th class="p-3">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="contract-table-body" class="divide-y">
+                  <!-- 动态合同行 -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-4 flex items-center justify-end">
+              <div class="text-sm text-gray-500 mr-3">共 <span id="contracts-count">0</span> 条</div>
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1 border rounded text-sm" id="prev-page">上一页</button>
+                <button class="px-3 py-1 border rounded text-sm" id="next-page">下一页</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-review" class="view hidden bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold">合同审核中心</h2>
+              <div class="flex items-center gap-3">
+                <select id="review-filter" class="px-3 py-2 border rounded-md text-sm">
+                  <option value="">全部</option>
+                  <option value="high">高风险优先</option>
+                  <option value="neardue">即将到期</option>
+                </select>
+                <button id="btn-batch-approve" class="px-4 py-2 bg-green-600 text-white rounded-md">批量通过</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+              <div class="col-span-1">
+                <div class="text-sm text-gray-500 mb-2">待审队列</div>
+                <div id="pending-list" class="space-y-2 max-h-96 overflow-auto scrollbar-thin p-2">
+                  <!-- 待审小卡片 -->
+                </div>
+              </div>
+
+              <div class="col-span-2">
+                <div id="review-detail" class="p-4 border rounded-lg bg-white h-full">
+                  <div id="no-selection" class="text-gray-500">请选择左侧合同查看详情或开始审核。</div>
+
+                  <div id="detail-selected" class="hidden">
+                    <div class="flex items-start justify-between mb-3">
+                      <div>
+                        <div class="text-lg font-semibold" id="detail-title"></div>
+                        <div class="text-sm text-gray-500" id="detail-meta"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <div class="text-sm text-gray-500">风险评分</div>
+                        <div id="risk-score" class="w-12 h-8 rounded-md bg-red-50 flex items-center justify-center font-semibold text-red-600">--</div>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div class="text-sm text-gray-500 mb-2">合同摘要（AI）</div>
+                        <div id="ai-summary" class="p-3 bg-gray-50 rounded-md text-sm text-gray-700 max-h-40 overflow-auto"></div>
+                      </div>
+                      <div>
+                        <div class="text-sm text-gray-500 mb-2">高风险条款</div>
+                        <ul id="high-clauses" class="space-y-2 text-sm text-gray-700"></ul>
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <div class="text-sm text-gray-500 mb-2">文档预览</div>
+                      <div id="doc-preview" class="p-4 border rounded-md bg-white text-sm text-gray-600">PDF/Word 预览占位</div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                      <button id="approve-btn" class="px-4 py-2 bg-green-600 text-white rounded-md">通过</button>
+                      <button id="reject-btn" class="px-4 py-2 bg-red-600 text-white rounded-md">拒绝</button>
+                      <button id="add-note-btn" class="px-4 py-2 bg-gray-100 rounded-md">添加备注</button>
+                      <div class="ml-auto text-sm text-gray-500">审批人：<span id="current-reviewer">审核员A</span></div>
+                    </div>
+
+                    <div class="mt-4">
+                      <div class="text-sm text-gray-500 mb-2">审批记录</div>
+                      <div id="approval-log" class="p-3 bg-gray-50 rounded-md text-sm text-gray-700 max-h-36 overflow-auto"></div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-reports" class="view hidden bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold">报表与审计</h2>
+              <div class="text-sm text-gray-500">日志保留：365 天</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="p-4 border rounded-md bg-white">
+                <div class="text-sm text-gray-500 mb-2">审批时长分布</div>
+                <div class="h-48 flex items-center justify-center text-gray-400">图表占位（集成 ECharts/Chart.js）</div>
+              </div>
+              <div class="p-4 border rounded-md bg-white">
+                <div class="text-sm text-gray-500 mb-2">高风险条款统计</div>
+                <div class="h-48 flex items-center justify-center text-gray-400">图表占位</div>
+              </div>
+            </div>
+
+            <div class="mt-4 p-4 border rounded-md bg-white">
+              <div class="text-sm text-gray-500 mb-2">审计日志查询</div>
+              <div class="flex items-center gap-2">
+                <input id="audit-search" type="text" placeholder="按用户/操作/合同搜索" class="px-3 py-2 border rounded-md w-1/3" />
+                <button id="audit-search-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">查询</button>
+              </div>
+              <div id="audit-results" class="mt-3 text-sm text-gray-700 max-h-48 overflow-auto"></div>
+            </div>
+          </div>
+
+          <div id="view-settings" class="view hidden bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+            <h2 class="text-xl font-semibold mb-4">系统设置</h2>
+            <div class="grid grid-cols-2 gap-6">
+              <div class="p-4 border rounded-md">
+                <div class="text-sm text-gray-500 mb-2">用户与权限 (RBAC)</div>
+                <div class="text-sm text-gray-700">支持管理员/审核员/普通用户/外部合作方角色管理。可配置审批节点与委托策略。</div>
+              </div>
+              <div class="p-4 border rounded-md">
+                <div class="text-sm text-gray-500 mb-2">安全策略</div>
+                <div class="text-sm text-gray-700">支持密码策略、MFA、SSO、会话超时、IP 白名单与审计日志不可篡改保存。</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="w-full border-t border-gray-100">
+      <div class="max-w-7xl mx-auto px-6 py-4 text-sm text-gray-500">
+        © 智律云 2026 — 智能合同审核与管理平台 1.0
+      </div>
+    </footer>
+  </div>
+
+  <!-- 上传模态 -->
+  <div id="modal-upload" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-50">
+    <div class="w-[780px] bg-white rounded-xl p-6 shadow-lg">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <div class="text-lg font-semibold">上传新合同</div>
+          <div class="text-sm text-gray-500">支持 PDF / Word / 图片，单文件最大 50MB</div>
+        </div>
+        <button id="close-upload" class="text-gray-400 hover:text-gray-700">✕</button>
+      </div>
+
+      <form id="upload-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-gray-600">合同名称</label>
+            <input id="field-name" type="text" class="mt-1 px-3 py-2 border rounded-md w-full" placeholder="示例：委托服务合同" required />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">合同类型</label>
+            <select id="field-type" class="mt-1 px-3 py-2 border rounded-md w-full">
+              <option value="服务">服务</option>
+              <option value="销售">销售</option>
+              <option value="保密">保密协议</option>
+              <option value="租赁">租赁</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-gray-600">对方主体</label>
+            <input id="field-counterparty" type="text" class="mt-1 px-3 py-2 border rounded-md w-full" placeholder="对方公司/个人姓名" required />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">合同编号</label>
+            <input id="field-code" type="text" class="mt-1 px-3 py-2 border rounded-md w-full" placeholder="自动或手动输入" />
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-600">上传文件</label>
+          <div id="drop-zone" class="mt-2 p-6 border-2 border-dashed border-gray-200 rounded-md text-center text-sm text-gray-500">
+            将文件拖拽到此处，或 <label for="file-input" class="text-indigo-600 cursor-pointer">选择文件</label>（支持 PDF/Doc/DOCX/PNG/JPG，最大 50MB）
+            <input id="file-input" type="file" class="hidden" />
+          </div>
+          <div id="file-info" class="mt-2 text-sm text-gray-600"></div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" id="cancel-upload" class="px-4 py-2 border rounded-md">取消</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">开始上传并提交审核</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 备注模态 -->
+  <div id="modal-note" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-50">
+    <div class="w-[560px] bg-white rounded-xl p-6 shadow-lg">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-lg font-semibold">添加审核备注</div>
+        <button id="close-note" class="text-gray-400 hover:text-gray-700">✕</button>
+      </div>
+      <textarea id="note-text" class="w-full h-40 p-3 border rounded-md" placeholder="输入备注（对合同审核结果说明/法律建议/风险提示）"></textarea>
+      <div class="mt-4 flex items-center justify-end gap-3">
+        <button id="note-cancel" class="px-4 py-2 border rounded-md">取消</button>
+        <button id="note-save" class="px-4 py-2 bg-indigo-600 text-white rounded-md">保存备注</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON 占位符（请勿修改） -->
+  <script id="requirements-placeholder" type="application/json">
+{"requirement": "检测到用户需求输入为空。为生成完整的软件需求说明（包含5个重点功能UI：登录、注册、关键功能（示例：合同审核）、及其他两项UI），请补充以下信息：\n\n1) 项目概述与目标\n   - 项目名称与一句话目标（业务目的）。\n   - 主要成功指标（KPI，例如审批时长、并发用户数、通过率）。\n\n2) 目标用户与角色\n   - 主要用户类型（例如：普通用户、审核员、管理员、外部合作方）。\n   - 每类用户的主要职责和权限范围。\n\n3) 支持的平台与终端\n   - Web/移动（iOS/Android）/桌面/小程序等。\n   - 是否需响应式设计或独立移动App。\n\n4) 必需功能清单与优先级\n   - 明确必须包含的功能（例如：登录、注册、合同审核、合同上传与存储、审批流管理、搜索、通知、报表）。\n   - 每项功能的优先级（P0/P1/P2）。\n\n5) 审批与工作流规则（若涉及合同或流程）\n   - 审批节点、条件、并行/串行审批规则。\n   - 委托、回退、加签、终止等业务场景。\n\n6) 表单与数据字段规范\n   - 各页面/功能需要的具体字段（字段名、类型、是否必填、示例值、长度限制）。\n   - 必要的下拉项、字典表或枚举值。\n\n7) 数据与文档类型\n   - 支持的合同/文档格式（PDF/Word/图片等）及大小限制。\n   - 是否需全文检索、OCR、版本控制、附件关联。\n\n8) 用户认证与安全要求\n   - 登录方式（用户名/密码、手机号+验证码、SSO、OAuth、企业微信/钉钉、MFA）。\n   - 密码策略、会话超时、多因素认证、IP白名单、账户锁定策略。\n   - 数据传输与存储加密、敏感数据脱敏、访问控制模型（RBAC/ABAC）。\n\n9) 合规与审计需求\n   - 日志保留周期、审计日志内容、不可篡改要求、合规标准（例如ISO、GDPR、等）。\n\n10) 集成与第三方系统\n    - 需对接的系统或API（身份认证、存储、邮件/短信网关、电子签章、OCR）。\n    - 对接协议与认证方式（REST/SOAP、API Key/OAuth）。\n\n11) 性能与可用性要求\n    - 并发用户数、响应时长要求、可用性目标（SLA/uptime）、备份频率。\n\n12) UI/UX 与品牌要求\n    - 是否有现成的UI规范、品牌色、字体、无障碍要求（WCAG等级）。\n\n13) 国际化与多语言（如适用）\n    - 需要支持的语言、时区、数值/日期格式。\n\n14) 接受标准与验收流程\n    - 验收标准示例（功能通过率、用例覆盖、性能测试指标）。\n    - 验收环境与数据准备说明。\n\n15) 边界条件与异常场景示例\n    - 典型边界条件（大文件、断网、权限不足、并发冲突），以及期望处理方式。\n\n16) 数据示例与测试用例（若有）\n    - 提供典型数据样例、合同样本、用户账号列表，便于编写验收标准。\n\n17) 项目时间线与里程碑（可选）\n    - 期望上线时间、重要里程碑和迭代方式（敏捷/瀑布）。\n\n18) 其他约束或特殊要求\n    - 例如：必须离线可用、本地部署优先、仅内网访问、法规限制等。\n\n说明：请尽量以结构化（表格或JSON）形式提供上述关键项。收到信息后，我将基于这些输入生成结构化的软件需求说明，包含至少5个重点功能UI（每个功能给出：功能描述、目标用户、UI元素/字段/按钮、页面流程/交互步骤、验收标准、边界情况、数据校验与安全要求）。\n\n提示：若您已有部分需求（例如多个独立需求项），请以{\"data\":[{\"requirement\":\"...\"}, ...]} 格式提供，每个条目我将为其生成对应的UI功能映射与示例交互流程。"}
+  </script>
+
+  <script>
+    // 样例数据与交互逻辑（用于预览）
+    const sampleContracts = [
+      { id: 'CT-2026-001', name: '委托服务合同', counterparty: '上海科技有限公司', type: '服务', status: 'pending', created: '2026-01-04', risk: 78, summary: '合同约定服务内容、费用、知识产权归属与保密条款。重点为付款条件与交付里程碑。', highClauses: ['付款条款：分期付款未设保障', '违约条款：违约金比例缺失'] },
+      { id: 'CT-2026-002', name: '销售合同（A）', counterparty: '北京贸易公司', type: '销售', status: 'approved', created: '2026-01-02', risk: 22, summary: '商品销售合同，含交付与验收标准，售后服务期 12 个月。', highClauses: [] },
+      { id: 'CT-2026-003', name: '保密协议', counterparty: '广州研发部', type: '保密', status: 'pending', created: '2026-01-06', risk: 60, summary: '涉及技术秘密与数据处理要求，建议补充数据脱敏与访问控制细则。', highClauses: ['保密期限未明确', '数据处理地点未限定'] },
+      { id: 'CT-2026-004', name: '租赁合同', counterparty: '深圳物业管理', type: '租赁', status: 'rejected', created: '2025-12-20', risk: 88, summary: '租赁期限与押金处理存在争议，续租与提前终止条款需明确。', highClauses: ['提前终止责任未分配', '押金退还条件模糊'] }
+    ];
+
+    const activities = [
+      { time: '02:10', text: 'CT-2026-003 提交审核（用户：张三）' },
+      { time: '01:45', text: 'CT-2026-001 AI 风险检测完成，发现 2 条高风险条款' },
+      { time: '00:30', text: '系统任务：每日合同数据备份完成' }
+    ];
+
+    const auditLogs = [
+      { time: '2026-01-06 10:12', user: '审核员A', action: '通过合同', contract: 'CT-2026-002' },
+      { time: '2026-01-05 09:50', user: '系统', action: '自动扫描发现高风险条款', contract: 'CT-2026-001' }
+    ];
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // Navigation
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const view = btn.dataset.view;
+          switchView(view);
+        });
+      });
+
+      // Load dashboard content
+      renderActivities();
+      renderContractsTable();
+      renderPendingList();
+      renderAuditResults();
+
+      // Modal controls
+      document.getElementById('btn-new-contract').addEventListener('click', () => openUpload());
+      document.getElementById('quick-upload').addEventListener('click', () => openUpload());
+      document.getElementById('close-upload').addEventListener('click', closeUpload);
+      document.getElementById('cancel-upload').addEventListener('click', closeUpload);
+      document.getElementById('upload-form').addEventListener('submit', handleUpload);
+
+      document.getElementById('file-input').addEventListener('change', handleFileSelect);
+      const dropZone = document.getElementById('drop-zone');
+      dropZone.addEventListener('dragover', (e)=>{ e.preventDefault(); dropZone.classList.add('border-indigo-300'); });
+      dropZone.addEventListener('dragleave', ()=>{ dropZone.classList.remove('border-indigo-300'); });
+      dropZone.addEventListener('drop', (e)=>{ e.preventDefault(); dropZone.classList.remove('border-indigo-300'); const files = e.dataTransfer.files; handleFile(files[0]); });
+
+      // Review interactions
+      document.getElementById('btn-batch-approve').addEventListener('click', batchApprove);
+      document.getElementById('approve-btn').addEventListener('click', () => approveSelected('approved'));
+      document.getElementById('reject-btn').addEventListener('click', () => approveSelected('rejected'));
+      document.getElementById('add-note-btn').addEventListener('click', openNote);
+      document.getElementById('close-note').addEventListener('click', closeNote);
+      document.getElementById('note-cancel').addEventListener('click', closeNote);
+      document.getElementById('note-save').addEventListener('click', saveNote);
+
+      // Search & filters
+      document.getElementById('search-contract').addEventListener('input', renderContractsTable);
+      document.getElementById('filter-status').addEventListener('change', renderContractsTable);
+      document.getElementById('review-filter').addEventListener('change', renderPendingList);
+
+      // Quick actions
+      document.getElementById('quick-review').addEventListener('click', ()=>switchView('review'));
+      document.getElementById('quick-audit').addEventListener('click', ()=>switchView('reports'));
+
+      // Audit search
+      document.getElementById('audit-search-btn').addEventListener('click', renderAuditResults);
+
+      // File select click
+      document.querySelector('label[for="file-input"]').addEventListener('click', ()=>document.getElementById('file-input').click());
+    });
+
+    function switchView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-indigo-50'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.remove('hidden');
+      document.querySelector('.nav-btn[data-view="'+name+'"]')?.classList.add('bg-indigo-50');
+    }
+
+    function renderActivities() {
+      const container = document.getElementById('recent-activities');
+      container.innerHTML = '';
+      activities.forEach(a => {
+        const div = document.createElement('div');
+        div.className = 'p-3 border rounded-md flex items-center justify-between';
+        div.innerHTML = `<div class="text-sm text-gray-700">${a.text}</div><div class="text-xs text-gray-400">${a.time}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    function renderContractsTable() {
+      const tbody = document.getElementById('contract-table-body');
+      const search = document.getElementById('search-contract').value.toLowerCase();
+      const status = document.getElementById('filter-status').value;
+      tbody.innerHTML = '';
+      const filtered = sampleContracts.filter(c => {
+        return (c.id.toLowerCase().includes(search) || c.name.toLowerCase().includes(search) || c.counterparty.toLowerCase().includes(search)) &&
+               (status ? c.status === status : true);
+      });
+      filtered.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        tr.innerHTML = `
+          <td class="p-3 text-sm">${c.id}</td>
+          <td class="p-3 text-sm">${c.name}</td>
+          <td class="p-3 text-sm">${c.counterparty}</td>
+          <td class="p-3 text-sm">${c.type}</td>
+          <td class="p-3 text-sm">${renderStatusTag(c.status)}</td>
+          <td class="p-3 text-sm">${c.created}</td>
+          <td class="p-3 text-sm">
+            <button class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded text-xs" onclick="viewContract('${c.id}')">查看</button>
+            <button class="px-3 py-1 bg-yellow-50 text-yellow-600 rounded text-xs" onclick="toReview('${c.id}')">审核</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('contracts-count').textContent = filtered.length;
+    }
+
+    function renderStatusTag(status) {
+      if (status === 'pending') return '<span class="px-2 py-1 rounded text-xs bg-yellow-50 text-yellow-800">待审</span>';
+      if (status === 'approved') return '<span class="px-2 py-1 rounded text-xs bg-green-50 text-green-800">已通过</span>';
+      if (status === 'rejected') return '<span class="px-2 py-1 rounded text-xs bg-red-50 text-red-800">已拒绝</span>';
+      return status;
+    }
+
+    function viewContract(id) {
+      const c = sampleContracts.find(x => x.id === id);
+      if (!c) return;
+      switchView('contracts');
+      setTimeout(()=> {
+        alert('打开合同详情预览：' + c.id + '（示例行为）');
+      }, 200);
+    }
+
+    function toReview(id) {
+      switchView('review');
+      setTimeout(()=> {
+        const el = Array.from(document.querySelectorAll('#pending-list .pending-card')).find(div => div.dataset.id === id);
+        if (el) el.click();
+      }, 200);
+    }
+
+    function renderPendingList() {
+      const filter = document.getElementById('review-filter').value;
+      const list = document.getElementById('pending-list');
+      list.innerHTML = '';
+      const pending = sampleContracts.filter(c => c.status === 'pending');
+      const sorted = pending.sort((a,b)=> b.risk - a.risk);
+      sorted.forEach(c => {
+        if (filter === 'high' && c.risk < 50) return;
+        const div = document.createElement('div');
+        div.className = 'pending-card p-3 border rounded-md hover:shadow cursor-pointer flex items-center justify-between';
+        div.dataset.id = c.id;
+        div.innerHTML = `<div>
+            <div class="font-medium">${c.name}</div>
+            <div class="text-xs text-gray-500">${c.counterparty} · ${c.created}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-semibold ${c.risk>70? 'text-red-600' : c.risk>40 ? 'text-yellow-600' : 'text-green-600'}">${c.risk}</div>
+            <div class="text-xs text-gray-400">风险评分</div>
+          </div>`;
+        div.addEventListener('click', ()=>selectPending(c.id));
+        list.appendChild(div);
+      });
+    }
+
+    let currentSelected = null;
+    function selectPending(id) {
+      const c = sampleContracts.find(x => x.id === id);
+      if (!c) return;
+      currentSelected = c;
+      document.getElementById('no-selection').classList.add('hidden');
+      document.getElementById('detail-selected').classList.remove('hidden');
+      document.getElementById('detail-title').textContent = `${c.id} · ${c.name}`;
+      document.getElementById('detail-meta').textContent = `${c.counterparty} · 类型：${c.type} · 创建：${c.created}`;
+      document.getElementById('risk-score').textContent = c.risk;
+      document.getElementById('ai-summary').textContent = c.summary;
+      const clauses = document.getElementById('high-clauses');
+      clauses.innerHTML = '';
+      if (c.highClauses.length === 0) {
+        clauses.innerHTML = '<li class="text-sm text-gray-500">未检测到高风险条款</li>';
+      } else {
+        c.highClauses.forEach(h => {
+          const li = document.createElement('li');
+          li.className = 'text-sm text-red-600';
+          li.textContent = '• ' + h;
+          clauses.appendChild(li);
+        });
+      }
+      document.getElementById('doc-preview').textContent = '文档预览：' + (c.id) + '（示例）';
+      renderApprovalLog(c);
+    }
+
+    function renderApprovalLog(c) {
+      const log = document.getElementById('approval-log');
+      log.innerHTML = '';
+      // 示例日志
+      const items = [
+        {time: '2026-01-06 10:00', text: '提交审核（创建者：系统用户）'},
+        {time: '2026-01-06 10:12', text: '自动风险扫描完成：发现关键条款'}
+      ];
+      items.forEach(it => {
+        const div = document.createElement('div');
+        div.className = 'text-sm border-b py-2';
+        div.innerHTML = `<div class="text-xs text-gray-400">${it.time}</div><div>${it.text}</div>`;
+        log.appendChild(div);
+      });
+    }
+
+    function batchApprove() {
+      const pendingIds = sampleContracts.filter(c => c.status === 'pending').slice(0,3).map(c => c.id);
+      pendingIds.forEach(id => {
+        const c = sampleContracts.find(x => x.id === id);
+        if (c) c.status = 'approved';
+      });
+      renderPendingList();
+      renderContractsTable();
+      alert('批量通过示例：' + pendingIds.join(', '));
+    }
+
+    function approveSelected(status) {
+      if (!currentSelected) { alert('请先选择合同'); return;}
+      currentSelected.status = status;
+      // 写日志（示例）
+      auditLogs.unshift({ time: new Date().toISOString().slice(0,19).replace('T',' '), user: '审核员A', action: status === 'approved' ? '通过合同' : '拒绝合同', contract: currentSelected.id });
+      renderPendingList();
+      renderContractsTable();
+      document.getElementById('detail-selected').classList.add('hidden');
+      document.getElementById('no-selection').classList.remove('hidden');
+      alert(currentSelected.id + ' 已标记为 ' + status);
+      currentSelected = null;
+    }
+
+    function openUpload() {
+      document.getElementById('modal-upload').classList.remove('hidden');
+    }
+    function closeUpload() {
+      document.getElementById('modal-upload').classList.add('hidden');
+      document.getElementById('upload-form').reset();
+      document.getElementById('file-info').textContent = '';
+    }
+
+    function handleFileSelect(e) {
+      const f = e.target.files[0];
+      handleFile(f);
+    }
+
+    function handleFile(f) {
+      if (!f) return;
+      const maxMB = 50;
+      const info = document.getElementById('file-info');
+      if (f.size > maxMB * 1024 * 1024) {
+        info.textContent = '文件过大，最大支持 ' + maxMB + 'MB';
+        info.className = 'text-sm text-red-600';
+        return;
+      }
+      info.textContent = `已选择：${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`;
+      info.className = 'text-sm text-gray-600';
+      // 存储临时（示例）
+      document._selectedFile = f;
+    }
+
+    function handleUpload(e) {
+      e.preventDefault();
+      const name = document.getElementById('field-name').value.trim();
+      const type = document.getElementById('field-type').value;
+      const cp = document.getElementById('field-counterparty').value.trim();
+      const code = document.getElementById('field-code').value.trim() || ('CT-2026-' + String(Math.floor(Math.random()*900+100)));
+      const f = document._selectedFile;
+      if (!name || !cp || !f) {
+        alert('请填写合同名称、对方并选择上传文件');
+        return;
+      }
+      // 模拟上传与 AI 扫描
+      const newC = { id: code, name, counterparty: cp, type, status: 'pending', created: new Date().toISOString().slice(0,10), risk: Math.floor(Math.random()*80)+10, summary: '（AI 自动生成摘要）系统正在分析合同...', highClauses: [] };
+      sampleContracts.unshift(newC);
+      activities.unshift({ time: (new Date()).toLocaleTimeString().slice(0,5), text: `${newC.id} 上传并提交审核（用户：管理员）` });
+      renderContractsTable();
+      renderPendingList();
+      renderActivities();
+      closeUpload();
+      alert('上传成功，合同已进入待审队列（示例）。');
+    }
+
+    // 备注模态
+    function openNote() {
+      if (!currentSelected) { alert('请先选择合同'); return; }
+      document.getElementById('modal-note').classList.remove('hidden');
+      document.getElementById('note-text').value = '';
+    }
+    function closeNote() {
+      document.getElementById('modal-note').classList.add('hidden');
+    }
+    function saveNote() {
+      const txt = document.getElementById('note-text').value.trim();
+      if (!txt) { alert('备注内容不能为空'); return; }
+      // 模拟写入审批记录
+      auditLogs.unshift({ time: new Date().toISOString().slice(0,19).replace('T',' '), user: '审核员A', action: '添加备注', contract: currentSelected ? currentSelected.id : '未知' });
+      closeNote();
+      alert('备注已保存（示例）');
+    }
+
+    // 审计日志渲染
+    function renderAuditResults() {
+      const q = document.getElementById('audit-search').value.toLowerCase();
+      const container = document.getElementById('audit-results');
+      container.innerHTML = '';
+      const list = auditLogs.filter(l => !q || l.user.toLowerCase().includes(q) || l.action.toLowerCase().includes(q) || l.contract.toLowerCase().includes(q));
+      list.forEach(l => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border-b text-sm text-gray-700';
+        div.innerHTML = `<div class="text-xs text-gray-400">${l.time} · ${l.user}</div><div>${l.action} · 合同：${l.contract}</div>`;
+        container.appendChild(div);
+      });
+    }
+
+    // 页面性能模拟 KPI 更新
+    setInterval(()=> {
+      document.getElementById('kpi-time').textContent = (1.8 + Math.random() * 1.5).toFixed(1) + 'h';
+      document.getElementById('kpi-concurrent').textContent = 400 + Math.floor(Math.random()*200);
+      document.getElementById('kpi-rate').textContent = (88 + Math.floor(Math.random()*8)) + '%';
+    }, 6000);
+
+  </script>
+</body>
+</html>
