@@ -1,0 +1,742 @@
+<think>
+**Planning UI for Permissions Configuration**
+
+I’m focusing on creating a UI for the Permission Configuration page. I’ll include a role list, a permission tree with checkboxes for actions like view, edit, delete, and export, along with a resource scope selector. There’ll be a button for adding new roles, a form for editing them, and an input for user assignment. I also want to integrate a permission testing tool. 
+
+I should also incorporate process steps, implement data validation, and confirm actions for super admins. The final design should be styled using Tailwind and aim for around 420 lines of HTML code.**Developing Role Management Functionality**
+
+I need to manage the delete role migration prompt, which should allow assigning a replacement or removing the role altogether. I'll implement JavaScript to handle the roles array and users list, creating functions for creating, editing, deleting roles, and assigning users. There will also be functionality to test permissions by simulating user views based on dropdown selections. 
+
+Only the 'super_admin' role should modify critical permissions, and a second confirmation should pop up for such actions. I'll include necessary CDN scripts without any extra commentary, aiming for around 420 lines of HTML.
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI平台1.0 - 权限配置（管理控制台）</title>
+  <meta name="description" content="权限配置与角色管理 - 智律云AI平台1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-yH2f6k6a2qv0s5x1tXwQ+0kJ6gVnYdQ9gQ0b0cX1kqjF1Q4+z2p3z9y7hM4s5lN1+2v9r3m2G1k1mY6G9u1Xg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* small helpers */
+    .scrollbar {
+      scrollbar-width: thin;
+    }
+    .checkbox-tree { max-height: 360px; overflow:auto; }
+    .role-item-active { background: linear-gradient(90deg,#eef2ff,#fff); }
+    .muted { color: #6b7280; }
+    .small { font-size: 12px; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+  <header class="bg-white border-b">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <div class="text-2xl font-semibold text-indigo-600">智律云AI平台 1.0</div>
+        <div class="text-sm text-gray-500">管理控制台 / 权限配置</div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="text-sm muted small">当前用户: <span id="currentUserLabel">sys_admin</span></div>
+        <button id="openAudit" class="px-3 py-2 bg-indigo-600 text-white rounded shadow hover:bg-indigo-500"><i class="fa-solid fa-clock-rotate-left mr-2"></i>变更审计</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-6 grid grid-cols-12 gap-6">
+    <!-- Left: Role List -->
+    <section class="col-span-3 bg-white border rounded-lg shadow-sm p-4">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-medium">角色列表</h3>
+          <p class="text-xs muted">创建、编辑和分配角色</p>
+        </div>
+        <div>
+          <button id="btnNewRole" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-500"><i class="fa-solid fa-plus mr-2"></i>新建角色</button>
+        </div>
+      </div>
+
+      <div id="roleList" class="space-y-2 scrollbar max-h-[520px] overflow-auto">
+        <!-- roles injected here -->
+      </div>
+
+      <div class="mt-4 border-t pt-3">
+        <div class="text-xs muted">操作提示</div>
+        <ul class="text-sm mt-2 space-y-1">
+          <li>• 对系统关键权限仅超管可修改，操作需二次确认并记录审计。</li>
+          <li>• 删除角色时请选择权限迁移目标或强制移除。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Middle: Permission Tree -->
+    <section class="col-span-6 bg-white border rounded-lg shadow-sm p-4">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-medium">权限树与资源范围</h3>
+          <p class="text-xs muted">为角色选择具体权限与资源级别（合同/附件/审核操作）</p>
+        </div>
+        <div class="text-sm muted small">变更实时预览，无需刷新</div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+          <div class="border rounded p-3">
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-medium">权限选择</div>
+              <div class="text-xs muted">复选框支持子节点联动</div>
+            </div>
+
+            <div class="checkbox-tree" id="permissionsTree">
+              <!-- permission nodes go here -->
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="border rounded p-3">
+            <div class="font-medium mb-2">资源范围</div>
+            <div class="space-y-2">
+              <label class="flex items-center space-x-2">
+                <input type="radio" name="scope" value="all" class="form-radio" checked>
+                <span>全部</span>
+              </label>
+              <label class="flex items-center space-x-2">
+                <input type="radio" name="scope" value="department" class="form-radio">
+                <span>部门</span>
+              </label>
+              <label class="flex items-center space-x-2">
+                <input type="radio" name="scope" value="personal" class="form-radio">
+                <span>个人</span>
+              </label>
+            </div>
+
+            <div class="mt-4">
+              <div class="font-medium">细化资源（可选）</div>
+              <input id="resourceFilter" placeholder="输入部门或人名进行限制" class="mt-2 w-full border rounded px-3 py-2" />
+              <div class="text-xs muted mt-2">若选择部门或个人，请输入具体标识以限定权限生效范围。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-between">
+        <div class="text-sm muted">边界情况：删除角色后会提示迁移或清空。大量修改会显示进度。</div>
+        <div class="space-x-2">
+          <button id="btnResetSelection" class="px-3 py-2 bg-gray-200 rounded hover:bg-gray-300">重置</button>
+          <button id="btnSaveRole" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500"><i class="fa-solid fa-floppy-disk mr-2"></i>保存变更</button>
+        </div>
+      </div>
+
+      <div id="saveProgress" class="mt-4 hidden">
+        <div class="text-sm">保存中，请稍候...</div>
+        <div class="w-full bg-gray-200 rounded h-2 mt-2 overflow-hidden"><div id="saveBar" class="h-2 bg-indigo-500 w-0"></div></div>
+      </div>
+    </section>
+
+    <!-- Right: Role Edit / Assignment / Test -->
+    <aside class="col-span-3 bg-white border rounded-lg shadow-sm p-4">
+      <div>
+        <h3 class="text-lg font-medium">角色编辑与用户分配</h3>
+        <p class="text-xs muted">分配用户、设置角色名和说明</p>
+      </div>
+
+      <form id="roleForm" class="mt-3 space-y-3" onsubmit="return false;">
+        <div>
+          <label class="text-sm">角色名</label>
+          <input id="roleName" required maxlength="64" class="w-full border rounded px-3 py-2" placeholder="示例：合同审核员" />
+          <div class="text-xs muted mt-1">支持64字符以内，禁止特殊字符。</div>
+        </div>
+
+        <div>
+          <label class="text-sm">描述</label>
+          <textarea id="roleDesc" rows="3" class="w-full border rounded px-3 py-2" placeholder="角色职责说明（可选）"></textarea>
+        </div>
+
+        <div>
+          <label class="text-sm">分配用户 / 用户组</label>
+          <select id="userAssign" multiple class="w-full border rounded px-2 py-2 h-28">
+            <!-- users populated -->
+          </select>
+          <div class="text-xs muted mt-1">可多选；若无用户请先在系统用户管理中创建。</div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="text-xs muted">提示：更改权限后请使用测试工具验证生效</div>
+          <div>
+            <button id="btnApplyToRole" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500">应用到角色</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="mt-4 border-t pt-3">
+        <h4 class="font-medium">权限测试工具</h4>
+        <p class="text-xs muted">模拟用户查看其在前端的可见性与可操作性</p>
+
+        <div class="mt-3">
+          <label class="text-sm">选择用户</label>
+          <select id="simUser" class="w-full border rounded px-3 py-2">
+            <!-- options -->
+          </select>
+        </div>
+
+        <div class="mt-3">
+          <button id="btnSimulate" class="w-full px-3 py-2 bg-amber-600 text-white rounded hover:bg-amber-500">模拟并查看权限</button>
+        </div>
+
+        <div id="simResult" class="mt-4 hidden border rounded p-3 bg-gray-50">
+          <div class="font-medium">模拟结果预览</div>
+          <div id="simOverview" class="text-sm muted mt-2"></div>
+          <div id="simActions" class="mt-3 space-y-2"></div>
+        </div>
+      </div>
+
+      <div class="mt-4 border-t pt-3">
+        <h4 class="font-medium">操作记录（本地示例）</h4>
+        <div id="auditList" class="mt-2 text-sm scrollbar max-h-40 overflow-auto"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modals -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+    <div id="modal" class="bg-white rounded-lg w-11/12 max-w-2xl shadow-lg p-6">
+      <!-- dynamic modal content -->
+    </div>
+  </div>
+
+  <!-- Templates and Scripts -->
+  <script>
+    // Sample data
+    const users = [
+      { id: 'u1', name: 'sys_admin', roles: ['super_admin'] },
+      { id: 'u2', name: 'alice', roles: ['contract_reviewer'] },
+      { id: 'u3', name: 'bob', roles: ['contract_editor'] },
+      { id: 'u4', name: 'carol', roles: [] }
+    ];
+
+    const permissionCatalog = [
+      {
+        id: 'contracts',
+        title: '合同管理',
+        children: [
+          { id: 'contracts:view', title: '查看合同' },
+          { id: 'contracts:edit', title: '编辑合同' },
+          { id: 'contracts:approve', title: '审核/审批合同', critical: true },
+          { id: 'contracts:delete', title: '删除合同' },
+          { id: 'contracts:export', title: '导出合同' }
+        ]
+      },
+      {
+        id: 'attachments',
+        title: '附件管理',
+        children: [
+          { id: 'attachments:view', title: '查看附件' },
+          { id: 'attachments:upload', title: '上传附件' },
+          { id: 'attachments:delete', title: '删除附件' },
+          { id: 'attachments:download', title: '下载附件' }
+        ]
+      },
+      {
+        id: 'reviews',
+        title: '审核操作',
+        children: [
+          { id: 'reviews:view', title: '查看审核记录' },
+          { id: 'reviews:assign', title: '指派审核' },
+          { id: 'reviews:comment', title: '审核评论' },
+          { id: 'reviews:export', title: '导出审核记录' }
+        ]
+      }
+    ];
+
+    // initial roles, including a super_admin with all permissions
+    let roles = [
+      {
+        id: 'super_admin',
+        name: '超管（系统管理员）',
+        desc: '系统超级管理员，拥有所有权限',
+        permissions: permissionCatalog.flatMap(p => p.children.map(c => c.id)),
+        scope: 'all',
+        resources: '',
+        users: ['u1'],
+        createdBy: 'system',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'contract_reviewer',
+        name: '合同审核员',
+        desc: '对合同进行审批与查看',
+        permissions: ['contracts:view','contracts:approve','reviews:view'],
+        scope: 'department',
+        resources: '法律部',
+        users: ['u2'],
+        createdBy: 'sys_admin',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'contract_editor',
+        name: '合同编辑',
+        desc: '合同的创建与编辑角色',
+        permissions: ['contracts:view','contracts:edit','attachments:upload'],
+        scope: 'personal',
+        resources: 'u3',
+        users: ['u3'],
+        createdBy: 'sys_admin',
+        createdAt: new Date().toISOString()
+      }
+    ];
+
+    // audit log
+    let audit = [];
+
+    // current selection
+    let selectedRoleId = null;
+    let currentUser = users[0]; // sys_admin
+
+    // utils
+    function $(sel){ return document.querySelector(sel); }
+    function $all(sel){ return Array.from(document.querySelectorAll(sel)); }
+
+    function formatDate(ts){ const d = new Date(ts); return d.toLocaleString(); }
+
+    // render functions
+    function renderRoleList(){
+      const container = $('#roleList');
+      container.innerHTML = '';
+      roles.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border rounded hover:shadow-sm cursor-pointer flex items-center justify-between';
+        if (r.id === selectedRoleId) div.classList.add('role-item-active');
+        div.innerHTML = `
+          <div>
+            <div class="font-medium">${r.name}</div>
+            <div class="text-xs muted small">${r.desc || ''}</div>
+            <div class="text-xs muted small mt-1">用户: ${r.users.map(u=> getUserName(u)).join(', ') || '未分配'}</div>
+          </div>
+          <div class="flex flex-col items-end space-y-2">
+            <div class="space-x-1">
+              <button data-id="${r.id}" class="editRole px-2 py-1 text-xs bg-indigo-600 text-white rounded">编辑</button>
+              <button data-id="${r.id}" class="delRole px-2 py-1 text-xs bg-red-500 text-white rounded">删除</button>
+            </div>
+            <div class="text-xs muted small">范围: ${r.scope}${r.resources? ' / ' + r.resources : ''}</div>
+          </div>
+        `;
+        div.querySelector('.editRole').addEventListener('click', ()=> openEditRole(r.id));
+        div.querySelector('.delRole').addEventListener('click', ()=> confirmDeleteRole(r.id));
+        div.addEventListener('click', (e)=>{
+          if(e.target.tagName.toLowerCase() === 'button') return;
+          selectedRoleId = r.id;
+          loadRoleToForm(r.id);
+          renderRoleList();
+          renderPermissionSelection(r.id);
+        });
+        container.appendChild(div);
+      });
+    }
+
+    function renderPermissionsTree(){
+      const tree = $('#permissionsTree');
+      tree.innerHTML = '';
+      permissionCatalog.forEach(group=>{
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'mb-3';
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between';
+        header.innerHTML = `<div class="font-medium">${group.title}</div><div class="text-xs muted small">功能节点</div>`;
+        groupDiv.appendChild(header);
+        group.children.forEach(perm => {
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between mt-2';
+          row.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <input type="checkbox" data-perm="${perm.id}" class="permCheckbox form-checkbox" />
+              <div>
+                <div class="font-sm">${perm.title}</div>
+                ${perm.critical ? '<div class="text-xs text-red-600 small">关键权限（需超管二次确认）</div>' : ''}
+              </div>
+            </div>
+            <div class="text-xs muted small">操作</div>
+          `;
+          tree.appendChild(row);
+        });
+      });
+    }
+
+    function renderUserSelectors(){
+      const selAssign = $('#userAssign');
+      const selSim = $('#simUser');
+      selAssign.innerHTML = '';
+      selSim.innerHTML = '';
+      users.forEach(u=>{
+        const opt1 = document.createElement('option');
+        opt1.value = u.id; opt1.textContent = `${u.name} (${u.id})`;
+        selAssign.appendChild(opt1);
+
+        const opt2 = opt1.cloneNode(true);
+        selSim.appendChild(opt2);
+      });
+      // set default simulate user
+      $('#simUser').value = currentUser.id;
+    }
+
+    function loadRoleToForm(roleId){
+      const r = roles.find(x=>x.id === roleId);
+      if(!r) return;
+      $('#roleName').value = r.name;
+      $('#roleDesc').value = r.desc || '';
+      $('#userAssign').value = r.users || [];
+      // scope
+      $all('input[name="scope"]').forEach(radio => radio.checked = radio.value === r.scope);
+      $('#resourceFilter').value = r.resources || '';
+    }
+
+    function renderPermissionSelection(roleId){
+      const role = roles.find(r=>r.id === roleId);
+      $all('.permCheckbox').forEach(cb => {
+        const pid = cb.dataset.perm;
+        cb.checked = role && role.permissions.includes(pid);
+      });
+    }
+
+    function getUserName(uid){
+      const u = users.find(x=>x.id===uid);
+      return u ? u.name : uid;
+    }
+
+    function gatherSelectedPermissions(){
+      return $all('.permCheckbox').filter(cb=>cb.checked).map(cb=>cb.dataset.perm);
+    }
+
+    function showModal(contentHtml){
+      $('#modal').innerHTML = contentHtml;
+      $('#modalBackdrop').classList.remove('hidden');
+      $('#modalBackdrop').classList.add('flex');
+    }
+
+    function closeModal(){
+      $('#modalBackdrop').classList.add('hidden');
+      $('#modalBackdrop').classList.remove('flex');
+    }
+
+    // Actions
+    document.getElementById('btnNewRole').addEventListener('click', ()=>{
+      selectedRoleId = null;
+      $('#roleName').value = '';
+      $('#roleDesc').value = '';
+      $('#userAssign').value = [];
+      $all('.permCheckbox').forEach(cb=> cb.checked = false);
+      $all('input[name="scope"]').forEach(radio => radio.checked = radio.value === 'all');
+      $('#resourceFilter').value = '';
+      renderRoleList();
+    });
+
+    function openEditRole(roleId){
+      selectedRoleId = roleId;
+      loadRoleToForm(roleId);
+      renderPermissionSelection(roleId);
+      renderRoleList();
+    }
+
+    function confirmDeleteRole(roleId){
+      const role = roles.find(r=>r.id===roleId);
+      if(!role) return;
+      showModal(`
+        <div>
+          <div class="text-lg font-medium mb-2">删除角色 - ${role.name}</div>
+          <div class="text-sm muted mb-4">删除角色将影响已分配用户的权限，请选择迁移或清空。</div>
+          <div class="space-y-3">
+            <div>
+              <label class="text-sm">迁移到角色（或选择“无”，清空权限）</label>
+              <select id="migrateTo" class="w-full border rounded px-3 py-2">
+                <option value="">-- 无（清空） --</option>
+                ${roles.filter(r=>r.id !== roleId).map(r=>`<option value="${r.id}">${r.name} (${r.id})</option>`).join('')}
+              </select>
+            </div>
+            <div class="flex items-center space-x-2 mt-2">
+              <button id="confirmDel" class="px-3 py-2 bg-red-600 text-white rounded">确认删除</button>
+              <button id="cancelDel" class="px-3 py-2 bg-gray-200 rounded">取消</button>
+            </div>
+          </div>
+        </div>
+      `);
+      $('#cancelDel').addEventListener('click', closeModal);
+      $('#confirmDel').addEventListener('click', ()=>{
+        const target = $('#migrateTo').value;
+        performDeleteRole(roleId, target);
+        closeModal();
+      });
+    }
+
+    function performDeleteRole(roleId, migrateTo){
+      const role = roles.find(r=>r.id===roleId);
+      // audit entry
+      audit.push({ action: 'delete_role', roleId, by: currentUser.id, at: new Date().toISOString(), migrateTo });
+      // handle migration
+      if(migrateTo){
+        const targetRole = roles.find(r=>r.id === migrateTo);
+        role.users.forEach(uid=>{
+          // remove from deleted role and add to target (avoid duplicates)
+          if(!targetRole.users.includes(uid)) targetRole.users.push(uid);
+          // update user roles in user records
+          const u = users.find(x=>x.id===uid);
+          if(u){
+            u.roles = u.roles.filter(rr=> rr !== roleId);
+            if(!u.roles.includes(migrateTo)) u.roles.push(migrateTo);
+          }
+        });
+      } else {
+        // clear role assignments: remove role from users
+        role.users.forEach(uid=>{
+          const u = users.find(x=>x.id===uid);
+          if(u) u.roles = u.roles.filter(rr=> rr !== roleId);
+        });
+      }
+      // remove role
+      roles = roles.filter(r=> r.id !== roleId);
+      // audit snapshot
+      audit.push({ action: 'post_delete_snapshot', roleId, remainingRoles: roles.map(r=>r.id), at: new Date().toISOString(), by: currentUser.id });
+      renderRoleList();
+      renderUserSelectors();
+      renderAuditList();
+    }
+
+    document.getElementById('btnSaveRole').addEventListener('click', async ()=>{
+      const name = $('#roleName').value.trim();
+      if(!name){ alert('请填写角色名'); return; }
+      if(name.length > 64){ alert('角色名过长（超过64字符）'); return; }
+      // gather permissions and scope
+      const perms = gatherSelectedPermissions();
+      const scope = document.querySelector('input[name="scope"]:checked').value;
+      const resources = $('#resourceFilter').value.trim();
+      const assignedUsers = Array.from($('#userAssign').selectedOptions).map(o=>o.value);
+
+      // if changing critical permissions and current user is not super_admin, block
+      const criticals = permissionCatalog.flatMap(g => g.children.filter(c=>c.critical).map(c=>c.id));
+      const changedCritical = perms.some(p=> criticals.includes(p));
+      const editingRoleId = selectedRoleId;
+
+      // if role exists, editing; else creating
+      if(editingRoleId){
+        const role = roles.find(r=> r.id === editingRoleId);
+        // permission check: only super_admin can modify critical flags
+        const hadCritical = role.permissions.some(p=>criticals.includes(p));
+        if((hadCritical !== changedCritical) && !currentUser.roles.includes('super_admin')){
+          alert('当前用户无权修改关键权限，仅超管可操作。');
+          return;
+        }
+        // if current user is super_admin and changedCritical, require secondary confirmation
+        if((hadCritical !== changedCritical) && currentUser.roles.includes('super_admin')){
+          const confirmed = confirm('检测到关键权限变更。此操作会记录审计并需要二次确认，继续？');
+          if(!confirmed) return;
+        }
+
+        // apply in transaction-like manner (demo)
+        $('#saveProgress').classList.remove('hidden');
+        await simulateProgress();
+        role.name = name;
+        role.desc = $('#roleDesc').value.trim();
+        role.permissions = perms;
+        role.scope = scope;
+        role.resources = resources;
+        role.users = assignedUsers;
+        audit.push({ action: 'edit_role', roleId: role.id, by: currentUser.id, at: new Date().toISOString(), snapshot: {...role} });
+      } else {
+        // create new role id unique
+        let idBase = name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20) || 'role';
+        let newId = idBase;
+        let counter = 1;
+        while(roles.some(r=>r.id===newId)) { newId = idBase + '_' + counter; counter++; }
+        // if creating includes critical permissions and current user not super_admin, block
+        if(changedCritical && !currentUser.roles.includes('super_admin')){
+          alert('仅超管可创建包含关键权限的角色。');
+          return;
+        }
+        if(changedCritical && currentUser.roles.includes('super_admin')){
+          const confirmed = confirm('检测到关键权限配置，确认创建该角色？（将记录审计）');
+          if(!confirmed) return;
+        }
+
+        $('#saveProgress').classList.remove('hidden');
+        await simulateProgress();
+
+        const newRole = {
+          id: newId,
+          name,
+          desc: $('#roleDesc').value.trim(),
+          permissions: perms,
+          scope,
+          resources,
+          users: assignedUsers,
+          createdBy: currentUser.id,
+          createdAt: new Date().toISOString()
+        };
+        roles.push(newRole);
+        audit.push({ action: 'create_role', roleId: newId, by: currentUser.id, at: new Date().toISOString(), snapshot: newRole });
+      }
+      $('#saveProgress').classList.add('hidden');
+      $('#saveBar').style.width = '0%';
+      renderRoleList();
+      renderUserSelectors();
+      renderAuditList();
+      alert('保存成功，变更已生效并记录审计。');
+    });
+
+    document.getElementById('btnResetSelection').addEventListener('click', ()=>{
+      if(selectedRoleId) renderPermissionSelection(selectedRoleId);
+      else $all('.permCheckbox').forEach(cb=>cb.checked = false);
+    });
+
+    async function simulateProgress(){
+      const bar = $('#saveBar');
+      bar.style.width = '0%';
+      for(let i=1;i<=10;i++){
+        await new Promise(r=>setTimeout(r,80));
+        bar.style.width = (i*10) + '%';
+      }
+    }
+
+    document.getElementById('btnApplyToRole').addEventListener('click', ()=>{
+      if(!selectedRoleId){ alert('请选择或新建角色以应用'); return; }
+      const role = roles.find(r=>r.id === selectedRoleId);
+      const assignedUsers = Array.from($('#userAssign').selectedOptions).map(o=>o.value);
+      role.users = assignedUsers;
+      // sync to user records
+      users.forEach(u=>{
+        // remove this role from everyone first
+        u.roles = u.roles.filter(rr => rr !== role.id);
+      });
+      assignedUsers.forEach(uid=>{
+        const u = users.find(x=>x.id===uid);
+        if(u && !u.roles.includes(role.id)) u.roles.push(role.id);
+      });
+      audit.push({ action: 'assign_users', roleId: role.id, users: assignedUsers, by: currentUser.id, at: new Date().toISOString() });
+      renderRoleList();
+      renderUserSelectors();
+      renderAuditList();
+      alert('用户分配已更新。');
+    });
+
+    // Permission test tool
+    document.getElementById('btnSimulate').addEventListener('click', ()=>{
+      const uid = $('#simUser').value;
+      const u = users.find(x=>x.id === uid);
+      if(!u) return;
+      simulateUserView(u);
+    });
+
+    function simulateUserView(user){
+      // aggregate permissions from user's roles
+      const perms = new Set();
+      user.roles.forEach(rid=>{
+        const r = roles.find(rr=> rr.id === rid);
+        if(r) r.permissions.forEach(p=>perms.add(p));
+      });
+      const scopeInfo = [];
+      user.roles.forEach(rid=>{
+        const r = roles.find(rr=> rr.id === rid);
+        if(r) scopeInfo.push(`${r.id} (${r.scope}${r.resources? ' / ' + r.resources : ''})`);
+      });
+      $('#simResult').classList.remove('hidden');
+      $('#simOverview').innerHTML = `用户: <strong>${user.name}</strong> | 角色: ${user.roles.join(', ') || '无'} <div class="mt-2 small muted">聚合权限数量：${perms.size}</div>`;
+      const actionsDiv = $('#simActions');
+      actionsDiv.innerHTML = '';
+      // show UI buttons as enabled/disabled based on perms
+      const sampleActions = [
+        { id:'contracts:view', label:'查看合同' },
+        { id:'contracts:edit', label:'编辑合同' },
+        { id:'contracts:approve', label:'审批合同' },
+        { id:'contracts:delete', label:'删除合同' },
+        { id:'contracts:export', label:'导出合同' },
+        { id:'attachments:upload', label:'上传附件' },
+        { id:'reviews:assign', label:'指派审核' },
+      ];
+      sampleActions.forEach(a=>{
+        const enabled = perms.has(a.id);
+        const btn = document.createElement('div');
+        btn.className = `flex items-center justify-between p-2 border rounded ${enabled ? 'bg-white' : 'bg-gray-100 muted'}`;
+        btn.innerHTML = `<div>${a.label}</div><div class="text-sm">${enabled ? '<span class="text-green-600">可用</span>' : '<span class="text-red-500">受限</span>'}</div>`;
+        actionsDiv.appendChild(btn);
+      });
+      audit.push({ action: 'simulate', user: user.id, by: currentUser.id, at: new Date().toISOString(), resultCount: perms.size });
+      renderAuditList();
+    }
+
+    // Audit list
+    function renderAuditList(){
+      const div = $('#auditList');
+      div.innerHTML = '';
+      const recent = audit.slice(-50).reverse();
+      recent.forEach(a=>{
+        const item = document.createElement('div');
+        item.className = 'border-b py-2 small';
+        item.innerHTML = `<div class="text-xs muted">${formatDate(a.at)} | 操作: ${a.action} | 执行者: ${a.by}</div>
+        <div class="text-sm">${a.roleId ? '角色:' + a.roleId : ''} ${a.users ? ' 用户:' + a.users.join(',') : ''}</div>`;
+        div.appendChild(item);
+      });
+    }
+
+    // open audit modal
+    document.getElementById('openAudit').addEventListener('click', ()=>{
+      showModal(`
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-lg font-medium">变更审计（最近 100 条）</div>
+            <div><button id="closeAudit" class="px-2 py-1 bg-gray-200 rounded">关闭</button></div>
+          </div>
+          <div class="max-h-[60vh] overflow-auto border rounded p-3">
+            ${audit.slice(-100).reverse().map(a=>`
+              <div class="border-b py-2">
+                <div class="text-xs muted">${formatDate(a.at)} | 操作: ${a.action} | 执行者: ${a.by}</div>
+                <div class="text-sm mt-1">详情: ${JSON.stringify(a).replace(/</g,'&lt;').slice(0,400)}${JSON.stringify(a).length>400?'...':''}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `);
+      $('#closeAudit').addEventListener('click', closeModal);
+    });
+
+    // Editing checkboxes: enforce critical permission confirmation for non-super user
+    document.addEventListener('change', (e)=>{
+      if(e.target.classList.contains('permCheckbox')){
+        const perm = e.target.dataset.perm;
+        const pinfo = permissionCatalog.flatMap(g=>g.children).find(c=>c.id===perm);
+        if(pinfo && pinfo.critical && e.target.checked){
+          if(!currentUser.roles.includes('super_admin')){
+            alert('该权限为关键权限，仅超管可分配。');
+            e.target.checked = false;
+          } else {
+            // additional confirmation
+            const ok = confirm('您正在分配关键权限，操作将记录审计并可能影响系统安全，确认继续？');
+            if(!ok) e.target.checked = false;
+          }
+        }
+      }
+    });
+
+    // initialize UI and render
+    function init(){
+      renderPermissionsTree();
+      renderUserSelectors();
+      renderRoleList();
+      renderAuditList();
+      // default select first role
+      if(roles.length) { selectedRoleId = roles[0].id; loadRoleToForm(selectedRoleId); renderPermissionSelection(selectedRoleId);}
+      // set current user label
+      document.getElementById('currentUserLabel').textContent = currentUser.name;
+    }
+
+    // modal backdrop click to close
+    document.getElementById('modalBackdrop').addEventListener('click', (e)=>{
+      if(e.target.id === 'modalBackdrop') closeModal();
+    });
+
+    // initial call
+    init();
+
+    // Example: expose some functions for potential automation (not required)
+    window.__roles = roles;
+    window.__users = users;
+    window.__audit = audit;
+  </script>
+</body>
+</html>
