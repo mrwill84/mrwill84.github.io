@@ -1,0 +1,634 @@
+<think>
+**Designing a login flow**
+
+I’m thinking about buttons like "获取验证码" which should be disabled during a countdown. The "登录" button will show a spinner and be disabled on submission to prevent double clicks. I need a "Forgot password" link and a "Remember me" checkbox.  
+There should be SSO buttons for 企业微信 and 钉钉, simulating OAuth with popups that return success via postMessage. I’ll also include an error message area that displays an attempt count and lockout notices when needed.  
+Then, I’ll include JS for form switching, password validation, SMS code simulation, and login functions that validate credentials accordingly.**Managing login and security**
+
+Once the login is successful, I’ll store the token in localStorage and redirect to the dashboard, displaying the message "登录成功，正在跳转..." first. For failed attempts, I’ll count them per username, locking the account after five attempts, with counts stored in localStorage.  
+
+I might implement an optional CAPTCHA after three failed attempts, showing a simple math question. Regarding CSRF, I can include a token field placeholder like `<input type="hidden" name="csrf_token" value="__CSRF_TOKEN__">`, but I won’t modify existing placeholders. I'll ensure to include the necessary CDN and Google Fonts link.**Crafting the HTML document**
+
+I need to estimate the length of the HTML document, targeting around 380-420 lines. I’ll be careful not to include unnecessary comments, even though comments in code are generally acceptable. The developer mentioned avoiding “描述性的词语,” which suggests keeping extra descriptive text minimal outside the code. However, brief comments might still be fine. I’ll focus on producing the code now while sticking to those guidelines. Let’s create something clean and efficient!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI平台1.0 登录</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-yH6f3m4l8y+4uQq0K5c2n8bO+3xNq3w1x5+0mJp2aYxV8O1G1K9q1a3b5Vk2z1Y6l3m9s7T6cW9a8Y6i4J7Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#0ea5a4;--muted:#94a3b8}
+    html,body{height:100%}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue","Noto Sans","Apple Color Emoji","Segoe UI Emoji";background:linear-gradient(180deg,#071024 0%,#031226 100%);color:#e6eef8}
+    .glass{background:linear-gradient(135deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.04)}
+    .brand{color:var(--accent)}
+    .btn-primary{background:linear-gradient(90deg,#06b6d4,#0891b2);box-shadow:0 6px 18px rgba(6,182,212,0.12)}
+    .btn-muted{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .input-style{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .small-muted{color:var(--muted);font-size:13px}
+    .code-pill{letter-spacing:6px;font-weight:700}
+    .hidden-panel{display:none}
+    .shake{animation:shake 400ms}
+    @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex items-center justify-center px-6 py-12">
+    <div class="w-full max-w-6xl grid grid-cols-12 gap-8">
+      <div class="col-span-5 hidden lg:block">
+        <div class="h-full rounded-2xl glass p-8 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-lg flex items-center justify-center bg-white/5">
+                <i class="fa-solid fa-balance-scale-left brand text-2xl"></i>
+              </div>
+              <div>
+                <div class="text-2xl font-extrabold brand">智律云AI平台 1.0</div>
+                <div class="text-sm small-muted mt-1">合同审核与管理 · 合规智能化</div>
+              </div>
+            </div>
+
+            <div class="mt-8">
+              <h3 class="text-white text-xl font-semibold">智能合同审核 · 高效合规</h3>
+              <p class="small-muted mt-3 leading-relaxed">
+                为企业提供端到端合同生命周期管理，集成自动审核、风险提示、版本管理与审批流程。支持多角色协作、审计追踪与SSO无缝接入。
+              </p>
+
+              <div class="mt-6 grid grid-cols-2 gap-4">
+                <div class="p-4 bg-white/3 rounded-lg">
+                  <div class="text-xs small-muted">合同审核</div>
+                  <div class="mt-1 text-white font-semibold">智能标注与风险评分</div>
+                </div>
+                <div class="p-4 bg-white/3 rounded-lg">
+                  <div class="text-xs small-muted">权限管理</div>
+                  <div class="mt-1 text-white font-semibold">细粒度角色与审批流</div>
+                </div>
+              </div>
+
+              <div class="mt-6 grid grid-cols-2 gap-4">
+                <div class="p-4 bg-white/3 rounded-lg">
+                  <div class="text-xs small-muted">审计追踪</div>
+                  <div class="mt-1 text-white font-semibold">完整操作轨迹</div>
+                </div>
+                <div class="p-4 bg-white/3 rounded-lg">
+                  <div class="text-xs small-muted">集成能力</div>
+                  <div class="mt-1 text-white font-semibold">SSO / SFTP / API</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 small-muted">
+            <div class="text-xs">安全与合规</div>
+            <div class="mt-2 text-sm">传输加密 · 多因素认证 · 审计日志</div>
+            <div class="mt-4 text-xs">版本 1.0 · © 智律云</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-12 lg:col-span-7">
+        <div class="glass rounded-2xl p-6 lg:p-10">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold">欢迎登录 智律云AI平台</h2>
+              <div class="small-muted mt-1">合同审核与管理 — 请使用企业账号登录</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-sm small-muted">系统环境</div>
+              <div class="px-3 py-1 rounded-full bg-white/3 text-sm">生产</div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <div class="flex items-center bg-white/3 rounded-lg p-1 w-fit overflow-hidden">
+              <button id="tab-pwd" class="px-4 py-2 text-sm font-medium rounded-md bg-white/6">账号密码</button>
+              <button id="tab-sms" class="px-4 py-2 text-sm font-medium rounded-md">短信验证码</button>
+              <button id="tab-sso" class="px-4 py-2 text-sm font-medium rounded-md">企业SSO</button>
+            </div>
+
+            <form id="loginForm" class="mt-6 space-y-4" novalidate>
+              <input type="hidden" name="csrf_token" value="__CSRF_TOKEN__">
+              <div id="panel-pwd">
+                <label class="block">
+                  <div class="text-sm small-muted mb-2">账号 / 手机 / 邮箱</div>
+                  <input id="input-username" class="w-full rounded-md p-3 input-style text-white" placeholder="请输入账号/手机号/邮箱" autocomplete="username">
+                </label>
+
+                <label class="block mt-3">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm small-muted mb-2">密码</div>
+                    <a id="forgot-link" href="#" class="text-xs text-sky-300 hover:underline">忘记密码？</a>
+                  </div>
+                  <div class="relative">
+                    <input id="input-password" type="password" class="w-full rounded-md p-3 pr-12 input-style text-white" placeholder="请输入密码" autocomplete="current-password">
+                    <button type="button" id="toggle-pw" class="absolute right-2 top-2.5 text-sm text-white/70">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </label>
+
+                <div class="mt-2 flex items-center gap-4">
+                  <label class="flex items-center gap-2 small-muted">
+                    <input id="remember" type="checkbox" class="accent-brand" />
+                    记住我
+                  </label>
+                  <div id="pwd-hint" class="small-muted text-xs ml-auto">建议使用8位以上，包含大小写、数字与特殊字符</div>
+                </div>
+
+                <div id="pw-rules" class="mt-3 grid grid-cols-2 gap-2 text-xs small-muted">
+                  <div id="rule-len">• 至少8位</div>
+                  <div id="rule-upper">• 包含大写字母</div>
+                  <div id="rule-lower">• 包含小写字母</div>
+                  <div id="rule-num">• 包含数字</div>
+                  <div id="rule-special" class="col-span-2">• 建议包含特殊字符（!@#...）</div>
+                </div>
+              </div>
+
+              <div id="panel-sms" class="hidden-panel">
+                <label class="block">
+                  <div class="text-sm small-muted mb-2">手机号</div>
+                  <input id="input-phone" class="w-full rounded-md p-3 input-style text-white" placeholder="请输入手机号（示例：13800138000）" inputmode="tel">
+                </label>
+
+                <div class="mt-3 grid grid-cols-3 gap-3">
+                  <div class="col-span-2">
+                    <label class="block">
+                      <div class="text-sm small-muted mb-2">验证码</div>
+                      <input id="input-code" class="w-full rounded-md p-3 input-style text-white code-pill" placeholder="6 位数字" inputmode="numeric" maxlength="6">
+                    </label>
+                  </div>
+                  <div>
+                    <div class="text-sm small-muted mb-2">&nbsp;</div>
+                    <button type="button" id="btn-send" class="w-full py-3 rounded-md btn-primary text-white">获取验证码</button>
+                  </div>
+                </div>
+
+                <div class="mt-2 small-muted text-xs">验证码有效期 5 分钟。若未收到，请稍候或联系管理员。</div>
+              </div>
+
+              <div id="panel-sso" class="hidden-panel">
+                <div class="grid grid-cols-1 gap-3">
+                  <button type="button" id="btn-wecom" class="w-full py-3 rounded-md bg-[#0078d4] hover:brightness-95 flex items-center gap-3 justify-center">
+                    <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tencentweibo.svg" alt="" class="w-5 h-5 opacity-80">
+                    企业微信登录
+                  </button>
+                  <button type="button" id="btn-dingtalk" class="w-full py-3 rounded-md bg-[#0f9d58] hover:brightness-95 flex items-center gap-3 justify-center">
+                    <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/dingtalk.svg" alt="" class="w-5 h-5 opacity-80">
+                    钉钉登录
+                  </button>
+                  <div class="text-xs small-muted text-center">使用 SSO 登录将跳转至企业认证提供商进行授权，授权成功后返回平台。</div>
+                </div>
+              </div>
+
+              <div id="captcha-box" class="hidden mt-2">
+                <div class="text-sm small-muted mb-2">图形验证码（防暴力）</div>
+                <div class="flex items-center gap-3">
+                  <canvas id="captcha-canvas" width="140" height="44" class="rounded-md bg-white/6"></canvas>
+                  <input id="captcha-input" class="flex-1 rounded-md p-3 input-style text-white" placeholder="输入上图中的字符">
+                  <button type="button" id="captcha-refresh" class="px-3 py-2 rounded-md btn-muted">刷新</button>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <div id="error-box" class="hidden bg-rose-800/60 border border-rose-700 text-rose-100 p-3 rounded-md small-muted"></div>
+                <div class="flex items-center gap-3 mt-3">
+                  <button id="btn-login" class="btn-primary text-white px-6 py-3 rounded-md">登录</button>
+                  <button type="button" id="btn-demo" class="btn-muted text-white px-4 py-3 rounded-md">演示账户</button>
+                  <div class="ml-auto small-muted text-xs">多次失败将触发限流与验证码</div>
+                </div>
+              </div>
+
+            </form>
+
+            <div id="success-box" class="hidden mt-6 p-4 rounded-md bg-green-900/50 border border-green-700 text-green-200">
+              登录成功：正在创建会话并跳转…
+            </div>
+
+            <div id="footer-note" class="mt-6 small-muted text-xs">
+              遇到问题请联系管理员或通过企业 SSO 入口登录。传输使用 HTTPS，密码由后端以强哈希方式存储，支持两步验证与审计。
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 text-center small-muted">
+          使用说明：支持账号/密码、短信验证码、企业微信/钉钉 SSO 接入。系统会在登录成功后重定向至仪表盘或上次会话页面。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // UI elements
+    const tabPwd = document.getElementById('tab-pwd');
+    const tabSms = document.getElementById('tab-sms');
+    const tabSso = document.getElementById('tab-sso');
+    const panelPwd = document.getElementById('panel-pwd');
+    const panelSms = document.getElementById('panel-sms');
+    const panelSso = document.getElementById('panel-sso');
+    const btnSend = document.getElementById('btn-send');
+    const btnLogin = document.getElementById('btn-login');
+    const btnDemo = document.getElementById('btn-demo');
+    const inputUsername = document.getElementById('input-username');
+    const inputPassword = document.getElementById('input-password');
+    const inputPhone = document.getElementById('input-phone');
+    const inputCode = document.getElementById('input-code');
+    const errorBox = document.getElementById('error-box');
+    const successBox = document.getElementById('success-box');
+    const remember = document.getElementById('remember');
+    const captchaBox = document.getElementById('captcha-box');
+    const captchaCanvas = document.getElementById('captcha-canvas');
+    const captchaInput = document.getElementById('captcha-input');
+    const captchaRefresh = document.getElementById('captcha-refresh');
+    const togglePw = document.getElementById('toggle-pw');
+
+    // Rules indicators
+    const ruleLen = document.getElementById('rule-len');
+    const ruleUpper = document.getElementById('rule-upper');
+    const ruleLower = document.getElementById('rule-lower');
+    const ruleNum = document.getElementById('rule-num');
+    const ruleSpecial = document.getElementById('rule-special');
+
+    // SSO buttons
+    const btnWecom = document.getElementById('btn-wecom');
+    const btnDingtalk = document.getElementById('btn-dingtalk');
+
+    // State
+    let currentTab = 'pwd';
+    let resendTimer = null;
+    let resendSeconds = 0;
+    let sentCode = null; // {code, expiresAt, phone}
+    let failedCounter = {}; // keyed by identity (username/phone)
+    const LOCK_THRESHOLD = 5;
+    const LOCK_DURATION = 15 * 60 * 1000; // 15 minutes lock
+    const CODE_TTL = 5 * 60 * 1000; // 5 minutes
+    const RESEND_INTERVAL = 60; // seconds
+    let lastLoginAttemptAt = 0;
+    let captchaSolution = '';
+
+    // utilities
+    function showError(msg, shake=false) {
+      errorBox.classList.remove('hidden');
+      errorBox.textContent = msg;
+      if (shake) {
+        errorBox.classList.remove('shake');
+        void errorBox.offsetWidth;
+        errorBox.classList.add('shake');
+      }
+    }
+    function hideError() { errorBox.classList.add('hidden'); errorBox.textContent = ''; }
+    function showSuccess(msg) { successBox.classList.remove('hidden'); successBox.textContent = msg; }
+    function hideSuccess() { successBox.classList.add('hidden'); successBox.textContent = ''; }
+
+    function setActiveTab(tab) {
+      currentTab = tab;
+      tabPwd.classList.remove('bg-white/6'); tabSms.classList.remove('bg-white/6'); tabSso.classList.remove('bg-white/6');
+      panelPwd.classList.add('hidden-panel'); panelSms.classList.add('hidden-panel'); panelSso.classList.add('hidden-panel');
+      if (tab === 'pwd') { tabPwd.classList.add('bg-white/6'); panelPwd.classList.remove('hidden-panel'); }
+      if (tab === 'sms') { tabSms.classList.add('bg-white/6'); panelSms.classList.remove('hidden-panel'); }
+      if (tab === 'sso') { tabSso.classList.add('bg-white/6'); panelSso.classList.remove('hidden-panel'); }
+      hideError(); hideSuccess();
+    }
+
+    tabPwd.addEventListener('click', ()=>setActiveTab('pwd'));
+    tabSms.addEventListener('click', ()=>setActiveTab('sms'));
+    tabSso.addEventListener('click', ()=>setActiveTab('sso'));
+    setActiveTab('pwd');
+
+    // Password visibility toggle
+    togglePw.addEventListener('click', () => {
+      if (inputPassword.type === 'password') {
+        inputPassword.type = 'text';
+        togglePw.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+      } else {
+        inputPassword.type = 'password';
+        togglePw.innerHTML = '<i class="fa-solid fa-eye"></i>';
+      }
+    });
+
+    // Password rule checks
+    function validatePasswordRules(pw) {
+      const len = pw.length >= 8;
+      const upper = /[A-Z]/.test(pw);
+      const lower = /[a-z]/.test(pw);
+      const num = /[0-9]/.test(pw);
+      const special = /[^A-Za-z0-9]/.test(pw);
+      ruleLen.style.color = len ? '#34d399' : '';
+      ruleUpper.style.color = upper ? '#34d399' : '';
+      ruleLower.style.color = lower ? '#34d399' : '';
+      ruleNum.style.color = num ? '#34d399' : '';
+      ruleSpecial.style.color = special ? '#34d399' : '';
+      return {len,upper,lower,num,special};
+    }
+    inputPassword.addEventListener('input', e => validatePasswordRules(e.target.value));
+
+    // SMS code logic
+    function generateCode() {
+      return (Math.floor(100000 + Math.random() * 900000)).toString();
+    }
+    function startResendCountdown(seconds=RESEND_INTERVAL) {
+      resendSeconds = seconds;
+      btnSend.disabled = true;
+      btnSend.textContent = `重新发送 (${resendSeconds}s)`;
+      resendTimer = setInterval(() => {
+        resendSeconds--;
+        if (resendSeconds <= 0) {
+          clearInterval(resendTimer);
+          resendTimer = null;
+          btnSend.disabled = false;
+          btnSend.textContent = '获取验证码';
+        } else {
+          btnSend.textContent = `重新发送 (${resendSeconds}s)`;
+        }
+      }, 1000);
+    }
+
+    btnSend.addEventListener('click', () => {
+      hideError();
+      const phone = (inputPhone.value || '').trim();
+      if (!/^\d{11,15}$/.test(phone)) {
+        showError('请输入有效的手机号（仅数字，示例：13800138000）', true);
+        return;
+      }
+      // rate limiting per phone
+      const key = `sms_rate_${phone}`;
+      const last = localStorage.getItem(key);
+      if (last && (Date.now() - Number(last) < 15*1000)) {
+        showError('请稍候再试，发送频率受限。', true);
+        return;
+      }
+      localStorage.setItem(key, Date.now().toString());
+
+      const code = generateCode();
+      const expiresAt = Date.now() + CODE_TTL;
+      sentCode = {code, expiresAt, phone};
+      // Simulate sending SMS (in real system, call backend SMS API)
+      console.log(`[模拟短信] 发送验证码 ${code} 到 ${phone} ，有效期 5 分钟`);
+      showSuccess('验证码已发送（示例环境中在控制台显示）。');
+      startResendCountdown();
+    });
+
+    // captcha: simple canvas draw
+    function drawCaptcha() {
+      const ctx = captchaCanvas.getContext('2d');
+      ctx.clearRect(0,0,captchaCanvas.width,captchaCanvas.height);
+      // random bg
+      ctx.fillStyle = '#071228';
+      ctx.fillRect(0,0,captchaCanvas.width,captchaCanvas.height);
+      // generate code
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let text = '';
+      for (let i=0;i<5;i++) text += chars.charAt(Math.floor(Math.random()*chars.length));
+      captchaSolution = text;
+      // draw interference
+      for (let i=0;i<30;i++) {
+        ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.06})`;
+        ctx.fillRect(Math.random()*captchaCanvas.width, Math.random()*captchaCanvas.height, Math.random()*6, Math.random()*2);
+      }
+      // draw text
+      for (let i=0;i<text.length;i++) {
+        const x = 10 + i*26 + (Math.random()*6-3);
+        const y = 28 + (Math.random()*6-3);
+        ctx.font = `${18 + Math.floor(Math.random()*8)}px sans-serif`;
+        ctx.fillStyle = `rgba(${120+Math.floor(Math.random()*120)},${120+Math.floor(Math.random()*120)},${120+Math.floor(Math.random()*120)},0.9)`;
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.rotate((Math.random()*30-15)*Math.PI/180);
+        ctx.fillText(text[i], 0,0);
+        ctx.restore();
+      }
+      // lines
+      for (let i=0;i<3;i++) {
+        ctx.strokeStyle = `rgba(255,255,255,0.08)`;
+        ctx.beginPath();
+        ctx.moveTo(Math.random()*captchaCanvas.width, Math.random()*captchaCanvas.height);
+        ctx.lineTo(Math.random()*captchaCanvas.width, Math.random()*captchaCanvas.height);
+        ctx.stroke();
+      }
+    }
+    captchaRefresh.addEventListener('click', () => drawCaptcha());
+
+    // lock logic
+    function getIdentityKey() {
+      if (currentTab === 'sms') return `phone:${(inputPhone.value||'').trim()}`;
+      return `user:${(inputUsername.value||'').trim()}`; 
+    }
+    function recordFailed(identity) {
+      const info = JSON.parse(localStorage.getItem('failed_auth') || '{}');
+      const now = Date.now();
+      if (!info[identity]) info[identity] = {count:0,firstAt:now,lockedUntil:0};
+      info[identity].count++;
+      if (info[identity].count >= LOCK_THRESHOLD) {
+        info[identity].lockedUntil = Date.now() + LOCK_DURATION;
+      }
+      localStorage.setItem('failed_auth', JSON.stringify(info));
+    }
+    function resetFailed(identity) {
+      const info = JSON.parse(localStorage.getItem('failed_auth') || '{}');
+      if (info[identity]) delete info[identity];
+      localStorage.setItem('failed_auth', JSON.stringify(info));
+    }
+    function checkLocked(identity) {
+      const info = JSON.parse(localStorage.getItem('failed_auth') || '{}');
+      if (!info[identity]) return {locked:false};
+      const rec = info[identity];
+      if (rec.lockedUntil && Date.now() < rec.lockedUntil) {
+        return {locked:true,until:rec.lockedUntil,count:rec.count};
+      }
+      return {locked:false,count:rec.count || 0};
+    }
+
+    // login handler
+    btnLogin.addEventListener('click', async (e) => {
+      e.preventDefault();
+      hideError(); hideSuccess();
+      const now = Date.now();
+      if (now - lastLoginAttemptAt < 800) {
+        showError('请勿重复点击登录。', true); return;
+      }
+      lastLoginAttemptAt = now;
+
+      const identity = getIdentityKey();
+      const lockStatus = checkLocked(identity);
+      if (lockStatus.locked) {
+        const remain = Math.ceil((lockStatus.until - Date.now())/60000);
+        showError(`该账号已被锁定，剩余 ${remain} 分钟后自动解锁。`, true);
+        return;
+      }
+
+      if (currentTab === 'pwd') {
+        const user = (inputUsername.value || '').trim();
+        const pw = inputPassword.value || '';
+        if (!user) { showError('请输入账号/手机号/邮箱', true); return; }
+        const rules = validatePasswordRules(pw);
+        if (!rules.len || !rules.upper || !rules.lower || !rules.num) {
+          showError('密码不符合安全策略，请检查密码规则', true);
+          recordFailed(identity);
+          maybeShowCaptcha(identity);
+          return;
+        }
+
+        // Simulate backend validation
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '登录中...';
+        await new Promise(r => setTimeout(r, 900));
+        // Demo acceptance: account 'demo' or any account with 'Admin@' prefix succeed, else fail
+        if (user === 'admin' && pw === 'Admin@1234') {
+          onLoginSuccess({method:'password',user});
+          resetFailed(identity);
+        } else if (user === 'demo' && pw === 'Demo@12345') {
+          onLoginSuccess({method:'password',user});
+          resetFailed(identity);
+        } else {
+          showError('账号或密码错误，请重试', true);
+          recordFailed(identity);
+          maybeShowCaptcha(identity);
+        }
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = '登录';
+      } else if (currentTab === 'sms') {
+        const phone = (inputPhone.value || '').trim();
+        const code = (inputCode.value || '').trim();
+        if (!/^\d{11,15}$/.test(phone)) { showError('请输入有效手机号', true); return; }
+        if (!/^\d{6}$/.test(code)) { showError('请输入 6 位验证码', true); return; }
+        if (!sentCode || sentCode.phone !== phone) {
+          showError('尚未发送验证码或手机号不匹配', true); recordFailed(identity); maybeShowCaptcha(identity); return;
+        }
+        if (Date.now() > sentCode.expiresAt) {
+          showError('验证码已过期，请重新获取', true); recordFailed(identity); maybeShowCaptcha(identity); return;
+        }
+        if (code !== sentCode.code) {
+          showError('验证码错误，请重新输入', true); recordFailed(identity); maybeShowCaptcha(identity); return;
+        }
+        // success
+        onLoginSuccess({method:'sms',phone});
+        resetFailed(identity);
+      } else if (currentTab === 'sso') {
+        showError('请使用上方企业 SSO 按钮进行登录', true);
+      }
+    });
+
+    function maybeShowCaptcha(identity) {
+      const lockInfo = checkLocked(identity);
+      const cnt = lockInfo.count || 0;
+      if (cnt >= 3) {
+        captchaBox.classList.remove('hidden');
+        drawCaptcha();
+      }
+    }
+
+    // Demo account quick fill
+    btnDemo.addEventListener('click', () => {
+      inputUsername.value = 'admin';
+      inputPassword.value = 'Admin@1234';
+      setActiveTab('pwd');
+    });
+
+    function onLoginSuccess(info) {
+      hideError();
+      showSuccess('登录成功：正在创建会话并跳转…');
+      // simulate storing JWT (in real system, set HttpOnly Secure cookie via backend)
+      const token = {
+        access_token: 'demo-jwt-token-' + Math.random().toString(36).slice(2),
+        expires_at: Date.now() + 60*60*1000
+      };
+      localStorage.setItem('demo_session', JSON.stringify({token, info, createdAt:Date.now()}));
+      // redirect simulation
+      setTimeout(() => {
+        // attempt to redirect to last visited page if exists
+        const last = localStorage.getItem('last_path') || '/dashboard';
+        window.location.href = last;
+      }, 1000);
+    }
+
+    // SSO simulation using popup + postMessage
+    function openSsoPopup(provider) {
+      const width = 600, height = 700;
+      const left = (screen.width / 2) - (width / 2);
+      const top = (screen.height / 2) - (height / 2);
+      const popup = window.open('', 'sso_popup', `width=${width},height=${height},top=${top},left=${left}`);
+      if (!popup) {
+        showError('弹窗被拦截，请允许弹窗或使用浏览器内嵌方式登录', true);
+        return;
+      }
+      popup.document.write(`
+        <html><head><title>SSO - ${provider}</title>
+        <style>body{font-family:Inter,Arial;background:#082033;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+        </head><body>
+        <div style="text-align:center">
+          <h2>模拟 ${provider} 授权</h2>
+          <p style="color:#9fb7c9">将在授权后返回本系统并创建会话。</p>
+          <button id="ok" style="padding:10px 18px;margin:8px;background:#06b6d4;border:none;color:#042034;border-radius:6px">授权并返回</button>
+          <button id="cancel" style="padding:10px 18px;margin:8px;background:#fff;color:#042034;border:none;border-radius:6px">取消</button>
+        </div>
+        <script>
+          document.getElementById('ok').addEventListener('click', function(){
+            const payload = {provider:'${provider}',status:'success',user:{id:'sso_user_123',name:'SSO用户'}};
+            window.opener.postMessage({type:'sso_result',payload}, '*');
+            window.close();
+          });
+          document.getElementById('cancel').addEventListener('click', function(){
+            const payload = {provider:'${provider}',status:'cancel'};
+            window.opener.postMessage({type:'sso_result',payload}, '*');
+            window.close();
+          });
+        <\/script>
+        </body></html>
+      `);
+    }
+
+    btnWecom.addEventListener('click', () => {
+      openSsoPopup('企业微信');
+    });
+    btnDingtalk.addEventListener('click', () => {
+      openSsoPopup('钉钉');
+    });
+
+    window.addEventListener('message', (ev) => {
+      if (!ev.data || ev.data.type !== 'sso_result') return;
+      const payload = ev.data.payload;
+      if (payload.status === 'success') {
+        onLoginSuccess({method:'sso',provider:payload.provider,user:payload.user});
+      } else {
+        showError('SSO 授权被取消或失败', true);
+      }
+    });
+
+    // Simple handling for forgot password - open modal simulation
+    document.getElementById('forgot-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      const modal = window.open('', 'forgot_pw', 'width=560,height=420');
+      if (!modal) { showError('弹窗被拦截，请允许弹窗'); return; }
+      modal.document.write(`
+        <html><head><title>找回密码</title>
+        <style>body{font-family:Inter,Arial;background:#071226;color:#e6eef8;padding:24px}</style>
+        </head><body>
+        <h3>找回密码</h3>
+        <p class="small">请联系管理员或通过企业认证重新设定密码。</p>
+        <p style="color:#9fb7c9">演示环境不提供真实找回功能。</p>
+        <button onclick="window.close()" style="margin-top:16px;padding:8px 12px;border-radius:6px;background:#06b6d4;border:none;color:#042034">关闭</button>
+        </body></html>
+      `);
+    });
+
+    // Basic persistence: restore last login tab
+    const lastTab = localStorage.getItem('last_login_tab');
+    if (lastTab) setActiveTab(lastTab);
+    [tabPwd, tabSms, tabSso].forEach(btn => btn.addEventListener('click', ()=> localStorage.setItem('last_login_tab', currentTab)));
+
+    // initial setup: hide success
+    hideSuccess();
+    hideError();
+
+    // prefill phone from query string if present
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('phone')) {
+      inputPhone.value = params.get('phone');
+      setActiveTab('sms');
+    }
+  </script>
+</body>
+</html>
