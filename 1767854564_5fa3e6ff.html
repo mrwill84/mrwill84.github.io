@@ -1,0 +1,889 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智律云1.0 - AI合同审核平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .primary-color {
+            color: #2B6CB0;
+        }
+        .primary-bg {
+            background-color: #2B6CB0;
+        }
+        .primary-border {
+            border-color: #2B6CB0;
+        }
+        .input-focus:focus {
+            outline: none;
+            border-color: #2B6CB0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+        }
+        .btn-primary {
+            background-color: #2B6CB0;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #1e4d7b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: #2B6CB0;
+            border: 1px solid #2B6CB0;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #F7FAFC;
+        }
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .success-message {
+            color: #16a34a;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            background-color: #E5EEF7;
+            color: #2B6CB0;
+        }
+        .step.active .step-number {
+            background-color: #2B6CB0;
+            color: white;
+        }
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background-color: #E5EEF7;
+            margin: 0 0.5rem;
+            align-self: flex-start;
+            margin-top: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .navbar {
+            background-color: #2B6CB0;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+        .nav-links a:hover {
+            opacity: 0.8;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .container-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .feature-card {
+            background-color: #F7FAFC;
+            border: 1px solid #E5EEF7;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .feature-card:hover {
+            border-color: #2B6CB0;
+            box-shadow: 0 4px 12px rgba(43, 108, 176, 0.15);
+            transform: translateY(-4px);
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #2B6CB0;
+            margin-bottom: 0.5rem;
+        }
+        .feature-desc {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #2B6CB0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-top: 0.25rem;
+            cursor: pointer;
+            accent-color: #2B6CB0;
+        }
+        .checkbox-label {
+            font-size: 0.875rem;
+            color: #666;
+            cursor: pointer;
+        }
+        .checkbox-label a {
+            color: #2B6CB0;
+            text-decoration: none;
+        }
+        .checkbox-label a:hover {
+            text-decoration: underline;
+        }
+        .password-strength {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+        }
+        .strength-bar {
+            height: 4px;
+            background-color: #ddd;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.25rem;
+        }
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+        }
+        .strength-weak { background-color: #dc2626; }
+        .strength-fair { background-color: #f59e0b; }
+        .strength-good { background-color: #3b82f6; }
+        .strength-strong { background-color: #16a34a; }
+        .code-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .code-input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .code-input:focus {
+            outline: none;
+            border-color: #2B6CB0;
+            box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+        }
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .alert-success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .alert-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .timer {
+            color: #2B6CB0;
+            font-weight: bold;
+        }
+        .btn-send-code {
+            padding: 0.75rem 1rem;
+            background-color: #2B6CB0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .btn-send-code:hover:not(:disabled) {
+            background-color: #1e4d7b;
+        }
+        .btn-send-code:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .nav-links {
+                gap: 1rem;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav class="navbar">
+        <div class="navbar-brand">智律云1.0</div>
+        <ul class="nav-links">
+            <li><a onclick="showPage('home')">首页</a></li>
+            <li><a onclick="showPage('register')">注册</a></li>
+            <li><a onclick="showPage('login')">登录</a></li>
+            <li><a onclick="showPage('dashboard')">仪表板</a></li>
+        </ul>
+    </nav>
+
+    <div id="home" class="page active">
+        <div class="container-main">
+            <div style="text-align: center; padding: 3rem 0;">
+                <h1 style="font-size: 2.5rem; color: #2B6CB0; margin-bottom: 1rem;">智律云1.0 AI合同审核平台</h1>
+                <p style="font-size: 1.125rem; color: #666; margin-bottom: 2rem;">专业的智能合同管理解决方案</p>
+                <button class="btn-primary" style="padding: 0.75rem 2rem; font-size: 1rem; border: none; border-radius: 4px; cursor: pointer;" onclick="showPage('register')">立即注册</button>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-title">合同审核</div>
+                    <div class="feature-desc">AI智能审核合同条款，快速识别风险</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📤</div>
+                    <div class="feature-title">合同外发</div>
+                    <div class="feature-desc">安全便捷的合同分发与跟踪管理</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✍️</div>
+                    <div class="feature-title">合同签约</div>
+                    <div class="feature-desc">电子签名与数字化签约流程</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">合同管理</div>
+                    <div class="feature-desc">全生命周期合同管理与统计分析</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="register" class="page">
+        <div class="container-main" style="max-width: 600px; margin: 2rem auto;">
+            <div class="card">
+                <h2 style="font-size: 1.75rem; color: #2B6CB0; margin-bottom: 0.5rem; text-align: center;">创建账户</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 2rem;">加入智律云，开启智能合同管理之旅</p>
+
+                <div class="step-indicator">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div style="font-size: 0.75rem; color: #666;">填写信息</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step2">
+                        <div class="step-number">2</div>
+                        <div style="font-size: 0.75rem; color: #666;">验证</div>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step3">
+                        <div class="step-number">3</div>
+                        <div style="font-size: 0.75rem; color: #666;">完成</div>
+                    </div>
+                </div>
+
+                <div id="registerForm">
+                    <div class="form-group">
+                        <label class="form-label">姓名 <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="fullName" class="form-input input-focus" placeholder="请输入您的姓名">
+                        <div id="nameError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">公司 <span style="color: #dc2626;">*</span></label>
+                        <input type="text" id="company" class="form-input input-focus" placeholder="请输入公司名称">
+                        <div id="companyError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">邮箱 <span style="color: #dc2626;">*</span></label>
+                        <input type="email" id="email" class="form-input input-focus" placeholder="请输入邮箱地址">
+                        <div id="emailError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">手机号 <span style="color: #dc2626;">*</span></label>
+                        <input type="tel" id="phone" class="form-input input-focus" placeholder="请输入手机号">
+                        <div id="phoneError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">密码 <span style="color: #dc2626;">*</span></label>
+                        <input type="password" id="password" class="form-input input-focus" placeholder="至少8个字符，包含大小写字母和数字" oninput="checkPasswordStrength()">
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div id="strengthFill" class="strength-fill"></div>
+                            </div>
+                            <div id="strengthText" style="color: #666;"></div>
+                        </div>
+                        <div id="passwordError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">确认密码 <span style="color: #dc2626;">*</span></label>
+                        <input type="password" id="confirmPassword" class="form-input input-focus" placeholder="请再次输入密码">
+                        <div id="confirmError" class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="agreeTerms">
+                            <label class="checkbox-label" for="agreeTerms">
+                                我已阅读并同意<a href="#" onclick="showTermsModal(event)">《服务条款》</a>和<a href="#" onclick="showPrivacyModal(event)">《隐私政策》</a>
+                            </label>
+                        </div>
+                        <div id="termsError" class="error-message"></div>
+                    </div>
+
+                    <button class="btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="proceedToVerification()">下一步</button>
+                </div>
+
+                <div id="verificationForm" style="display: none;">
+                    <div class="alert alert-info">
+                        验证码已发送到您的邮箱和手机，请输入验证码以完成注册
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">验证码 <span style="color: #dc2626;">*</span></label>
+                        <div class="code-input-group" id="codeInputGroup">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                            <input type="text" class="code-input" maxlength="1" oninput="handleCodeInput(this)">
+                        </div>
+                        <div id="codeError" class="error-message"></div>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <span style="color: #666;">未收到验证码？</span>
+                        <button id="resendBtn" class="btn-send-code" onclick="resendCode()" style="margin-left: 0.5rem;">重新发送 (<span id="timer">60</span>s)</button>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn-secondary" style="flex: 1; padding: 0.75rem; border: 1px solid #2B6CB0; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="backToForm()">返回</button>
+                        <button class="btn-primary" style="flex: 1; padding: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="completeRegistration()">完成注册</button>
+                    </div>
+                </div>
+
+                <div id="successForm" style="display: none; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✓</div>
+                    <h3 style="font-size: 1.5rem; color: #2B6CB0; margin-bottom: 0.5rem;">注册成功！</h3>
+                    <p style="color: #666; margin-bottom: 2rem;">您的账户已激活，现在可以登录使用平台</p>
+                    <button class="btn-primary" style="padding: 0.75rem 2rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;" onclick="showPage('login')">前往登录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="login" class="page">
+        <div class="container-main" style="max-width: 500px; margin: 3rem auto;">
+            <div class="card">
+                <h2 style="font-size: 1.75rem; color: #2B6CB0; margin-bottom: 2rem; text-align: center;">登录账户</h2>
+
+                <div class="form-group">
+                    <label class="form-label">邮箱或手机号 <span style="color: #dc2626;">*</span></label>
+                    <input type="text" id="loginEmail" class="form-input input-focus" placeholder="请输入邮箱或手机号">
+                    <div id="loginEmailError" class="error-message"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">密码 <span style="color: #dc2626;">*</span></label>
+                    <input type="password" id="loginPassword" class="form-input input-focus" placeholder="请输入密码">
+                    <div id="loginPasswordError" class="error-message"></div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="rememberMe">
+                        <label class="checkbox-label" for="rememberMe">记住我</label>
+                    </div>
+                </div>
+
+                <button class="btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-bottom: 1rem;" onclick="handleLogin()">登录</button>
+
+                <div style="text-align: center;">
+                    <span style="color: #666;">还没有账户？</span>
+                    <a href="#" onclick="showPage('register')" style="color: #2B6CB0; text-decoration: none; font-weight: bold;">立即注册</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboard" class="page">
+        <div class="container-main">
+            <h2 style="font-size: 2rem; color: #2B6CB0; margin-bottom: 2rem;">仪表板</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card" onclick="alert('合同审核功能')">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-title">合同审核</div>
+                    <div class="feature-desc">AI智能审核合同条款，快速识别风险</div>
+                </div>
+                <div class="feature-card" onclick="alert('合同外发功能')">
+                    <div class="feature-icon">📤</div>
+                    <div class="feature-title">合同外发</div>
+                    <div class="feature-desc">安全便捷的合同分发与跟踪管理</div>
+                </div>
+                <div class="feature-card" onclick="alert('合同签约功能')">
+                    <div class="feature-icon">✍️</div>
+                    <div class="feature-title">合同签约</div>
+                    <div class="feature-desc">电子签名与数字化签约流程</div>
+                </div>
+                <div class="feature-card" onclick="alert('合同管理功能')">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">合同管理</div>
+                    <div class="feature-desc">全生命周期合同管理与统计分析</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color: #2B6CB0; margin-bottom: 1rem;">服务条款</h3>
+            <div style="max-height: 400px; overflow-y: auto; color: #666; line-height: 1.6; margin-bottom: 1rem;">
+                <p>1. 服务条款的接受</p>
+                <p>通过使用本平台，您同意受本服务条款的约束。</p>
+                <p>2. 用户责任</p>
+                <p>用户应对其账户的所有活动负责。</p>
+                <p>3. 知识产权</p>
+                <p>平台上的所有内容均受知识产权保护。</p>
+                <p>4. 免责声明</p>
+                <p>平台按"现状"提供，不提供任何明示或暗示的保证。</p>
+                <p>5. 责任限制</p>
+                <p>在任何情况下，平台不对任何间接、附带或后果性损害负责。</p>
+            </div>
+            <button class="btn-primary" style="width: 100%; padding: 0.75rem; border: none; border-radius: 4px; cursor: pointer;" onclick="closeTermsModal()">关闭</button>
+        </div>
+    </div>
+
+    <div id="privacyModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color: #2B6CB0; margin-bottom: 1rem;">隐私政策</h3>
+            <div style="max-height: 400px; overflow-y: auto; color: #666; line-height: 1.6; margin-bottom: 1rem;">
+                <p>1. 信息收集</p>
+                <p>我们收集您提供的个人信息以提供服务。</p>
+                <p>2. 信息使用</p>
+                <p>我们仅将您的信息用于提供和改进服务。</p>
+                <p>3. 信息保护</p>
+                <p>我们采取适当措施保护您的个人信息。</p>
+                <p>4. 第三方共享</p>
+                <p>未经您同意，我们不会与第三方共享您的信息。</p>
+                <p>5. 数据保留</p>
+                <p>我们仅在必要期间内保留您的数据。</p>
+                <p>6. 您的权利</p>
+                <p>您有权访问、更正或删除您的个人信息。</p>
+            </div>
+            <button class="btn-primary" style="width: 100%; padding: 0.75rem; border: none; border-radius: 4px; cursor: pointer;" onclick="closePrivacyModal()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        let registrationData = {};
+        let verificationTimer = null;
+
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageName).classList.add('active');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function validatePhone(phone) {
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            return phoneRegex.test(phone);
+        }
+
+        function validatePassword(password) {
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumbers = /\d/.test(password);
+            const isLongEnough = password.length >= 8;
+            return hasUpperCase && hasLowerCase && hasNumbers && isLongEnough;
+        }
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            
+            let strength = 0;
+            let strengthClass = '';
+            let strengthLabel = '';
+
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[!@#$%^&*]/.test(password)) strength++;
+
+            const percentage = (strength / 5) * 100;
+            strengthFill.style.width = percentage + '%';
+
+            if (strength <= 1) {
+                strengthClass = 'strength-weak';
+                strengthLabel = '弱';
+            } else if (strength <= 2) {
+                strengthClass = 'strength-fair';
+                strengthLabel = '一般';
+            } else if (strength <= 3) {
+                strengthClass = 'strength-good';
+                strengthLabel = '良好';
+            } else {
+                strengthClass = 'strength-strong';
+                strengthLabel = '强';
+            }
+
+            strengthFill.className = 'strength-fill ' + strengthClass;
+            strengthText.textContent = '密码强度：' + strengthLabel;
+        }
+
+        function proceedToVerification() {
+            const fullName = document.getElementById('fullName').value.trim();
+            const company = document.getElementById('company').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const agreeTerms = document.getElementById('agreeTerms').checked;
+
+            let isValid = true;
+
+            document.getElementById('nameError').textContent = '';
+            document.getElementById('companyError').textContent = '';
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('phoneError').textContent = '';
+            document.getElementById('passwordError').textContent = '';
+            document.getElementById('confirmError').textContent = '';
+            document.getElementById('termsError').textContent = '';
+
+            if (!fullName) {
+                document.getElementById('nameError').textContent = '请输入姓名';
+                isValid = false;
+            }
+
+            if (!company) {
+                document.getElementById('companyError').textContent = '请输入公司名称';
+                isValid = false;
+            }
+
+            if (!email) {
+                document.getElementById('emailError').textContent = '请输入邮箱';
+                isValid = false;
+            } else if (!validateEmail(email)) {
+                document.getElementById('emailError').textContent = '邮箱格式不正确';
+                isValid = false;
+            }
+
+            if (!phone) {
+                document.getElementById('phoneError').textContent = '请输入手机号';
+                isValid = false;
+            } else if (!validatePhone(phone)) {
+                document.getElementById('phoneError').textContent = '手机号格式不正确';
+                isValid = false;
+            }
+
+            if (!password) {
+                document.getElementById('passwordError').textContent = '请输入密码';
+                isValid = false;
+            } else if (!validatePassword(password)) {
+                document.getElementById('passwordError').textContent = '密码必须至少8个字符，包含大小写字母和数字';
+                isValid = false;
+            }
+
+            if (password !== confirmPassword) {
+                document.getElementById('confirmError').textContent = '两次输入的密码不一致';
+                isValid = false;
+            }
+
+            if (!agreeTerms) {
+                document.getElementById('termsError').textContent = '请同意服务条款和隐私政策';
+                isValid = false;
+            }
+
+            if (isValid) {
+                registrationData = {
+                    fullName: fullName,
+                    company: company,
+                    email: email,
+                    phone: phone,
+                    password: password
+                };
+
+                document.getElementById('registerForm').style.display = 'none';
+                document.getElementById('verificationForm').style.display = 'block';
+                document.getElementById('step2').classList.add('active');
+                startVerificationTimer();
+            }
+        }
+
+        function startVerificationTimer() {
+            let timeLeft = 60;
+            const resendBtn = document.getElementById('resendBtn');
+            const timerSpan = document.getElementById('timer');
+            
+            resendBtn.disabled = true;
+            
+            verificationTimer = setInterval(() => {
+                timeLeft--;
+                timerSpan.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(verificationTimer);
+                    resendBtn.disabled = false;
+                    timerSpan.textContent = '60';
+                }
+            }, 1000);
+        }
+
+        function resendCode() {
+            startVerificationTimer();
+            alert('验证码已重新发送到您的邮箱和手机');
+        }
+
+        function handleCodeInput(input) {
+            if (input.value.length === 1) {
+                const nextInput = input.nextElementSibling;
+                if (nextInput && nextInput.classList.contains('code-input')) {
+                    nextInput.focus();
+                }
+            }
+        }
+
+        function completeRegistration() {
+            const codeInputs = document.querySelectorAll('.code-input');
+            let code = '';
+            let isValid = true;
+
+            codeInputs.forEach(input => {
+                if (!input.value) {
+                    isValid = false;
+                }
+                code += input.value;
+            });
+
+            document.getElementById('codeError').textContent = '';
+
+            if (!isValid) {
+                document.getElementById('codeError').textContent = '请输入完整的验证码';
+                return;
+            }
+
+            if (code !== '123456') {
+                document.getElementById('codeError').textContent = '验证码不正确';
+                return;
+            }
+
+            clearInterval(verificationTimer);
+            document.getElementById('verificationForm').style.display = 'none';
+            document.getElementById('successForm').style.display = 'block';
+            document.getElementById('step3').classList.add('active');
+        }
+
+        function backToForm() {
+            clearInterval(verificationTimer);
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('verificationForm').style.display = 'none';
+            document.getElementById('step2').classList.remove('active');
+            document.querySelectorAll('.code-input').forEach(input => input.value = '');
+        }
+
+        function showTermsModal(e) {
+            e.preventDefault();
+            document.getElementById('termsModal').classList.add('show');
+        }
+
+        function closeTermsModal() {
+            document.getElementById('termsModal').classList.remove('show');
+        }
+
+        function showPrivacyModal(e) {
+            e.preventDefault();
+            document.getElementById('privacyModal').classList.add('show');
+        }
+
+        function closePrivacyModal() {
+            document.getElementById('privacyModal').classList.remove('show');
+        }
+
+        function handleLogin() {
+            const loginEmail = document.getElementById('loginEmail').value.trim();
+            const loginPassword = document.getElementById('loginPassword').value;
+
+            document.getElementById('loginEmailError').textContent = '';
+            document.getElementById('loginPasswordError').textContent = '';
+
+            let isValid = true;
+
+            if (!loginEmail) {
+                document.getElementById('loginEmailError').textContent = '请输入邮箱或手机号';
+                isValid = false;
+            }
+
+            if (!loginPassword) {
+                document.getElementById('loginPasswordError').textContent = '请输入密码';
+                isValid = false;
+            }
+
+            if (isValid) {
+                alert('登录成功！');
+                showPage('dashboard');
+            }
+        }
+
+        window.onclick = function(event) {
+            const termsModal = document.getElementById('termsModal');
+            const privacyModal = document.getElementById('privacyModal');
+            
+            if (event.target === termsModal) {
+                termsModal.classList.remove('show');
+            }
+            if (event.target === privacyModal) {
+                privacyModal.classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>
+```
