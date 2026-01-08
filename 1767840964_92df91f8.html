@@ -1,0 +1,868 @@
+<think>
+**Clarifying HTML file requirements**
+
+I'm tasked with creating a 400-line HTML file using Tailwind. I see I need to include the provided CDN script to enable Tailwind functionality in the browser. The page content is a Contract Management Dashboard for a specific platform. 
+
+The developer requested that certain placeholders remain unchanged, but I’m unsure which ones to keep since they weren't specified in the instructions. I must ensure I include the exact CDN tag and consider adding icons while aiming for simplicity with inline SVGs or a lightweight option.**Preparing interactive dashboard features**
+
+I need to add various interactive behaviors to the dashboard, such as filtering, searching, and date ranges, along with pagination and sorting for the table. Batch operations like exporting, bulk submissions, and archiving with checkboxes and modal confirmations are essential.
+
+To simulate data, I’ll create a sample array with different roles like Business, Legal, and Admin to show varying permissions. I must implement functions for each operation and ensure there’s data validation and performance considerations like a loading spinner. The code should be around 350-450 lines, starting with the HTML head and Tailwind CDN.**Building the dashboard layout**
+
+I’m going to use an inline script to create the dashboard's functionality while relying on Tailwind for styling. I'll make sure to include the CDN script exactly as specified in the head of the HTML. 
+
+I might also incorporate Alpine.js or stick to modern JavaScript for interactivity. The page layout will feature a header with the title "智律云AI平台1.0 - 合同管理" and a toolbar for various operations like New Contract and Bulk Export. 
+
+I’ll create a table with checkboxes and simulate 50 entries while paginating them at 10 per page. I need to include modals for viewing details and logging actions, ensuring to keep any required placeholders intact, even though none are indicated. I’ll aim for around 400 lines of code overall.**Creating the HTML file**
+
+I’m ready to write the HTML file, starting with the head section that includes the Tailwind CDN script. I’m also considering adding Day.js via CDN for date parsing and including FileSaver for handling file downloads.
+
+The page will implement various filtering options for statuses, types, and departments, along with date range inputs. Multi-field search capabilities will cover contract numbers, titles, and others. I’ll ensure sorting works by toggling sort arrows on column headers, and I need to manage selected IDs for bulk operations. 
+
+When exporting to CSV, I have to mask sensitive information for roles other than Admin. I’ll include operation logs and an empty state for no matching results while ensuring the layout is responsive. My goal is about 420 neat lines of code for this final output.
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI平台1.0 - 合同管理</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <style>
+    /* small enhancements beyond Tailwind for consistent table header sticky behavior */
+    .sticky-top { position: sticky; top: 0; z-index: 10; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">智</div>
+          <div>
+            <h1 class="text-lg font-semibold">智律云AI平台1.0</h1>
+            <p class="text-sm text-gray-500">合同管理 Contract Management</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <div class="text-sm text-gray-500">当前角色</div>
+          <select id="roleSelect" class="border rounded px-3 py-1 text-sm">
+            <option value="business">业务用户</option>
+            <option value="legal">法务</option>
+            <option value="admin" selected>管理员</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <!-- Toolbar -->
+      <section class="bg-white rounded shadow-sm p-4 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <button id="newContractBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow-sm text-sm">新建合同</button>
+            <button id="bulkExportBtn" class="bg-white border border-gray-200 hover:bg-gray-50 px-3 py-2 rounded text-sm">批量导出</button>
+            <button id="bulkSubmitBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded text-sm">批量提交</button>
+            <button id="bulkArchiveBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded text-sm">批量归档</button>
+            <button id="expiringBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded text-sm">即将到期提醒</button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="text-sm text-gray-500">快速筛选</div>
+            <button class="px-3 py-1 bg-white border rounded text-sm" data-quick="mine">我的相关</button>
+            <button class="px-3 py-1 bg-white border rounded text-sm" data-quick="all">全部</button>
+            <button class="px-3 py-1 bg-white border rounded text-sm" data-quick="expiring">30天内到期</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Filter Panel -->
+        <aside class="lg:col-span-1 bg-white rounded shadow-sm p-4">
+          <h3 class="text-sm font-semibold mb-3">筛选面板</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-gray-600">状态</label>
+              <select id="statusFilter" class="w-full border rounded px-3 py-2 mt-1 text-sm">
+                <option value="">全部</option>
+                <option value="Draft">草稿</option>
+                <option value="Review">审核中</option>
+                <option value="Approved">已通过</option>
+                <option value="Rejected">已拒绝</option>
+                <option value="Archived">已归档</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-gray-600">合同类型</label>
+              <select id="typeFilter" class="w-full border rounded px-3 py-2 mt-1 text-sm">
+                <option value="">全部</option>
+                <option>销售合同</option>
+                <option>NDA</option>
+                <option>服务合同</option>
+                <option>租赁合同</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-gray-600">所属部门</label>
+              <select id="deptFilter" class="w-full border rounded px-3 py-2 mt-1 text-sm">
+                <option value="">全部</option>
+                <option>商务部</option>
+                <option>法务部</option>
+                <option>财务部</option>
+                <option>采购部</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-gray-600">日期范围（创建）</label>
+              <div class="flex gap-2 mt-1">
+                <input id="dateFrom" type="date" class="border rounded px-2 py-1 text-sm w-1/2" />
+                <input id="dateTo" type="date" class="border rounded px-2 py-1 text-sm w-1/2" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-gray-600">多字段搜索</label>
+              <input id="searchInput" type="search" placeholder="合同编号/标题/对方主体/创建人" class="w-full border rounded px-3 py-2 mt-1 text-sm" />
+            </div>
+
+            <div class="flex justify-between">
+              <button id="resetFilters" class="px-3 py-2 bg-white border rounded text-sm">重置</button>
+              <button id="applyFilters" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">查询</button>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Table and Controls -->
+        <section class="lg:col-span-3">
+          <div class="bg-white rounded shadow-sm p-4 mb-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <input id="selectAllPage" type="checkbox" class="h-4 w-4" />
+                <label class="text-sm">页面全选</label>
+                <div id="selectedCount" class="text-sm text-gray-600">已选 0 项</div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div class="text-sm text-gray-500">每页</div>
+                <select id="pageSize" class="border rounded px-2 py-1 text-sm">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-white rounded shadow-sm overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50 sticky-top">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs">
+                    <span class="sr-only">选中</span>
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs cursor-pointer" data-sort="number">合同编号 <span class="sort-indicator"></span></th>
+                  <th class="px-4 py-3 text-left text-xs cursor-pointer" data-sort="title">标题 <span class="sort-indicator"></span></th>
+                  <th class="px-4 py-3 text-left text-xs">对方主体</th>
+                  <th class="px-4 py-3 text-left text-xs">创建人</th>
+                  <th class="px-4 py-3 text-left text-xs cursor-pointer" data-sort="status">状态 <span class="sort-indicator"></span></th>
+                  <th class="px-4 py-3 text-left text-xs cursor-pointer" data-sort="expire">到期日 <span class="sort-indicator"></span></th>
+                  <th class="px-4 py-3 text-left text-xs">操作</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody" class="bg-white divide-y divide-gray-100">
+                <!-- rows injected by JS -->
+              </tbody>
+            </table>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="p-8 text-center text-gray-500 hidden">
+              <div class="text-lg font-medium mb-2">无匹配结果</div>
+              <div class="mb-4">请调整筛选条件或重置筛选以查看合同列表。</div>
+              <button id="createFromEmpty" class="px-4 py-2 bg-indigo-600 text-white rounded">新建合同</button>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="mt-4 bg-white rounded shadow-sm p-4 flex items-center justify-between">
+            <div class="text-sm text-gray-600">共 <span id="totalCount">0</span> 条合同</div>
+            <div class="flex items-center gap-3">
+              <button id="prevPage" class="px-3 py-1 bg-white border rounded text-sm">上一页</button>
+              <div class="text-sm">第 <span id="currentPage">1</span> / <span id="totalPages">1</span> 页</div>
+              <button id="nextPage" class="px-3 py-1 bg-white border rounded text-sm">下一页</button>
+            </div>
+          </div>
+
+          <!-- Action Log -->
+          <div class="mt-4 bg-white rounded shadow-sm p-4">
+            <h4 class="text-sm font-semibold mb-2">操作日志</h4>
+            <div id="actionLog" class="text-sm text-gray-600 max-h-40 overflow-y-auto space-y-2">
+              <!-- logs -->
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded shadow-lg w-11/12 md:w-3/4 lg:w-1/2 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h3 class="text-lg font-semibold">合同详情</h3>
+        <button id="closeDetail" class="text-gray-500 hover:text-gray-700 px-3 py-1">关闭</button>
+      </div>
+      <div class="p-4 space-y-3">
+        <div id="detailContent" class="text-sm text-gray-700">
+          <!-- injected -->
+        </div>
+        <div class="flex gap-2">
+          <button id="downloadContract" class="px-3 py-2 bg-white border rounded text-sm">下载</button>
+          <button id="auditContract" class="px-3 py-2 bg-amber-500 text-white rounded text-sm">审核</button>
+          <button id="archiveContract" class="px-3 py-2 bg-gray-700 text-white rounded text-sm">归档</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded shadow-lg w-11/12 md:w-1/3">
+      <div class="p-4">
+        <h4 id="confirmTitle" class="text-lg font-semibold">请确认</h4>
+        <p id="confirmMessage" class="text-sm text-gray-600 mt-2">确认执行此操作？</p>
+        <div class="mt-4 flex justify-end gap-2">
+          <button id="cancelConfirm" class="px-3 py-2 bg-white border rounded text-sm">取消</button>
+          <button id="okConfirm" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">确定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Contract Mock Page (simple) -->
+  <div id="newContractModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded shadow-lg w-11/12 md:w-2/3 lg:w-1/2 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center p-4 border-b">
+        <h3 class="text-lg font-semibold">新建合同（模拟）</h3>
+        <button id="closeNew" class="text-gray-500 hover:text-gray-700 px-3 py-1">关闭</button>
+      </div>
+      <form id="newContractForm" class="p-4 space-y-3">
+        <div>
+          <label class="text-sm text-gray-600">合同编号</label>
+          <input id="newNumber" class="w-full border rounded px-3 py-2 text-sm" required />
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">标题</label>
+          <input id="newTitle" class="w-full border rounded px-3 py-2 text-sm" required />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm text-gray-600">对方主体</label>
+            <input id="newParty" class="w-full border rounded px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">到期日</label>
+            <input id="newExpire" type="date" class="w-full border rounded px-3 py-2 text-sm" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" id="discardNew" class="px-3 py-2 bg-white border rounded text-sm">放弃</button>
+          <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">创建</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Mock data generation
+    const statuses = ["Draft","Review","Approved","Rejected","Archived"];
+    const types = ["销售合同","NDA","服务合同","租赁合同"];
+    const depts = ["商务部","法务部","财务部","采购部"];
+    const sampleNames = ["张三","李四","王五","赵六","陈七","刘八"];
+    const parties = ["上海科技有限公司","北京创享商务有限公司","深圳云端科技","杭州未来链"];
+    function randItem(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+    const CONTRACTS = [];
+    for(let i=1;i<=42;i++){
+      const num = "CT-" + (1000 + i);
+      const t = randItem(types);
+      const status = (i%11===0) ? "Archived" : (i%7===0) ? "Rejected" : (i%5===0) ? "Approved" : (i%3===0) ? "Review" : "Draft";
+      const created = dayjs().subtract(i, 'day').format('YYYY-MM-DD');
+      const expire = dayjs().add((i%40), 'day').format('YYYY-MM-DD');
+      CONTRACTS.push({
+        id: i,
+        number: num,
+        title: `${t} - 合同 ${i}`,
+        party: randItem(parties),
+        creator: randItem(sampleNames),
+        status,
+        type: t,
+        dept: randItem(depts),
+        created,
+        expire,
+        sensitive: {
+          bankAccount: "6222 0000 1234 5" + (i%10),
+          amount: (10000 + i*500)
+        }
+      });
+    }
+
+    // State
+    let state = {
+      role: 'admin',
+      filters: {
+        status: '',
+        type: '',
+        dept: '',
+        dateFrom: '',
+        dateTo: '',
+        search: ''
+      },
+      sort: { field: null, dir: 1 },
+      pageSize: 10,
+      page: 1,
+      selected: new Set(),
+      currentViewId: null
+    };
+
+    // Elements
+    const tableBody = document.getElementById('tableBody');
+    const totalCountEl = document.getElementById('totalCount');
+    const currentPageEl = document.getElementById('currentPage');
+    const totalPagesEl = document.getElementById('totalPages');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const pageSizeSel = document.getElementById('pageSize');
+    const selectAllPage = document.getElementById('selectAllPage');
+    const selectedCount = document.getElementById('selectedCount');
+    const emptyState = document.getElementById('emptyState');
+    const actionLog = document.getElementById('actionLog');
+
+    const statusFilter = document.getElementById('statusFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const deptFilter = document.getElementById('deptFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const searchInput = document.getElementById('searchInput');
+    const applyFilters = document.getElementById('applyFilters');
+    const resetFilters = document.getElementById('resetFilters');
+
+    const roleSelect = document.getElementById('roleSelect');
+
+    const detailModal = document.getElementById('detailModal');
+    const detailContent = document.getElementById('detailContent');
+    const closeDetail = document.getElementById('closeDetail');
+    const downloadContract = document.getElementById('downloadContract');
+    const auditContract = document.getElementById('auditContract');
+    const archiveContract = document.getElementById('archiveContract');
+
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmMessage = document.getElementById('confirmMessage');
+    const cancelConfirm = document.getElementById('cancelConfirm');
+    const okConfirm = document.getElementById('okConfirm');
+
+    const newContractBtn = document.getElementById('newContractBtn');
+    const newContractModal = document.getElementById('newContractModal');
+    const closeNew = document.getElementById('closeNew');
+    const newContractForm = document.getElementById('newContractForm');
+    const discardNew = document.getElementById('discardNew');
+
+    const bulkExportBtn = document.getElementById('bulkExportBtn');
+    const bulkSubmitBtn = document.getElementById('bulkSubmitBtn');
+    const bulkArchiveBtn = document.getElementById('bulkArchiveBtn');
+    const expiringBtn = document.getElementById('expiringBtn');
+
+    const quickButtons = document.querySelectorAll('[data-quick]');
+
+    // Utility
+    function logAction(text){
+      const el = document.createElement('div');
+      const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+      el.textContent = `[${time}] ${text}`;
+      actionLog.prepend(el);
+    }
+
+    function applyFiltersAndRender(simulateDelay = true){
+      // Show loading spinner (simple)
+      const loader = document.createElement('div');
+      loader.className = 'p-4 text-center text-gray-500';
+      loader.id = 'tblLoader';
+      loader.textContent = '查询中，请稍候...';
+      tableBody.innerHTML = '';
+      tableBody.appendChild(loader);
+
+      const run = () => {
+        let list = CONTRACTS.slice();
+
+        const f = state.filters;
+        if (f.status) list = list.filter(c => c.status === f.status);
+        if (f.type) list = list.filter(c => c.type === f.type);
+        if (f.dept) list = list.filter(c => c.dept === f.dept);
+        if (f.dateFrom) list = list.filter(c => dayjs(c.created).isAfter(dayjs(f.dateFrom).subtract(1,'day')));
+        if (f.dateTo) list = list.filter(c => dayjs(c.created).isBefore(dayjs(f.dateTo).add(1,'day')));
+        if (f.search) {
+          const q = f.search.toLowerCase();
+          list = list.filter(c => 
+            c.number.toLowerCase().includes(q) ||
+            c.title.toLowerCase().includes(q) ||
+            c.party.toLowerCase().includes(q) ||
+            c.creator.toLowerCase().includes(q)
+          );
+        }
+
+        // sort
+        if (state.sort.field) {
+          const fld = state.sort.field;
+          list.sort((a,b)=>{
+            let va = a[fld] || '';
+            let vb = b[fld] || '';
+            if (fld === 'expire' || fld === 'created') {
+              va = dayjs(va).valueOf();
+              vb = dayjs(vb).valueOf();
+            }
+            if (va < vb) return -1 * state.sort.dir;
+            if (va > vb) return 1 * state.sort.dir;
+            return 0;
+          });
+        }
+
+        const total = list.length;
+        const pageSize = +state.pageSize;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        if (state.page > totalPages) state.page = totalPages;
+
+        const start = (state.page - 1) * pageSize;
+        const pageList = list.slice(start, start + pageSize);
+
+        // render table rows
+        tableBody.innerHTML = '';
+        if (pageList.length === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+          pageList.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50';
+            tr.innerHTML = `
+              <td class="px-4 py-3">
+                <input data-id="${c.id}" class="rowCheck h-4 w-4" type="checkbox" ${state.selected.has(c.id) ? 'checked' : ''} />
+              </td>
+              <td class="px-4 py-3 text-sm">${c.number}</td>
+              <td class="px-4 py-3 text-sm">${desensitize(c.title, 'title')}</td>
+              <td class="px-4 py-3 text-sm">${desensitize(c.party, 'party')}</td>
+              <td class="px-4 py-3 text-sm">${c.creator}</td>
+              <td class="px-4 py-3 text-sm">${c.status}</td>
+              <td class="px-4 py-3 text-sm">${c.expire}</td>
+              <td class="px-4 py-3 text-sm">
+                <button data-id="${c.id}" class="viewBtn px-2 py-1 bg-white border rounded text-xs">查看</button>
+                ${canAudit() ? `<button data-id="${c.id}" class="auditBtn px-2 py-1 bg-amber-500 text-white rounded text-xs">审核</button>` : ''}
+                <button data-id="${c.id}" class="downloadBtn px-2 py-1 bg-white border rounded text-xs">下载</button>
+              </td>
+            `;
+            tableBody.appendChild(tr);
+          });
+        }
+
+        // pagination
+        totalCountEl.textContent = total;
+        currentPageEl.textContent = state.page;
+        totalPagesEl.textContent = totalPages;
+
+        // page select all unchecked
+        selectAllPage.checked = pageList.length > 0 && pageList.every(c => state.selected.has(c.id));
+
+        // wire up row checkboxes and buttons
+        document.querySelectorAll('.rowCheck').forEach(cb=>{
+          cb.addEventListener('change', (e)=>{
+            const id = +e.target.dataset.id;
+            if (e.target.checked) state.selected.add(id);
+            else state.selected.delete(id);
+            updateSelectedCount();
+          });
+        });
+
+        document.querySelectorAll('.viewBtn').forEach(b=>{
+          b.addEventListener('click', (e)=>{
+            const id = +e.target.dataset.id;
+            openDetail(id);
+          });
+        });
+
+        document.querySelectorAll('.auditBtn').forEach(b=>{
+          b.addEventListener('click', (e)=>{
+            const id = +e.target.dataset.id;
+            promptAudit([id]);
+          });
+        });
+
+        document.querySelectorAll('.downloadBtn').forEach(b=>{
+          b.addEventListener('click', (e)=>{
+            const id = +e.target.dataset.id;
+            triggerDownload(id);
+          });
+        });
+
+        updateSelectedCount();
+      };
+
+      if (simulateDelay) {
+        setTimeout(run, 400 + Math.random()*400); // simulate query <3s
+      } else run();
+    }
+
+    function desensitize(value, field){
+      // admin sees full, others mask sensitive parts
+      if (state.role === 'admin') return value;
+      // for title/party mask middle
+      if (!value) return '';
+      if (value.length <= 4) return value[0] + '**';
+      return value.slice(0,2) + '***' + value.slice(-2);
+    }
+
+    function canAudit(){
+      return state.role === 'legal' || state.role === 'admin';
+    }
+
+    function openDetail(id){
+      const c = CONTRACTS.find(x=>x.id===id);
+      if (!c) return;
+      state.currentViewId = id;
+      detailContent.innerHTML = `
+        <div class="space-y-2">
+          <div><span class="text-gray-600">合同编号：</span><strong>${c.number}</strong></div>
+          <div><span class="text-gray-600">标题：</span><strong>${desensitize(c.title,'title')}</strong></div>
+          <div><span class="text-gray-600">对方主体：</span>${desensitize(c.party,'party')}</div>
+          <div><span class="text-gray-600">合同类型：</span>${c.type}</div>
+          <div><span class="text-gray-600">所属部门：</span>${c.dept}</div>
+          <div><span class="text-gray-600">创建人：</span>${c.creator} &nbsp; <span class="text-gray-400">(${c.created})</span></div>
+          <div><span class="text-gray-600">状态：</span><span class="px-2 py-1 bg-gray-100 rounded text-xs">${c.status}</span></div>
+          <div><span class="text-gray-600">到期日：</span>${c.expire}</div>
+          <div><span class="text-gray-600">金额：</span>${state.role==='admin' ? c.sensitive.amount + ' 元' : '受限'}</div>
+          <div><span class="text-gray-600">银行账号：</span>${state.role==='admin' ? c.sensitive.bankAccount : '脱敏信息'}</div>
+        </div>
+      `;
+      // enable/disable audit button if not permitted
+      auditContract.style.display = canAudit() ? 'inline-block' : 'none';
+      downloadContract.style.display = 'inline-block';
+      archiveContract.style.display = state.role==='admin' ? 'inline-block' : 'none';
+      detailModal.classList.remove('hidden');
+      detailModal.style.display = 'flex';
+    }
+
+    function closeDetailModal(){
+      detailModal.classList.add('hidden');
+      state.currentViewId = null;
+    }
+
+    function triggerDownload(id){
+      const c = CONTRACTS.find(x=>x.id===id);
+      if (!c) return;
+      // Build a simple text "file"
+      const content = [
+        `合同编号: ${c.number}`,
+        `标题: ${state.role==='admin' ? c.title : desensitize(c.title,'title')}`,
+        `对方主体: ${state.role==='admin' ? c.party : desensitize(c.party,'party')}`,
+        `创建人: ${c.creator}`,
+        `状态: ${c.status}`,
+        `到期日: ${c.expire}`,
+        `金额: ${state.role==='admin' ? c.sensitive.amount + ' 元' : '受限'}`
+      ].join('\n');
+      const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${c.number}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      logAction(`下载合同 ${c.number}`);
+    }
+
+    function promptAudit(ids){
+      confirmTitle.textContent = '审核确认';
+      confirmMessage.textContent = `确认对 ${ids.length} 个合同进行审核操作？（仅法务/管理员）`;
+      confirmModal.classList.remove('hidden');
+      confirmModal.style.display = 'flex';
+      okConfirm.onclick = () => {
+        // simulate audit -> set status Approved
+        ids.forEach(id=>{
+          const c = CONTRACTS.find(x=>x.id===id);
+          if (c) c.status = 'Approved';
+        });
+        logAction(`审核并通过合同：${ids.join(',')}`);
+        confirmModal.classList.add('hidden');
+        applyFiltersAndRender();
+      };
+      cancelConfirm.onclick = () => { confirmModal.classList.add('hidden'); };
+    }
+
+    function confirmBulkAction(action, ids){
+      confirmTitle.textContent = '请确认批量操作';
+      confirmMessage.textContent = `确认对 ${ids.length} 个合同执行 [${action}] 操作？`;
+      confirmModal.classList.remove('hidden');
+      confirmModal.style.display = 'flex';
+      okConfirm.onclick = () => {
+        if (action === '导出') bulkExport(ids);
+        if (action === '提交') {
+          ids.forEach(id=>{
+            const c = CONTRACTS.find(x=>x.id===id);
+            if (c && c.status === 'Draft') c.status = 'Review';
+          });
+          logAction(`批量提交：${ids.join(',')}`);
+        }
+        if (action === '归档') {
+          ids.forEach(id=>{
+            const c = CONTRACTS.find(x=>x.id===id);
+            if (c) c.status = 'Archived';
+          });
+          logAction(`批量归档：${ids.join(',')}`);
+        }
+        state.selected.clear();
+        confirmModal.classList.add('hidden');
+        applyFiltersAndRender();
+      };
+      cancelConfirm.onclick = () => { confirmModal.classList.add('hidden'); };
+    }
+
+    function bulkExport(ids){
+      // Create CSV with desensitization according to role
+      const header = ['合同编号','标题','对方主体','创建人','状态','到期日','金额'];
+      const rows = ids.map(id=>{
+        const c = CONTRACTS.find(x=>x.id===id);
+        return [
+          c.number,
+          state.role==='admin' ? c.title : desensitize(c.title,'title'),
+          state.role==='admin' ? c.party : desensitize(c.party,'party'),
+          c.creator,
+          c.status,
+          c.expire,
+          state.role==='admin' ? c.sensitive.amount : '受限'
+        ];
+      });
+      const csv = [header.join(','), ...rows.map(r=>r.map(cell => `"${cell}"`).join(','))].join('\n');
+      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contracts_export_${dayjs().format('YYYYMMDD_HHmmss')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      logAction(`导出 ${ids.length} 条合同（${state.role}）`);
+      state.selected.clear();
+      applyFiltersAndRender();
+    }
+
+    function updateSelectedCount(){
+      selectedCount.textContent = `已选 ${state.selected.size} 项`;
+    }
+
+    // Event wiring
+    applyFilters.addEventListener('click', ()=>{
+      state.filters.status = statusFilter.value;
+      state.filters.type = typeFilter.value;
+      state.filters.dept = deptFilter.value;
+      state.filters.dateFrom = dateFrom.value;
+      state.filters.dateTo = dateTo.value;
+      state.filters.search = searchInput.value.trim();
+      state.page = 1;
+      applyFiltersAndRender();
+    });
+
+    resetFilters.addEventListener('click', ()=>{
+      statusFilter.value = '';
+      typeFilter.value = '';
+      deptFilter.value = '';
+      dateFrom.value = '';
+      dateTo.value = '';
+      searchInput.value = '';
+      state.filters = {status:'',type:'',dept:'',dateFrom:'',dateTo:'',search:''};
+      state.page = 1;
+      applyFiltersAndRender();
+    });
+
+    pageSizeSel.addEventListener('change', (e)=>{
+      state.pageSize = +e.target.value;
+      state.page = 1;
+      applyFiltersAndRender(false);
+    });
+
+    nextPageBtn.addEventListener('click', ()=>{
+      state.page++;
+      applyFiltersAndRender(false);
+    });
+    prevPageBtn.addEventListener('click', ()=>{
+      if (state.page > 1) state.page--;
+      applyFiltersAndRender(false);
+    });
+
+    selectAllPage.addEventListener('change', (e)=>{
+      const checked = e.target.checked;
+      // select page items
+      // find current visible IDs
+      const pageRows = Array.from(document.querySelectorAll('tbody tr')).map(tr=>{
+        const cb = tr.querySelector('.rowCheck');
+        return cb ? +cb.dataset.id : null;
+      }).filter(Boolean);
+      pageRows.forEach(id => {
+        if (checked) state.selected.add(id);
+        else state.selected.delete(id);
+      });
+      updateSelectedCount();
+      // update checkboxes
+      document.querySelectorAll('.rowCheck').forEach(cb=> cb.checked = checked);
+    });
+
+    document.addEventListener('click', (e)=>{
+      // Close modals when clicking outside content
+      if (e.target === detailModal) closeDetailModal();
+      if (e.target === confirmModal) confirmModal.classList.add('hidden');
+      if (e.target === newContractModal) newContractModal.classList.add('hidden');
+    });
+
+    closeDetail.addEventListener('click', closeDetailModal);
+
+    downloadContract.addEventListener('click', ()=>{
+      if (!state.currentViewId) return;
+      triggerDownload(state.currentViewId);
+    });
+
+    auditContract.addEventListener('click', ()=>{
+      if (!state.currentViewId) return;
+      promptAudit([state.currentViewId]);
+    });
+
+    archiveContract.addEventListener('click', ()=>{
+      if (!state.currentViewId) return;
+      confirmTitle.textContent = '归档确认';
+      confirmMessage.textContent = `确认将合同 ${state.currentViewId} 归档？`;
+      confirmModal.classList.remove('hidden');
+      confirmModal.style.display = 'flex';
+      okConfirm.onclick = () => {
+        const c = CONTRACTS.find(x=>x.id===state.currentViewId);
+        if (c) c.status = 'Archived';
+        logAction(`归档合同 ${c.number}`);
+        confirmModal.classList.add('hidden');
+        closeDetailModal();
+        applyFiltersAndRender();
+      };
+      cancelConfirm.onclick = () => confirmModal.classList.add('hidden');
+    });
+
+    roleSelect.addEventListener('change', (e)=>{
+      state.role = e.target.value;
+      logAction(`切换角色为 ${e.target.options[e.target.selectedIndex].text}`);
+      applyFiltersAndRender(false);
+    });
+
+    newContractBtn.addEventListener('click', ()=>{
+      newContractModal.classList.remove('hidden');
+      newContractModal.style.display = 'flex';
+    });
+    closeNew.addEventListener('click', ()=> newContractModal.classList.add('hidden'));
+    discardNew.addEventListener('click', ()=> newContractModal.classList.add('hidden'));
+    newContractForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const num = document.getElementById('newNumber').value.trim();
+      const title = document.getElementById('newTitle').value.trim();
+      const party = document.getElementById('newParty').value.trim();
+      const exp = document.getElementById('newExpire').value;
+      const id = CONTRACTS.length + 1;
+      CONTRACTS.unshift({
+        id,
+        number: num || ('CT-' + (1000+id)),
+        title: title || ('新合同 ' + id),
+        party: party || '未知主体',
+        creator: '当前用户',
+        status: 'Draft',
+        type: '销售合同',
+        dept: '商务部',
+        created: dayjs().format('YYYY-MM-DD'),
+        expire: exp || dayjs().add(90,'day').format('YYYY-MM-DD'),
+        sensitive: {bankAccount: '6222 xxxx', amount: 0}
+      });
+      logAction(`创建新合同 ${num || ('CT-' + (1000+id))}`);
+      newContractModal.classList.add('hidden');
+      applyFiltersAndRender();
+    });
+
+    bulkExportBtn.addEventListener('click', ()=>{
+      const ids = Array.from(state.selected);
+      if (ids.length === 0) { alert('请先选择合同'); return; }
+      confirmBulkAction('导出', ids);
+    });
+
+    bulkSubmitBtn.addEventListener('click', ()=>{
+      const ids = Array.from(state.selected);
+      if (ids.length === 0) { alert('请先选择合同'); return; }
+      confirmBulkAction('提交', ids);
+    });
+
+    bulkArchiveBtn.addEventListener('click', ()=>{
+      const ids = Array.from(state.selected);
+      if (ids.length === 0) { alert('请先选择合同'); return; }
+      confirmBulkAction('归档', ids);
+    });
+
+    expiringBtn.addEventListener('click', ()=>{
+      // filter by 30 days to expire
+      const soon = CONTRACTS.filter(c=> dayjs(c.expire).diff(dayjs(), 'day') <= 30 && dayjs(c.expire).isAfter(dayjs()));
+      if (soon.length === 0) {
+        alert('当前无30天内到期合同');
+      } else {
+        alert(`发现 ${soon.length} 份合同将在30天内到期`);
+      }
+      logAction('触发即将到期提醒');
+    });
+
+    quickButtons.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const q = btn.dataset.quick;
+        if (q === 'mine') {
+          // simulate mine: created by 当前用户
+          searchInput.value = '当前用户';
+          state.filters.search = '当前用户';
+        } else if (q === 'all') {
+          searchInput.value = '';
+          state.filters.search = '';
+        } else if (q === 'expiring') {
+          // set date filters to show upcoming
+          dateFrom.value = dayjs().format('YYYY-MM-DD');
+          dateTo.value = dayjs().add(30,'day').format('YYYY-MM-DD');
+          state.filters.dateFrom = dateFrom.value;
+          state.filters.dateTo = dateTo.value;
+        }
+        state.page = 1;
+        applyFiltersAndRender();
+      });
+    });
+
+    // Sorting
+    document.querySelectorAll('thead th[data-sort]').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const fld = th.dataset.sort;
+        if (state.sort.field === fld) state.sort.dir *= -1;
+        else { state.sort.field = fld; state.sort.dir = 1; }
+        applyFiltersAndRender(false);
+        // update indicators
+        document.querySelectorAll('.sort-indicator').forEach(si => si.textContent = '');
+        th.querySelector('.sort-indicator').textContent = state.sort.dir === 1 ? '↑' : '↓';
+      });
+    });
+
+    // initial render
+    applyFiltersAndRender(false);
+    logAction('进入合同管理页面，默认加载');
+
+  </script>
+</body>
+</html>
