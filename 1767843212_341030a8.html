@@ -1,0 +1,833 @@
+<think>
+**Crafting code layout**
+
+I'm considering that the code length requirement might call for many lines, so I should think about using spacing and various elements. My goal is to aim for around 420 lines. I’ll start crafting the HTML now, paying attention to how I can structure it effectively while achieving that length. I'm curious about how all the pieces will fit together once I begin! It’s a bit of a challenge, but I’m ready to dive in.
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律合同审核AI 平台 - 合同审核页</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flowbite@1.7.0/dist/flowbite.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@1.7.0/dist/flowbite.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuidv4.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.7/dayjs.min.js"></script>
+  <style>
+    .docx-placeholder {
+      min-height: 280px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:2px dashed rgba(148,163,184,0.3);
+      border-radius:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(245,247,250,0.6));
+    }
+    .signature-stamp {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 6px;
+      padding: 6px 10px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.12);
+      border: 1px solid rgba(15,23,42,0.06);
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .locked-overlay {
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.6), rgba(255,255,255,0.8));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+      backdrop-filter: blur(2px);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+  <input type="hidden" id="csrf_token" value="{{CSRF_TOKEN}}">
+  <input type="hidden" id="current_user_id" value="{{USER_ID}}">
+  <input type="hidden" id="current_user_name" value="{{USER_NAME}}">
+
+  <div class="min-h-screen flex">
+    <aside class="w-72 bg-white border-r border-slate-200 p-5">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="h-12 w-12 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-semibold">智律</div>
+        <div>
+          <h1 class="text-lg font-semibold">智律合同审核AI</h1>
+          <p class="text-xs text-slate-500">合规 · 审批 · 签章</p>
+        </div>
+      </div>
+
+      <nav class="space-y-2">
+        <button class="w-full text-left px-3 py-2 rounded-md bg-indigo-50 text-indigo-700 flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6M12 3v2m0 14v2m9-9h-2M5 12H3m16.07 4.93l-1.41-1.41M6.34 6.34L4.93 4.93M16.07 7.93L14.66 6.52M7.34 17.66l-1.41 1.41"/></svg>
+          合同管理
+        </button>
+        <button id="openSubmitPanel" class="w-full text-left px-3 py-2 rounded-md hover:bg-slate-100 flex items-center gap-3">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          提交审核
+        </button>
+        <button class="w-full text-left px-3 py-2 rounded-md hover:bg-slate-100 flex items-center gap-3">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a3 3 0 0 1 6 0v6"/></svg>
+          审核任务
+        </button>
+        <button class="w-full text-left px-3 py-2 rounded-md hover:bg-slate-100 flex items-center gap-3">
+          <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 7h18M3 12h18M3 17h18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          审批流管理
+        </button>
+        <button class="w-full text-left px-3 py-2 rounded-md hover:bg-slate-100 flex items-center gap-3">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A4 4 0 016 6h12a4 4 0 010 8H6a4 4 0 00-.879 3.804z"/></svg>
+          用户管理
+        </button>
+      </nav>
+
+      <div class="mt-8 text-xs text-slate-500">
+        <p>状态说明</p>
+        <div class="mt-2 flex flex-col gap-2">
+          <span class="text-xxs inline-flex items-center gap-2"><span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">待审核</span> 新提交等待首位审核</span>
+          <span class="text-xxs inline-flex items-center gap-2"><span class="px-2 py-1 rounded-full bg-indigo-100 text-indigo-800">处理中</span> 流转中</span>
+          <span class="text-xxs inline-flex items-center gap-2"><span class="px-2 py-1 rounded-full bg-green-100 text-green-800">已通过</span> 审批完成并签章</span>
+          <span class="text-xxs inline-flex items-center gap-2"><span class="px-2 py-1 rounded-full bg-red-100 text-red-800">已拒绝</span> 审核被拒绝</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-6">
+      <div class="max-w-7xl mx-auto">
+        <div class="bg-white p-6 rounded-lg shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-semibold">合同审核</h2>
+              <p class="text-sm text-slate-500">提交、审核、审批与电子签章全流程管理</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-sm text-slate-500">当前用户: <span id="userNameDisplay" class="font-medium ml-2">--</span></div>
+              <div>
+                <button id="exportAuditBtn" class="px-4 py-2 text-sm bg-slate-100 rounded-md hover:bg-slate-200">导出审计日志</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-12 gap-6">
+            <section class="col-span-7 bg-slate-50 p-4 rounded-md border border-slate-100 relative">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-slate-700">合同文件（支持PDF、DOCX，<=50MB）</label>
+                  <div class="mt-2">
+                    <input id="fileInput" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="block w-full text-sm text-slate-600" />
+                    <p id="fileHint" class="text-xs text-slate-400 mt-2">请选择文件上传，系统将自动校验格式与关键字段。</p>
+                  </div>
+                </div>
+
+                <div class="w-52">
+                  <label class="block text-sm font-medium text-slate-700">合同类型</label>
+                  <select id="contractType" class="mt-2 block w-full rounded-md border-slate-200 bg-white px-3 py-2 text-sm">
+                    <option value="sale">销售合同</option>
+                    <option value="nda">保密协议（NDA）</option>
+                    <option value="service">服务合同</option>
+                    <option value="employment">劳动合同</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">合同摘要 / 关键条款</label>
+                  <textarea id="contractSummary" rows="6" class="mt-2 block w-full rounded-md border-slate-200 px-3 py-2 text-sm" placeholder="在此填写合同摘要或粘贴关键条款"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700">选择审批流 / 下一步审批人</label>
+                  <div class="mt-2 space-y-2">
+                    <div class="flex items-center gap-2">
+                      <select id="approvalFlowSelect" class="flex-1 rounded-md border-slate-200 px-3 py-2 text-sm">
+                        <option value="flow_simple">简单审批流（法务 → 管理层）</option>
+                        <option value="flow_legal">法务优先（法务 → 财务 → 管理层）</option>
+                        <option value="flow_custom">自定义审批流</option>
+                      </select>
+                      <button id="manageFlowBtn" class="px-3 py-2 bg-slate-100 rounded-md text-sm hover:bg-slate-200">管理</button>
+                    </div>
+
+                    <div id="customFlowEditor" class="hidden bg-white p-3 rounded-md border border-slate-100">
+                      <div class="flex items-center gap-2 mb-2">
+                        <input id="newFlowUser" placeholder="输入审批人姓名或ID，用英文逗号分隔" class="flex-1 rounded-md border-slate-200 px-3 py-2 text-sm" />
+                        <button id="addFlowBtn" class="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm">添加</button>
+                      </div>
+                      <div id="flowList" class="space-y-2 text-sm text-slate-700">
+                        <!-- dynamic -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex items-center gap-3">
+                <button id="submitAuditBtn" class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">提交审核</button>
+                <button id="saveDraftBtn" class="px-4 py-2 bg-white border border-slate-200 rounded-md">保存草稿</button>
+                <div id="uploadStatus" class="text-sm text-slate-500 ml-4">未上传文件</div>
+              </div>
+
+              <div id="previewWrapper" class="mt-6 bg-white rounded-md border border-slate-100 p-3 relative">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div id="fileName" class="text-sm font-medium">未选择文件</div>
+                    <div id="fileMeta" class="text-xs text-slate-400"></div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span id="statusTag" class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">待上传</span>
+                    <button id="scanBtn" class="px-3 py-1 bg-slate-100 rounded-md text-sm">病毒扫描</button>
+                    <button id="extractBtn" class="px-3 py-1 bg-slate-100 rounded-md text-sm">关键字段检测</button>
+                  </div>
+                </div>
+
+                <div id="docPreviewArea" class="mt-4">
+                  <div id="pdfContainer" class="hidden h-[520px] bg-slate-200 rounded-md overflow-hidden">
+                    <object id="pdfObject" type="application/pdf" data="" width="100%" height="520">PDF 预览不可用，请下载查看。</object>
+                    <div id="signatureStamp" class="signature-stamp hidden">
+                      <svg class="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 11c0-2.21 1.79-4 4-4s4 1.79 4 4"></path></svg>
+                      <div class="text-xs text-slate-700">已签章：<span id="signedBy">-</span></div>
+                    </div>
+                  </div>
+
+                  <div id="docxContainer" class="hidden docx-placeholder">
+                    <div class="text-center">
+                      <div class="text-slate-600">DOCX 文件预览受限</div>
+                      <div class="mt-2">
+                        <a id="docDownloadLink" class="text-indigo-600 underline">下载文件</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="emptyPreview" class="text-slate-500 text-center py-20">
+                    请选择PDF或DOCX文件以进行预览与校验
+                  </div>
+
+                  <div id="previewLock" class="locked-overlay hidden">
+                    <div class="bg-white p-4 rounded-md border border-slate-200 text-center">
+                      <div class="text-sm font-medium">该任务已被其他审核人锁定</div>
+                      <div class="text-xs text-slate-500 mt-2" id="lockInfo">锁定中...</div>
+                      <div class="mt-3">
+                        <button id="forceOpenBtn" class="px-3 py-1 bg-red-100 text-red-700 rounded-md">强制打开</button>
+                        <button id="closeLockBtn" class="ml-2 px-3 py-1 bg-slate-100 rounded-md">返回列表</button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+
+            <aside class="col-span-5 bg-white p-4 rounded-md border border-slate-100">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold">审批面板</h3>
+                  <p class="text-xs text-slate-500">在右侧执行审核操作并查看审批历史</p>
+                </div>
+                <div>
+                  <span id="contractStateBadge" class="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm">待审核</span>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600">当前处理人</label>
+                  <div id="currentReviewer" class="mt-2 text-sm text-slate-700">--</div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-medium text-slate-600">审核意见</label>
+                  <textarea id="reviewComment" rows="4" class="mt-2 block w-full rounded-md border-slate-200 px-3 py-2 text-sm" placeholder="填写审核意见，可@用户"></textarea>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button id="approveBtn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md">同意</button>
+                  <button id="rejectBtn" class="px-4 py-2 bg-red-600 text-white rounded-md">拒绝</button>
+                  <button id="feedbackBtn" class="px-4 py-2 bg-slate-100 rounded-md">反馈/退回</button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <label class="text-xs text-slate-600">转交至</label>
+                  <select id="transferSelect" class="flex-1 rounded-md border-slate-200 px-3 py-2 text-sm">
+                    <option value="">选择下一位审批人</option>
+                  </select>
+                  <button id="transferBtn" class="px-3 py-2 bg-slate-100 rounded-md">转交</button>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm font-medium">电子签章</div>
+                    <div class="text-xs text-slate-500">签章在审批完成后触发</div>
+                  </div>
+                  <div class="mt-3 flex items-center gap-2">
+                    <button id="signatureBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 20v-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      电子签章
+                    </button>
+                    <button id="verifySignatureBtn" class="px-3 py-2 bg-slate-100 rounded-md">校验签章</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="mt-6">
+                <h4 class="text-sm font-medium">审批历史</h4>
+                <div id="timeline" class="mt-3 space-y-3 max-h-[260px] overflow-auto pr-2">
+                  <!-- timeline entries -->
+                </div>
+              </div>
+
+            </aside>
+          </div>
+
+          <div class="mt-6 bg-white rounded-md border border-slate-100 p-4">
+            <h4 class="text-sm font-medium">审核意见 / 评论区</h4>
+            <div id="commentsList" class="mt-3 space-y-3 max-h-48 overflow-auto pr-2 text-sm">
+              <!-- comments -->
+            </div>
+
+            <div class="mt-3 flex items-start gap-3">
+              <input id="commentInput" class="flex-1 rounded-md border-slate-200 px-3 py-2 text-sm" placeholder="输入评论，可使用 @用户名 提醒" />
+              <button id="postCommentBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">发表评论</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="signatureModal" class="hidden fixed inset-0 z-60 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black opacity-40"></div>
+    <div class="relative bg-white max-w-2xl w-full rounded-md p-6 z-70">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-medium">电子签章 - 强认证</h3>
+        <button id="closeSignatureModal" class="text-slate-500 hover:text-slate-700">关闭</button>
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm text-slate-700">认证方式</label>
+          <select id="mfaMethod" class="mt-2 rounded-md border-slate-200 px-3 py-2 text-sm w-full">
+            <option value="sms">短信验证码 (MFA)</option>
+            <option value="otp">动态口令 (OTP)</option>
+            <option value="cert">数字证书</option>
+          </select>
+          <div id="mfaArea" class="mt-4">
+            <div class="flex items-center gap-2">
+              <input id="mfaCode" placeholder="输入验证码" class="flex-1 rounded-md border-slate-200 px-3 py-2" />
+              <button id="sendMfaBtn" class="px-3 py-2 bg-indigo-600 text-white rounded-md">发送</button>
+            </div>
+            <div id="mfaNote" class="text-xs text-slate-500 mt-2">发码或证书认证后将完成签章操作。</div>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm text-slate-700">签章预览</label>
+          <div class="mt-2 p-3 border border-slate-100 rounded-md bg-slate-50">
+            <canvas id="signatureCanvas" width="420" height="180" class="w-full border rounded-md"></canvas>
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <button id="confirmSignBtn" class="px-4 py-2 bg-green-600 text-white rounded-md">确认签章并盖章</button>
+            <button id="downloadSignedBtn" class="px-3 py-2 bg-slate-100 rounded-md">下载签章图</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 初始化数据与元素
+    const currentUserNameEl = document.getElementById('userNameDisplay');
+    const userName = document.getElementById('current_user_name').value || '审阅人A';
+    currentUserNameEl.textContent = userName;
+
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const fileMeta = document.getElementById('fileMeta');
+    const pdfContainer = document.getElementById('pdfContainer');
+    const pdfObject = document.getElementById('pdfObject');
+    const docxContainer = document.getElementById('docxContainer');
+    const docDownloadLink = document.getElementById('docDownloadLink');
+    const emptyPreview = document.getElementById('emptyPreview');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const submitAuditBtn = document.getElementById('submitAuditBtn');
+    const approvalFlowSelect = document.getElementById('approvalFlowSelect');
+    const customFlowEditor = document.getElementById('customFlowEditor');
+    const manageFlowBtn = document.getElementById('manageFlowBtn');
+    const addFlowBtn = document.getElementById('addFlowBtn');
+    const newFlowUser = document.getElementById('newFlowUser');
+    const flowList = document.getElementById('flowList');
+    const transferSelect = document.getElementById('transferSelect');
+    const transferBtn = document.getElementById('transferBtn');
+    const submitBtn = submitAuditBtn;
+    const approvalTimeline = document.getElementById('timeline');
+    const commentsList = document.getElementById('commentsList');
+    const postCommentBtn = document.getElementById('postCommentBtn');
+    const commentInput = document.getElementById('commentInput');
+    const approveBtn = document.getElementById('approveBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    const feedbackBtn = document.getElementById('feedbackBtn');
+    const contractStateBadge = document.getElementById('contractStateBadge');
+    const currentReviewerEl = document.getElementById('currentReviewer');
+    const previewLock = document.getElementById('previewLock');
+    const lockInfo = document.getElementById('lockInfo');
+    const forceOpenBtn = document.getElementById('forceOpenBtn');
+    const closeLockBtn = document.getElementById('closeLockBtn');
+    const signatureBtn = document.getElementById('signatureBtn');
+    const signatureModal = document.getElementById('signatureModal');
+    const closeSignatureModal = document.getElementById('closeSignatureModal');
+    const sendMfaBtn = document.getElementById('sendMfaBtn');
+    const confirmSignBtn = document.getElementById('confirmSignBtn');
+    const signatureCanvas = document.getElementById('signatureCanvas');
+    const signatureStamp = document.getElementById('signatureStamp');
+    const signedBy = document.getElementById('signedBy');
+    const exportAuditBtn = document.getElementById('exportAuditBtn');
+    const scanBtn = document.getElementById('scanBtn');
+    const extractBtn = document.getElementById('extractBtn');
+    const uploadStatusText = uploadStatus;
+
+    // 状态存储（可替换为后端持久化）
+    let currentTask = null;
+    let tasks = [];
+    let auditLogs = [];
+    let comments = [];
+    let lock = null;
+
+    const allowedTypes = ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    // 初始审批流示例（可由后端替换）
+    let customFlow = [];
+
+    function renderFlowList() {
+      flowList.innerHTML = '';
+      customFlow.forEach((u, idx) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 rounded-md border border-slate-100';
+        div.innerHTML = `<div class="text-sm">${idx+1}. ${escapeHtml(u)}</div>
+        <div class="flex items-center gap-2">
+          <button data-idx="${idx}" class="remove-flow px-2 py-1 text-xs bg-red-100 text-red-700 rounded">移除</button>
+        </div>`;
+        flowList.appendChild(div);
+      });
+      Array.from(document.getElementsByClassName('remove-flow')).forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          const i = e.target.getAttribute('data-idx');
+          customFlow.splice(i,1);
+          renderFlowList();
+          refreshTransferOptions();
+        });
+      });
+    }
+
+    function refreshTransferOptions() {
+      transferSelect.innerHTML = '<option value="">选择下一位审批人</option>';
+      const pool = (approvalFlowSelect.value === 'flow_custom' ? customFlow : defaultFlowUsers(approvalFlowSelect.value));
+      pool.forEach(p=>{
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        transferSelect.appendChild(opt);
+      });
+    }
+
+    function defaultFlowUsers(flowKey) {
+      if (flowKey === 'flow_simple') return ['法务A','管理层B'];
+      if (flowKey === 'flow_legal') return ['法务A','财务C','管理层B'];
+      return ['法务A','财务C','管理层B'];
+    }
+
+    approvalFlowSelect.addEventListener('change', ()=>{
+      if (approvalFlowSelect.value === 'flow_custom') {
+        customFlowEditor.classList.remove('hidden');
+      } else {
+        customFlowEditor.classList.add('hidden');
+      }
+      refreshTransferOptions();
+    });
+
+    manageFlowBtn.addEventListener('click', ()=>{
+      approvalFlowSelect.value = 'flow_custom';
+      customFlowEditor.classList.remove('hidden');
+      refreshTransferOptions();
+    });
+
+    addFlowBtn.addEventListener('click', ()=>{
+      const val = newFlowUser.value.trim();
+      if (!val) return;
+      const parts = val.split(',').map(s=>s.trim()).filter(Boolean);
+      parts.forEach(p=>{
+        if (!customFlow.includes(p)) customFlow.push(p);
+      });
+      newFlowUser.value = '';
+      renderFlowList();
+      refreshTransferOptions();
+    });
+
+    // 文件上传与预览
+    fileInput.addEventListener('change', (e)=>{
+      const f = e.target.files[0];
+      if (!f) return resetPreview();
+      if (!allowedTypes.includes(f.type) && !f.name.match(/\.(pdf|docx?|DOCX?)$/)) {
+        alert('不支持的文件类型，请上传PDF或DOCX/DOC');
+        fileInput.value = '';
+        return;
+      }
+      if (f.size > maxSize) {
+        alert('文件超出大小限制（50MB）');
+        fileInput.value = '';
+        return;
+      }
+      fileNameEl.textContent = f.name;
+      fileMeta.textContent = `${(f.size/1024/1024).toFixed(2)} MB • ${f.type || '未知类型'}`;
+      uploadStatusText.textContent = '已上传未提交';
+      emptyPreview.classList.add('hidden');
+
+      if (f.type === 'application/pdf' || f.name.match(/\.pdf$/i)) {
+        pdfContainer.classList.remove('hidden');
+        docxContainer.classList.add('hidden');
+        const url = URL.createObjectURL(f);
+        pdfObject.data = url;
+        pdfObject.type = 'application/pdf';
+      } else {
+        pdfContainer.classList.add('hidden');
+        docxContainer.classList.remove('hidden');
+        docDownloadLink.href = URL.createObjectURL(f);
+        docDownloadLink.download = f.name;
+      }
+    });
+
+    function resetPreview() {
+      fileNameEl.textContent = '未选择文件';
+      fileMeta.textContent = '';
+      pdfContainer.classList.add('hidden');
+      docxContainer.classList.add('hidden');
+      emptyPreview.classList.remove('hidden');
+      uploadStatusText.textContent = '未上传文件';
+    }
+
+    // 提交审核流程
+    submitAuditBtn.addEventListener('click', ()=>{
+      const f = fileInput.files[0];
+      if (!f) { alert('请先上传合同文件'); return; }
+      const summary = document.getElementById('contractSummary').value.trim();
+      const type = document.getElementById('contractType').value;
+      const flowKey = approvalFlowSelect.value;
+      const flowUsers = (flowKey === 'flow_custom' ? customFlow.slice() : defaultFlowUsers(flowKey));
+      if (!flowUsers.length) { alert('审批流未配置审批人'); return; }
+      // 校验并生成任务
+      const task = {
+        id: 'T-' + Date.now(),
+        fileName: f.name,
+        fileType: f.type || '',
+        size: f.size,
+        summary,
+        contractType: type,
+        flow: flowUsers,
+        currentIndex: 0,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      tasks.push(task);
+      currentTask = task;
+      addAuditLog('创建审核任务', `任务 ${task.id} 创建并分配给 ${flowUsers[0]}`, userName);
+      uploadStatusText.textContent = '任务已创建，等待首位审核人处理';
+      contractStateBadge.textContent = '待审核';
+      contractStateBadge.className = 'px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm';
+      // 设置当前处理人
+      currentReviewerEl.textContent = flowUsers[0];
+      refreshTimeline();
+      refreshTransferOptions();
+      lockTask(task.id, flowUsers[0]); // lock by first reviewer
+      alert('审核任务已创建并通知首位审核人');
+    });
+
+    function addAuditLog(action, detail, actor) {
+      const entry = {
+        id: 'L-'+Date.now()+'-'+Math.floor(Math.random()*1000),
+        action,
+        detail,
+        actor: actor || userName,
+        ts: new Date().toISOString()
+      };
+      auditLogs.unshift(entry);
+      renderAuditLogs();
+      persistAuditLogs();
+    }
+
+    function renderAuditLogs() {
+      approvalTimeline.innerHTML = '';
+      auditLogs.forEach(log=>{
+        const d = document.createElement('div');
+        d.className = 'p-3 rounded-md border border-slate-100 bg-white';
+        d.innerHTML = `<div class="flex items-center justify-between">
+          <div class="text-sm font-medium">${escapeHtml(log.action)}</div>
+          <div class="text-xs text-slate-400">${new Date(log.ts).toLocaleString()}</div>
+        </div>
+        <div class="text-xs text-slate-500 mt-2">${escapeHtml(log.detail)} · ${escapeHtml(log.actor)}</div>`;
+        approvalTimeline.appendChild(d);
+      });
+    }
+
+    function persistAuditLogs() {
+      try {
+        localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+      } catch(e){}
+    }
+
+    function loadAuditLogs() {
+      try {
+        const raw = localStorage.getItem('auditLogs');
+        if (raw) auditLogs = JSON.parse(raw);
+      } catch(e){}
+      renderAuditLogs();
+    }
+
+    function refreshTimeline() {
+      renderAuditLogs();
+    }
+
+    // 评论功能（只在前端记录，需后端保护不可篡改）
+    postCommentBtn.addEventListener('click', ()=>{
+      const txt = commentInput.value.trim();
+      if (!txt) return;
+      const entry = {
+        id: 'C-'+Date.now(),
+        author: userName,
+        content: txt,
+        ts: new Date().toISOString(),
+        immutable: true
+      };
+      comments.unshift(entry);
+      renderComments();
+      addAuditLog('新增评论', `作者 ${entry.author} 添加评论`, entry.author);
+      commentInput.value = '';
+    });
+
+    function renderComments() {
+      commentsList.innerHTML = '';
+      comments.forEach(c=>{
+        const el = document.createElement('div');
+        el.className = 'p-3 bg-slate-50 rounded-md border border-slate-100';
+        el.innerHTML = `<div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm font-medium">${escapeHtml(c.author)}</div>
+            <div class="text-xs text-slate-400">${new Date(c.ts).toLocaleString()}</div>
+          </div>
+          <div class="text-xs text-slate-400">不可修改</div>
+        </div>
+        <div class="mt-2 text-sm text-slate-700">${formatMentions(escapeHtml(c.content))}</div>`;
+        commentsList.appendChild(el);
+      });
+    }
+
+    function formatMentions(text) {
+      return text.replace(/@([\u4e00-\u9fa5A-Za-z0-9_\-]+)/g, '<span class="text-indigo-600">@\$1</span>');
+    }
+
+    // 审批动作
+    approveBtn.addEventListener('click', ()=>{
+      if (!currentTask) { alert('无激活任务'); return; }
+      const idx = currentTask.currentIndex;
+      const actor = currentTask.flow[idx];
+      addAuditLog('同意', `审批人 ${actor} 同意，阶段 ${idx+1}/${currentTask.flow.length}`, userName);
+      currentTask.currentIndex++;
+      if (currentTask.currentIndex >= currentTask.flow.length) {
+        currentTask.status = 'approved';
+        contractStateBadge.textContent = '已通过';
+        contractStateBadge.className = 'px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm';
+        addAuditLog('审批完成', `任务 ${currentTask.id} 审批完成，触发电子签章`, userName);
+        // 自动触发签章预览提示
+        signatureStamp.classList.remove('hidden');
+        signedBy.textContent = userName;
+        lock = null;
+        uploadStatusText.textContent = '已通过，已触发签章';
+      } else {
+        const next = currentTask.flow[currentTask.currentIndex];
+        currentReviewerEl.textContent = next;
+        addAuditLog('流转', `流转至 ${next}`, userName);
+        lockTask(currentTask.id, next);
+      }
+      refreshTimeline();
+    });
+
+    rejectBtn.addEventListener('click', ()=>{
+      if (!currentTask) { alert('无激活任务'); return; }
+      currentTask.status = 'rejected';
+      addAuditLog('拒绝', `任务 ${currentTask.id} 被拒绝`, userName);
+      contractStateBadge.textContent = '已拒绝';
+      contractStateBadge.className = 'px-3 py-1 rounded-full bg-red-100 text-red-800 text-sm';
+      lock = null;
+      refreshTimeline();
+    });
+
+    feedbackBtn.addEventListener('click', ()=>{
+      if (!currentTask) { alert('无激活任务'); return; }
+      addAuditLog('退回', `退回至起草人要求修订`, userName);
+      currentTask.status = 'feedback';
+      contractStateBadge.textContent = '处理中';
+      contractStateBadge.className = 'px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-sm';
+      lock = null;
+      refreshTimeline();
+    });
+
+    transferBtn.addEventListener('click', ()=>{
+      const to = transferSelect.value;
+      if (!to) { alert('请选择转交人'); return; }
+      if (!currentTask) { alert('无激活任务'); return; }
+      currentTask.currentIndex = currentTask.flow.indexOf(to);
+      if (currentTask.currentIndex === -1) {
+        currentTask.flow.splice(currentTask.currentIndex+1,0,to);
+        currentTask.currentIndex = currentTask.flow.indexOf(to);
+      }
+      currentReviewerEl.textContent = to;
+      addAuditLog('转交', `转交给 ${to}`, userName);
+      lockTask(currentTask.id, to);
+      refreshTimeline();
+    });
+
+    function lockTask(taskId, owner) {
+      lock = {
+        taskId,
+        owner,
+        ts: new Date().toISOString(),
+        expires: Date.now() + (15*60*1000) // 15min
+      };
+      lockInfo.textContent = `${owner} 于 ${new Date(lock.ts).toLocaleString()} 锁定，自动解锁：${new Date(lock.expires).toLocaleString()}`;
+      previewLock.classList.remove('hidden');
+      setTimeout(()=>{ previewLock.classList.add('hidden'); }, 600);
+    }
+
+    forceOpenBtn.addEventListener('click', ()=>{
+      previewLock.classList.add('hidden');
+      alert('已强制打开文档，请注意并发操作风险');
+      lock = null;
+      lockInfo.textContent = '';
+    });
+    closeLockBtn.addEventListener('click', ()=>{
+      previewLock.classList.add('hidden');
+      lockInfo.textContent = '';
+    });
+
+    // 电子签章流程（前端演示）
+    signatureBtn.addEventListener('click', ()=>{
+      if (!currentTask) { alert('无激活任务可签章'); return; }
+      signatureModal.classList.remove('hidden');
+      drawDemoSignature();
+    });
+    closeSignatureModal.addEventListener('click', ()=>{ signatureModal.classList.add('hidden'); });
+
+    sendMfaBtn.addEventListener('click', ()=>{
+      alert('验证码已发送（演示）');
+      sendMfaBtn.textContent = '已发送';
+      sendMfaBtn.disabled = true;
+      setTimeout(()=>{ sendMfaBtn.textContent = '发送'; sendMfaBtn.disabled = false; }, 5000);
+    });
+
+    confirmSignBtn.addEventListener('click', ()=>{
+      if (!currentTask) { alert('无任务'); return; }
+      addAuditLog('签章', `用户 ${userName} 完成电子签章，签章ID: SIG-${Date.now()}`, userName);
+      signatureModal.classList.add('hidden');
+      signatureStamp.classList.remove('hidden');
+      signedBy.textContent = userName;
+      currentTask.signed = { by: userName, at: new Date().toISOString() };
+      contractStateBadge.textContent = '已通过';
+      contractStateBadge.className = 'px-3 py-1 rounded-full bg-green-100 text-green-800 text-sm';
+      persistAuditLogs();
+      refreshTimeline();
+      alert('电子签章已完成并记录审计日志');
+    });
+
+    // 绘制签章图样
+    function drawDemoSignature() {
+      const ctx = signatureCanvas.getContext('2d');
+      ctx.clearRect(0,0,signatureCanvas.width, signatureCanvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0,0,signatureCanvas.width, signatureCanvas.height);
+      ctx.font = '28px "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB"';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(userName, 20, 60);
+      ctx.beginPath();
+      ctx.moveTo(20,80);
+      ctx.quadraticCurveTo(120, 120, 380, 70);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.font = '14px serif';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText('智律电子签章 • '+ new Date().toLocaleString(), 20, 140);
+    }
+
+    // 导出审计日志
+    exportAuditBtn.addEventListener('click', ()=>{
+      const data = { auditLogs, tasks, comments };
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'audit_export_'+Date.now()+'.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // 扫描与关键字段检测（演示）
+    scanBtn.addEventListener('click', ()=>{
+      scanBtn.disabled = true;
+      scanBtn.textContent = '扫描中...';
+      setTimeout(()=>{
+        scanBtn.disabled = false;
+        scanBtn.textContent = '病毒扫描';
+        addAuditLog('病毒扫描', '文件通过基本病毒扫描', userName);
+        alert('文件扫描通过（仅演示）');
+      }, 1600);
+    });
+
+    extractBtn.addEventListener('click', ()=>{
+      extractBtn.disabled = true;
+      extractBtn.textContent = '检测中...';
+      setTimeout(()=>{
+        extractBtn.disabled = false;
+        extractBtn.textContent = '关键字段检测';
+        addAuditLog('关键字段检测', '已检测到金额、期限、违约条款等关键字段', userName);
+        alert('检测完成，关键字段已标注（演示）');
+      }, 1400);
+    });
+
+    // 管理 "提交审核" 快捷打开（侧边栏）
+    document.getElementById('openSubmitPanel').addEventListener('click', ()=>{
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.querySelector('#contractSummary').focus();
+    });
+
+    // 安全标注占位符（供后端替换）
+    // 这些占位符应保持原样以便后端替换
+    // {{CSRF_TOKEN}} {{USER_ID}} {{USER_NAME}}
+
+    // 工具函数
+    function escapeHtml(str) {
+      return (str+'').replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+      });
+    }
+
+    function loadInitial() {
+      loadAuditLogs();
+      renderComments();
+      refreshTransferOptions();
+      // 示例：若后端注入当前用户信息，显示。
+      const cu = document.getElementById('current_user_name').value;
+      if (cu) { currentUserNameEl.textContent = cu; }
+    }
+
+    loadInitial();
+
+  </script>
+</body>
+</html>
