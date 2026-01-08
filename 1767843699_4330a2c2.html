@@ -1,0 +1,673 @@
+<think>
+I'm considering the best approach to generate a UUID. I think I could use the uuid library or maybe generate one using web crypto. It seems smart to create a separate JavaScript file and include it in a script tag at the bottom of my HTML. I have to be careful to ensure that I include the script exactly once, just to keep everything neat. Okay, let's dive into the coding part!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>智律合同审核AI 平台 - 分享管理</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+  <script>dayjs.extend(dayjs_plugin_utc); dayjs.extend(dayjs_plugin_relativeTime);</script>
+  <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { --brand: #0f766e; --muted: #6b7280; --glass: rgba(255,255,255,0.06); }
+    html,body,#app { height: 100%; }
+    body { font-family: 'Inter', ui-sans-serif, system-ui; background: linear-gradient(180deg,#08111a 0%, #071323 100%); color: #e6eef3; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(6px); }
+    .kbd { background:#0b1220; border:1px solid rgba(255,255,255,0.04); padding:4px 8px; border-radius:6px; font-size:12px; color:#9fb6c0; }
+    .truncate-ellipsis { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; cursor:pointer; user-select:none; }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen flex">
+    <aside class="w-72 p-6 glass m-6 rounded-2xl shadow-lg">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-lg flex items-center justify-center text-black font-extrabold">智律</div>
+        <div>
+          <div class="text-lg font-semibold">智律合同审核AI</div>
+          <div class="text-sm text-slate-300">合同·审核·分发</div>
+        </div>
+      </div>
+      <div class="mb-4">
+        <input id="search" placeholder="搜索合同或编号" class="w-full bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-400" />
+      </div>
+      <nav class="space-y-2 text-sm">
+        <button class="w-full text-left py-2 px-3 rounded-md hover:bg-white/2" id="nav-contracts">合同列表</button>
+        <button class="w-full text-left py-2 px-3 rounded-md hover:bg-white/2" id="nav-share">分享管理</button>
+        <button class="w-full text-left py-2 px-3 rounded-md hover:bg-white/2" id="nav-logs">访问日志</button>
+        <button class="w-full text-left py-2 px-3 rounded-md hover:bg-white/2" id="nav-settings">设置</button>
+      </nav>
+      <div class="mt-6 border-t border-white/4 pt-4">
+        <div class="text-xs text-slate-300 mb-2">当前账户</div>
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-medium">业务人员 · 张华</div>
+            <div class="text-xs text-slate-400">部门：销售一组</div>
+          </div>
+          <div>
+            <button class="btn bg-white/5 hover:bg-white/6 px-3 py-2" id="btn-logout">退出</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="flex-1 p-6 overflow-y-auto">
+      <header class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold">合同详情 · 分享</h1>
+          <div class="text-sm text-slate-300">合同编号：<span id="contract-id" class="font-medium">HT-2026-0001</span></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="btn bg-white/5 hover:bg-white/6 px-4 py-2" id="btn-edit">编辑合同</button>
+          <button class="btn bg-teal-500 hover:bg-teal-600 text-black px-4 py-2" id="btn-share">分享合同</button>
+        </div>
+      </header>
+
+      <section class="grid grid-cols-3 gap-6">
+        <article class="col-span-2 glass rounded-2xl p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 class="text-lg font-semibold">合同标题：软件服务协议</h2>
+              <div class="text-sm text-slate-300">甲方：智律科技  •  乙方：客户A</div>
+            </div>
+            <div class="text-sm text-slate-400">签署状态：<span class="font-medium text-emerald-300">草稿</span></div>
+          </div>
+
+          <div class="mt-4 text-slate-300 text-sm leading-relaxed">
+            <p class="mb-2">本合同为示例合同内容，包含服务条款、费用与支付、保密与合规等关键章节。分享功能可将该合同以受控链接或邀请方式发给外部人员，并对访问权限进行严格控制与审计。</p>
+            <p class="mb-2">操作提示：点击“分享合同”弹出分享模态，生成短链或邮件邀请，配置到期时间、访问权限与密码保护。</p>
+          </div>
+
+          <div class="mt-6">
+            <h3 class="text-sm text-slate-300 mb-2">历史版本</h3>
+            <div class="flex gap-3">
+              <div class="p-3 bg-white/3 rounded-md w-44">
+                <div class="text-xs text-slate-300">v1.0 • 2025-11-01</div>
+                <div class="font-medium">初稿</div>
+              </div>
+              <div class="p-3 bg-white/3 rounded-md w-44">
+                <div class="text-xs text-slate-300">v1.1 • 2025-12-12</div>
+                <div class="font-medium">条款更新</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <aside class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="text-sm text-slate-300">分享统计</div>
+              <div class="text-2xl font-bold" id="share-count">0</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-slate-300">最近访问</div>
+              <div class="text-sm" id="last-access">—</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="flex gap-2">
+              <button class="btn bg-white/5 hover:bg-white/6 px-3 py-2 flex-1" id="btn-new-share">新建分享</button>
+              <button class="btn bg-white/5 hover:bg-white/6 px-3 py-2 flex-1" id="btn-view-logs">查看日志</button>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <div class="text-xs text-slate-400">安全提醒</div>
+            <ul class="text-sm mt-2 text-slate-300 space-y-2">
+              <li>• 对敏感合同启用密码保护与短期有效期。</li>
+              <li>• 撤销分享将立即使短链失效。</li>
+              <li>• 允许下载时系统会自动加水印并记录行为。</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+
+      <section class="mt-8 glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold">已创建的分享链接</h3>
+          <div class="text-sm text-slate-300">管理与审计</div>
+        </div>
+
+        <div id="share-list" class="space-y-3">
+          <div class="text-sm text-slate-400">暂无分享链接，点击“分享合同”开始。</div>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+          <button class="btn bg-amber-600 hover:bg-amber-700 px-3 py-2" id="btn-export-logs">导出访问日志 (CSV)</button>
+          <div class="text-sm text-slate-300">支持导出全部访问记录以便合规留存。</div>
+        </div>
+      </section>
+
+      <!-- 分享模态 -->
+      <div id="modal-share" class="fixed inset-0 hidden items-center justify-center z-50">
+        <div class="absolute inset-0 bg-black/60"></div>
+        <div class="bg-[#071526] glass rounded-2xl shadow-xl w-[920px] mx-4 relative">
+          <div class="p-6">
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-xl font-semibold">分享合同 - 设置权限</h2>
+                <div class="text-sm text-slate-400">生成受控短链或通过邮件/短信邀请外部人员</div>
+              </div>
+              <div>
+                <button id="modal-close" class="btn bg-white/5 px-3 py-2">关闭</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 mt-6">
+              <div>
+                <label class="text-sm text-slate-300">分享方式</label>
+                <div class="mt-2 flex gap-2">
+                  <button class="btn bg-white/5 hover:bg-white/6" id="mode-link">受控链接</button>
+                  <button class="btn bg-white/5 hover:bg-white/6" id="mode-email">邮箱/手机号邀请</button>
+                </div>
+
+                <div class="mt-4">
+                  <label class="text-sm text-slate-300">外部邮箱 / 手机号 (逗号分隔)</label>
+                  <textarea id="recipients" rows="3" class="w-full mt-2 bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm" placeholder="例如：li@partner.com, +8613812345678"></textarea>
+                </div>
+
+                <div class="mt-4 flex items-center gap-3">
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" id="allow-download" class="w-4 h-4" />
+                    <span class="text-sm text-slate-300">允许下载</span>
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" id="require-approval" class="w-4 h-4" />
+                    <span class="text-sm text-slate-300">管理员审批</span>
+                  </label>
+                </div>
+
+                <div class="mt-4">
+                  <label class="text-sm text-slate-300">链接有效期</label>
+                  <div class="mt-2 flex items-center gap-2">
+                    <select id="expiry-select" class="bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm">
+                      <option value="1">1天</option>
+                      <option value="7" selected>7天</option>
+                      <option value="30">30天</option>
+                      <option value="custom">自定义</option>
+                    </select>
+                    <input id="expiry-custom" type="date" class="hidden bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm" />
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <label class="text-sm text-slate-300">密码保护（可选）</label>
+                  <div class="mt-2 flex gap-2">
+                    <input id="share-password" type="password" placeholder="至少8位，包含字母和数字" class="flex-1 bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm" />
+                    <button id="generate-pw" class="btn bg-white/5 px-3 py-2">生成</button>
+                  </div>
+                  <div id="pw-hint" class="text-xs text-amber-300 mt-2 hidden">密码强度：弱</div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-3">
+                  <button id="btn-generate" class="btn bg-teal-500 hover:bg-teal-600 text-black px-4 py-2">生成分享链接</button>
+                  <button id="btn-send-invite" class="btn bg-white/5 hover:bg-white/6 px-4 py-2">发送邀请</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-sm text-slate-300 mb-2">预览 / 生成结果</div>
+                <div class="bg-[#02131a] rounded-md p-4 border border-white/3">
+                  <div id="link-result" class="text-sm text-slate-200 break-words">尚未生成分享链接。</div>
+                  <div class="mt-3 flex items-center gap-2">
+                    <button id="btn-copy-link" class="btn bg-white/5 px-3 py-2" data-clipboard-target="#link-result">复制链接</button>
+                    <button id="btn-copy-pw" class="btn bg-white/5 px-3 py-2">复制密码</button>
+                    <button id="btn-revoke-temp" class="btn bg-red-600 hover:bg-red-700 px-3 py-2">撤销分享</button>
+                  </div>
+                  <div class="mt-4 text-xs text-slate-400">说明：链接为受控短链，包含签名与过期时间，外部访问需按配置完成验证。</div>
+                </div>
+
+                <div class="mt-6">
+                  <div class="text-sm text-slate-300 mb-2">访问模拟器</div>
+                  <div class="bg-[#02131a] rounded-md p-4 border border-white/3">
+                    <input id="simulate-input" placeholder="粘贴分享链接以模拟外部访问" class="w-full bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm" />
+                    <div class="mt-3 flex gap-2">
+                      <button id="btn-simulate" class="btn bg-amber-600 hover:bg-amber-700 px-3 py-2">模拟访问</button>
+                      <button id="btn-sim-download" class="btn bg-white/5 px-3 py-2">模拟下载</button>
+                    </div>
+                    <div id="simulate-result" class="mt-3 text-sm text-slate-300">操作结果将在此显示并写入访问日志。</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 访问日志模态 -->
+      <div id="modal-logs" class="fixed inset-0 hidden items-center justify-center z-40">
+        <div class="absolute inset-0 bg-black/60"></div>
+        <div class="bg-[#071526] glass rounded-2xl shadow-xl w-[1100px] mx-4 relative">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold">访问日志</h3>
+              <div>
+                <button id="logs-close" class="btn bg-white/5 px-3 py-2">关闭</button>
+              </div>
+            </div>
+            <div class="mb-4 flex items-center gap-3">
+              <input id="log-filter" placeholder="按邮箱/IP/操作过滤" class="bg-transparent border border-white/6 rounded-md px-3 py-2 text-sm flex-1" />
+              <button id="logs-refresh" class="btn bg-white/5 px-3 py-2">刷新</button>
+              <button id="logs-export" class="btn bg-emerald-600 px-3 py-2">导出CSV</button>
+            </div>
+
+            <div class="overflow-auto" style="max-height:460px;">
+              <table class="w-full text-sm">
+                <thead class="text-slate-300 text-left sticky top-0 bg-[#071526]">
+                  <tr>
+                    <th class="p-3">时间</th>
+                    <th class="p-3">访问者</th>
+                    <th class="p-3">IP</th>
+                    <th class="p-3">操作</th>
+                    <th class="p-3">目标链接</th>
+                    <th class="p-3">备注</th>
+                  </tr>
+                </thead>
+                <tbody id="logs-table" class="text-slate-200">
+                  <!-- logs go here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // 基础数据结构（前端模拟，实际由后端替换）
+    const CONTRACT_ID = document.getElementById('contract-id').textContent.trim();
+    const shareState = {
+      items: [], // {id, link, password, allowDownload, expiresAt, createdAt, active, recipients, requireApproval, signature}
+      logs: []   // {time, actor, ip, action, linkId, note}
+    };
+
+    // 辅助函数
+    function uid(len=8){
+      const arr = new Uint8Array(len);
+      crypto.getRandomValues(arr);
+      return Array.from(arr).map(n=>n.toString(16).padStart(2,'0')).join('').slice(0,len);
+    }
+    async function hmacSign(key, msg){
+      const enc = new TextEncoder();
+      const keyData = enc.encode(key);
+      const cryptoKey = await crypto.subtle.importKey('raw', keyData, {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+      const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(msg));
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+      return b64;
+    }
+    function fmtDate(ts){ return dayjs.utc(ts).local().format('YYYY-MM-DD HH:mm:ss'); }
+    function randomIP(){ return `${rand(1,220)}.${rand(0,255)}.${rand(0,255)}.${rand(0,255)}`; }
+    function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+    // UI元素
+    const modalShare = document.getElementById('modal-share');
+    const modalLogs = document.getElementById('modal-logs');
+    const shareListEl = document.getElementById('share-list');
+    const shareCountEl = document.getElementById('share-count');
+    const lastAccessEl = document.getElementById('last-access');
+    const linkResultEl = document.getElementById('link-result');
+    const pwHint = document.getElementById('pw-hint');
+
+    // Clipboard
+    const clipboard = new ClipboardJS('#btn-copy-link');
+
+    // 初始化
+    document.getElementById('btn-share').addEventListener('click', ()=>openModalShare());
+    document.getElementById('btn-new-share').addEventListener('click', ()=>openModalShare());
+    document.getElementById('nav-share').addEventListener('click', ()=>openModalShare());
+    document.getElementById('modal-close').addEventListener('click', ()=>closeModalShare());
+    document.getElementById('modal-logs').addEventListener('click', (e)=>{ if(e.target===modalLogs) closeModalLogs(); });
+
+    document.getElementById('btn-export-logs').addEventListener('click', ()=>exportLogs());
+    document.getElementById('logs-export').addEventListener('click', ()=>exportLogs());
+    document.getElementById('btn-view-logs').addEventListener('click', ()=>openModalLogs());
+    document.getElementById('btn-send-invite').addEventListener('click', ()=>sendInvites());
+    document.getElementById('btn-generate').addEventListener('click', ()=>generateShare());
+    document.getElementById('generate-pw').addEventListener('click', ()=>generatePassword());
+    document.getElementById('expiry-select').addEventListener('change',(e)=>toggleCustomDate(e.target.value));
+    document.getElementById('btn-revoke-temp').addEventListener('click', ()=>revokeLatest());
+    document.getElementById('btn-simulate').addEventListener('click', ()=>simulateAccess(false));
+    document.getElementById('btn-sim-download').addEventListener('click', ()=>simulateAccess(true));
+    document.getElementById('btn-copy-pw').addEventListener('click', ()=>copyPassword());
+    document.getElementById('logs-close').addEventListener('click', ()=>closeModalLogs());
+    document.getElementById('logs-refresh').addEventListener('click', ()=>renderLogs());
+    document.getElementById('btn-logout').addEventListener('click', ()=>alert('退出操作（由后端实现）'));
+
+    // 模态控制
+    function openModalShare(){
+      modalShare.classList.remove('hidden');
+      modalShare.style.display = 'flex';
+      resetShareForm();
+    }
+    function closeModalShare(){
+      modalShare.classList.add('hidden');
+      modalShare.style.display = 'none';
+    }
+    function openModalLogs(){
+      modalLogs.classList.remove('hidden');
+      modalLogs.style.display = 'flex';
+      renderLogs();
+    }
+    function closeModalLogs(){
+      modalLogs.classList.add('hidden');
+      modalLogs.style.display = 'none';
+    }
+
+    // 表单功能
+    function toggleCustomDate(v){
+      const el = document.getElementById('expiry-custom');
+      if(v==='custom'){ el.classList.remove('hidden'); } else { el.classList.add('hidden'); el.value=''; }
+    }
+    function resetShareForm(){
+      document.getElementById('recipients').value='';
+      document.getElementById('allow-download').checked=false;
+      document.getElementById('require-approval').checked=false;
+      document.getElementById('expiry-select').value='7';
+      document.getElementById('expiry-custom').value='';
+      document.getElementById('share-password').value='';
+      linkResultEl.textContent='尚未生成分享链接。';
+      pwHint.classList.add('hidden');
+    }
+
+    async function generateShare(){
+      const allowDownload = document.getElementById('allow-download').checked;
+      const requireApproval = document.getElementById('require-approval').checked;
+      const expiryVal = document.getElementById('expiry-select').value;
+      let expiresAt;
+      if(expiryVal==='custom'){
+        const d = document.getElementById('expiry-custom').value;
+        if(!d){ alert('请选择自定义到期日期'); return; }
+        expiresAt = dayjs(d).endOf('day').toISOString();
+      } else {
+        expiresAt = dayjs().add(parseInt(expiryVal),'day').toISOString();
+      }
+      const pw = document.getElementById('share-password').value || '';
+      if(pw && !validatePassword(pw)){ alert('密码不满足复杂度要求'); return; }
+
+      const id = uid(10);
+      const payload = `${CONTRACT_ID}|${id}|${allowDownload?'1':'0'}|${expiresAt}|${pw?1:0}`;
+      const signature = await hmacSign('REPLACE_WITH_SECRET_KEY', payload); // 后端需用HMAC密钥签名，这里前端仅模拟
+      const short = `https://zi-lv.cn/s/${btoa(id).replace(/=/g,'').slice(0,8)}_${signature.slice(0,8)}`;
+
+      const item = {
+        id, link: short, password: pw, allowDownload, expiresAt, createdAt: dayjs().toISOString(), active:true, recipients:[], requireApproval, signature
+      };
+      shareState.items.unshift(item);
+      linkResultEl.textContent = short;
+      renderShareList();
+      updateStats();
+      logEvent('系统','-','创建分享', id, `到期：${expiresAt}，下载：${allowDownload}`);
+      alert('分享链接已生成（前端模拟）。请使用“复制链接”发送给外部人员或使用“发送邀请”通过邮箱/短信邀请。');
+    }
+
+    function validatePassword(pw){
+      return pw.length>=8 && /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
+    }
+
+    function generatePassword(){
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+      let out='';
+      for(let i=0;i<12;i++) out += chars[Math.floor(Math.random()*chars.length)];
+      document.getElementById('share-password').value = out;
+      checkPwStrength(out);
+      pwHint.classList.remove('hidden');
+      pwHint.textContent = '密码强度：强';
+    }
+
+    document.getElementById('share-password').addEventListener('input', (e)=>{ checkPwStrength(e.target.value); });
+    function checkPwStrength(pw){
+      if(!pw){ pwHint.classList.add('hidden'); return; }
+      let score=0;
+      if(pw.length>=8) score++;
+      if(/[A-Z]/.test(pw)) score++;
+      if(/[0-9]/.test(pw)) score++;
+      if(/[^A-Za-z0-9]/.test(pw)) score++;
+      pwHint.classList.remove('hidden');
+      const txt = score<=1?'弱':score==2?'中':'强';
+      pwHint.textContent = `密码强度：${txt}`;
+      pwHint.style.color = score<=1? '#f97316' : score==2? '#eab308' : '#34d399';
+    }
+
+    // Send invites (模拟发送)
+    function sendInvites(){
+      const recipients = document.getElementById('recipients').value.trim();
+      if(!recipients){ alert('请输入收件人邮箱或手机号'); return; }
+      if(shareState.items.length===0){ alert('请先生成分享链接或选择现有分享。'); return; }
+      const latest = shareState.items[0];
+      latest.recipients = recipients.split(',').map(s=>s.trim());
+      logEvent('系统','-','发送邀请', latest.id, `收件人：${latest.recipients.join(';')}`);
+      alert('邀请已发送（模拟）。外部用户将收到含短链的邀请。');
+    }
+
+    // Render share list
+    function renderShareList(){
+      if(shareState.items.length===0){
+        shareListEl.innerHTML = '<div class="text-sm text-slate-400">暂无分享链接，点击“分享合同”开始。</div>';
+        shareCountEl.textContent = '0';
+        return;
+      }
+      shareListEl.innerHTML = '';
+      shareState.items.forEach(item=>{
+        const expired = dayjs().isAfter(dayjs(item.expiresAt));
+        const el = document.createElement('div');
+        el.className = 'p-3 bg-[#021319] rounded-md flex items-start justify-between';
+        el.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <div class="text-sm font-medium break-words truncate-ellipsis" style="max-width:520px;">${item.link}</div>
+              <div class="text-xs px-2 py-1 rounded-md text-slate-300 bg-white/3">${item.active? (expired? '已过期':'生效') : '已撤销'}</div>
+            </div>
+            <div class="text-xs text-slate-400 mt-2">创建：${fmtDate(item.createdAt)} · 到期：${fmtDate(item.expiresAt)} · 下载：${item.allowDownload ? '允许' : '仅预览'} · 收件人：${item.recipients.length?item.recipients.join(', '):'—'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn bg-white/5 px-3 py-2 copy-btn" data-link="${item.link}">复制链接</button>
+            <button class="btn bg-white/5 px-3 py-2" data-action="view" data-id="${item.id}">查看</button>
+            <button class="btn bg-red-600 px-3 py-2 revoke-btn" data-id="${item.id}">撤销</button>
+          </div>
+        `;
+        shareListEl.appendChild(el);
+      });
+
+      // attach events
+      shareListEl.querySelectorAll('.copy-btn').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          navigator.clipboard.writeText(e.currentTarget.dataset.link).then(()=>{ alert('链接已复制'); });
+        });
+      });
+      shareListEl.querySelectorAll('.revoke-btn').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          const id = e.currentTarget.dataset.id;
+          revokeShare(id);
+        });
+      });
+      shareListEl.querySelectorAll('button[data-action="view"]').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          const id = e.currentTarget.dataset.id;
+          viewShareDetail(id);
+        });
+      });
+
+      shareCountEl.textContent = String(shareState.items.length);
+    }
+
+    function viewShareDetail(id){
+      const item = shareState.items.find(x=>x.id===id);
+      if(!item) return;
+      openModalShare();
+      linkResultEl.textContent = item.link;
+      document.getElementById('share-password').value = item.password || '';
+      document.getElementById('allow-download').checked = item.allowDownload;
+      document.getElementById('expiry-select').value = 'custom';
+      document.getElementById('expiry-custom').classList.remove('hidden');
+      document.getElementById('expiry-custom').value = dayjs(item.expiresAt).format('YYYY-MM-DD');
+      document.getElementById('recipients').value = item.recipients.join(', ');
+      document.getElementById('require-approval').checked = item.requireApproval;
+    }
+
+    function revokeShare(id){
+      const item = shareState.items.find(x=>x.id===id);
+      if(!item) return;
+      if(!confirm('撤销后链接将失效，确认撤销？')) return;
+      item.active = false;
+      renderShareList();
+      logEvent('管理员','-','撤销分享', id, '手动撤销');
+      alert('分享已撤销。');
+    }
+
+    function revokeLatest(){
+      if(shareState.items.length===0){ alert('无可撤销的分享'); return; }
+      revokeShare(shareState.items[0].id);
+    }
+
+    // 访问模拟
+    async function simulateAccess(requestDownload=false){
+      const link = document.getElementById('simulate-input').value.trim();
+      if(!link){ alert('请粘贴分享链接'); return; }
+      // find item by link prefix matching
+      const item = shareState.items.find(it => link.startsWith(it.link));
+      const now = dayjs();
+      if(!item){ document.getElementById('simulate-result').textContent = '链接无效或未找到（可能已被公开传播但未被系统识别）。'; logEvent('外部',''+randomIP(),'访问失败','-','链接无效'); return; }
+      if(!item.active){ document.getElementById('simulate-result').textContent = '该分享已被撤销，访问被拒绝。'; logEvent('外部',''+randomIP(),'访问被拒绝', item.id, '链接已撤销'); return; }
+      if(now.isAfter(dayjs(item.expiresAt))){ document.getElementById('simulate-result').textContent = '链接已过期，访问被拒绝。'; logEvent('外部',''+randomIP(),'访问被拒绝', item.id, '链接过期'); return; }
+
+      // 如果有密码，要求输入
+      if(item.password){
+        const pw = prompt('请输入访问密码：');
+        if(pw!==item.password){
+          document.getElementById('simulate-result').textContent = '密码验证失败，访问被拒绝。';
+          logEvent('外部',''+randomIP(),'密码失败', item.id, '密码错误');
+          return;
+        }
+      }
+
+      // 模拟验证码/审批
+      if(item.requireApproval){
+        document.getElementById('simulate-result').textContent = '访问需要管理员审批，已提交申请。';
+        logEvent('外部',''+randomIP(),'请求审批', item.id, '等待审批');
+        return;
+      }
+
+      if(requestDownload && !item.allowDownload){
+        document.getElementById('simulate-result').textContent = '当前链接仅允许预览，下载被禁止。';
+        logEvent('外部',''+randomIP(),'下载被阻止', item.id, '预览限制');
+        return;
+      }
+
+      // 记录访问
+      const ip = randomIP();
+      const actor = '外部访问者';
+      const action = requestDownload ? '下载文件' : '查看文件';
+      document.getElementById('simulate-result').textContent = `${action} 成功（IP: ${ip}）。${requestDownload? '系统将添加水印并记录行为。':''}`;
+      logEvent(actor, ip, action, item.id, requestDownload ? '带水印' : '预览');
+      updateStats();
+    }
+
+    // 日志管理
+    function logEvent(actor, ip, action, linkId='-', note=''){
+      const entry = { time: dayjs().toISOString(), actor, ip, action, linkId, note };
+      shareState.logs.unshift(entry);
+      // 更新最近访问
+      lastAccessEl.textContent = shareState.logs.length? fmtDate(shareState.logs[0].time) : '—';
+      renderLogsRow(entry);
+    }
+
+    function renderLogs(){
+      const tbody = document.getElementById('logs-table');
+      tbody.innerHTML = '';
+      if(shareState.logs.length===0){
+        tbody.innerHTML = `<tr><td class="p-3 text-slate-400" colspan="6">暂无访问记录</td></tr>`;
+        return;
+      }
+      shareState.logs.forEach(log=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-3">${fmtDate(log.time)}</td>
+          <td class="p-3">${escapeHtml(log.actor)}</td>
+          <td class="p-3">${escapeHtml(log.ip)}</td>
+          <td class="p-3">${escapeHtml(log.action)}</td>
+          <td class="p-3">${escapeHtml(log.linkId)}</td>
+          <td class="p-3">${escapeHtml(log.note)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderLogsRow(entry){
+      // prepend to table if open
+      const tbody = document.getElementById('logs-table');
+      if(!tbody) return;
+      const trow = document.createElement('tr');
+      trow.innerHTML = `<td class="p-3">${fmtDate(entry.time)}</td><td class="p-3">${escapeHtml(entry.actor)}</td><td class="p-3">${escapeHtml(entry.ip)}</td><td class="p-3">${escapeHtml(entry.action)}</td><td class="p-3">${escapeHtml(entry.linkId)}</td><td class="p-3">${escapeHtml(entry.note)}</td>`;
+      if(tbody.firstChild && tbody.firstChild.tagName!=='TR') tbody.innerHTML='';
+      tbody.prepend(trow);
+      shareCountEl.textContent = String(shareState.items.length);
+      lastAccessEl.textContent = fmtDate(entry.time);
+    }
+
+    function exportLogs(){
+      if(shareState.logs.length===0){ alert('暂无访问日志可导出'); return; }
+      const rows = [['时间','访问者','IP','操作','目标链接','备注']];
+      shareState.logs.slice().reverse().forEach(l=>{
+        rows.push([fmtDate(l.time), l.actor, l.ip, l.action, l.linkId, l.note]);
+      });
+      const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `access_logs_${dayjs().format('YYYYMMDD_HHmmss')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function updateStats(){
+      shareCountEl.textContent = String(shareState.items.length);
+      if(shareState.logs.length) lastAccessEl.textContent = fmtDate(shareState.logs[0].time);
+    }
+
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function copyPassword(){
+      const pw = document.getElementById('share-password').value;
+      if(!pw) { alert('无密码可复制'); return; }
+      navigator.clipboard.writeText(pw).then(()=>alert('密码已复制'));
+    }
+
+    // 初始示例数据（为更美观页面展示，仍为前端模拟）
+    (function seed(){
+      // 创建一个示例分享
+      (async ()=>{
+        const id = uid(10);
+        const expiresAt = dayjs().add(7,'day').toISOString();
+        const signature = await hmacSign('REPLACE_WITH_SECRET_KEY', `${CONTRACT_ID}|${id}|0|${expiresAt}|0`);
+        const short = `https://zi-lv.cn/s/${btoa(id).replace(/=/g,'').slice(0,8)}_${signature.slice(0,8)}`;
+        shareState.items.push({ id, link: short, password:'', allowDownload:false, expiresAt, createdAt: dayjs().subtract(1,'day').toISOString(), active:true, recipients:['external@lawfirm.com'], requireApproval:false, signature });
+        renderShareList();
+        updateStats();
+      })();
+
+      // seed some logs
+      shareState.logs.push({ time: dayjs().subtract(2,'hour').toISOString(), actor:'外部律师', ip:'203.86.12.45', action:'查看文件', linkId:'HT-EXAMPLE-1', note:'预览' });
+      shareState.logs.push({ time: dayjs().subtract(1,'hour').toISOString(), actor:'外部顾问', ip:'198.51.100.23', action:'查看文件', linkId:'HT-EXAMPLE-2', note:'预览' });
+      renderLogs();
+      updateStats();
+    })();
+
+    // small UI niceties
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){ closeModalShare(); closeModalLogs(); }
+    });
+
+  </script>
+</body>
+</html>
