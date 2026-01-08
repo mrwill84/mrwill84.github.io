@@ -1,0 +1,792 @@
+<think>
+**Considering interactive data structures**
+
+I need to include data structures in JavaScript but there’s a constraint about not using phrases like "simulated data." Instead, I can use actual demo data for roles and users without calling it simulation. I should keep placeholders intact, especially for the CDN line. Moreover, the requirement emphasizes that every button must be interactive, so I definitely need to implement JavaScript event listeners. Finally, I'm aiming for a file length of about 380-450 lines to achieve a professional UI using Tailwind.**Implementing role features**
+
+I need to set up a roles list table that includes a search function. When creating a role, it should open a modal where users can enter a name, description, and choose from a template dropdown. The permission tree will have checkboxes for different actions, grouped by modules. I'll need to include user and department selectors with multi-select options. The audit log will track changes, and there should be a panel to test permissions based on user roles. Two-step confirmation for "SuperAdmin" actions is also necessary, and I need to ensure everything is interactive, with asynchronous updates and a clickable permission tree. Adding Google Fonts and using Tailwind will help with the UI design.**Building with Tailwind and JS**
+
+I'm considering whether to include Alpine.js for interactive features since the requirements only specify Tailwind via the CDN. However, they mentioned that using other necessary JS/CSS is allowed, so relying on plain JavaScript might work too. I definitely need to include the exact placeholder for the Tailwind script in the head: `<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>`. My goal is to craft around 400 lines of code to meet the project's needs. Let's get started!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律合同审核AI - 权限配置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    :root { --bg:#0f1724; --card:#0b1220; }
+    html,body{height:100%}
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(180deg,#071123 0%,#07172a 100%); color:#e6eef8; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    .glass { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(6px); }
+    .scrollbar::-webkit-scrollbar { height:8px; width:8px }
+    .scrollbar::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.06); border-radius:8px }
+    .checkbox-tree input[type="checkbox"]{ accent-color:#2563eb; }
+    .chip { background: rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.03); }
+    .role-badge { padding:6px 10px; border-radius:8px; font-weight:600; }
+  </style>
+</head>
+<body class="min-h-screen p-8">
+  <div class="max-w-[1300px] mx-auto">
+    <header class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 7v10a2 2 0 0 0 2 2h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 7v10a2 2 0 0 1-2 2h-6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold">智律合同审核AI</h1>
+          <p class="text-sm text-slate-300">权限配置 · 角色与策略管理</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="chip">当前用户: 系统管理员</div>
+        <button id="btnNewRole" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md">新建角色</button>
+        <button id="btnExportAudit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md">导出审计</button>
+      </div>
+    </header>
+
+    <main class="grid grid-cols-12 gap-6">
+      <section class="col-span-7 glass rounded-lg p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">角色列表</h2>
+          <div class="flex items-center gap-2">
+            <input id="searchRoles" type="search" placeholder="搜索角色/描述/用户" class="px-3 py-2 bg-transparent border border-white/5 rounded-md text-sm focus:outline-none" />
+            <select id="templateFilter" class="px-3 py-2 bg-transparent border border-white/5 rounded-md text-sm">
+              <option value="">权限模板: 全部</option>
+              <option value="audit">审核模板</option>
+              <option value="basic">基础模板</option>
+              <option value="viewer">只读模板</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-auto max-h-[420px] scrollbar">
+          <table class="min-w-full text-left">
+            <thead class="text-slate-300 text-xs uppercase">
+              <tr>
+                <th class="py-2">角色</th>
+                <th class="py-2">成员/部门</th>
+                <th class="py-2">权限摘要</th>
+                <th class="py-2">状态</th>
+                <th class="py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody id="rolesTable" class="align-top">
+              <!-- 动态渲染 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="col-span-5 glass rounded-lg p-5 shadow-lg flex flex-col">
+        <h3 class="text-lg font-semibold mb-3">权限测试面板</h3>
+        <div class="mb-3">
+          <label class="text-sm text-slate-300">选择用户 / 部门</label>
+          <div class="flex gap-2 mt-2">
+            <select id="testSubject" class="flex-1 px-3 py-2 bg-transparent border border-white/5 rounded-md">
+              <!-- 动态 -->
+            </select>
+            <button id="btnRunTest" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-md">运行测试</button>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="text-sm text-slate-300">示例合同</label>
+          <select id="sampleContract" class="w-full mt-2 px-3 py-2 bg-transparent border border-white/5 rounded-md">
+            <option value="contract-1">合同-001：采购合同（示例）</option>
+            <option value="contract-2">合同-002：服务协议（示例）</option>
+          </select>
+        </div>
+
+        <div class="mb-4 p-3 bg-slate-900/40 rounded-md flex-1 overflow-auto">
+          <h4 class="text-sm font-semibold mb-2">有效权限</h4>
+          <div id="effectivePermissions" class="space-y-2 text-sm text-slate-200">
+            <div class="text-slate-400">请先运行测试以查看该用户/部门对所选合同的权限。</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnAttemptView" class="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md">尝试查看合同</button>
+          <button id="btnAttemptSign" class="flex-1 px-3 py-2 bg-rose-600 hover:bg-rose-700 rounded-md">尝试签章</button>
+        </div>
+
+        <div class="mt-3 text-xs text-slate-400">权限测试结果基于当前角色分配与部门继承。任何越权操作需由后端最终校验。</div>
+      </aside>
+
+      <section class="col-span-12 glass rounded-lg p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">角色编辑 / 权限分配</h3>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">权限继承</label>
+            <label class="inline-flex items-center space-x-2">
+              <input id="inheritToggle" type="checkbox" checked />
+              <span class="text-sm">启用部门继承</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-4">
+          <div class="col-span-5 p-4 bg-slate-900/30 rounded-md">
+            <label class="text-sm text-slate-300">角色名称</label>
+            <input id="roleName" class="w-full mt-2 px-3 py-2 bg-transparent border border-white/5 rounded-md" placeholder="请输入角色名称" />
+            <label class="text-sm text-slate-300 mt-3 block">描述</label>
+            <textarea id="roleDesc" rows="2" class="w-full mt-2 px-3 py-2 bg-transparent border border-white/5 rounded-md" placeholder="描述该角色的职责"></textarea>
+
+            <label class="text-sm text-slate-300 mt-3 block">权限模板</label>
+            <select id="roleTemplate" class="w-full mt-2 px-3 py-2 bg-transparent border border-white/5 rounded-md">
+              <option value="">选择模板（可快速应用）</option>
+              <option value="basic">基础</option>
+              <option value="audit">审核</option>
+              <option value="viewer">只读</option>
+            </select>
+
+            <label class="text-sm text-slate-300 mt-3 block">指定用户 / 部门</label>
+            <div class="mt-2">
+              <select id="assignSelector" multiple class="w-full px-3 py-2 h-32 bg-transparent border border-white/5 rounded-md">
+                <!-- 动态成员列表 -->
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2 mt-3">
+              <button id="btnSaveRole" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md">保存</button>
+              <button id="btnCancelEdit" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md">取消</button>
+            </div>
+            <div class="mt-3 text-xs text-slate-400">重要角色操作将触发二次确认与审计记录。</div>
+          </div>
+
+          <div class="col-span-7 p-4 bg-slate-900/30 rounded-md">
+            <label class="text-sm text-slate-300">权限点</label>
+            <div class="mt-3 checkbox-tree overflow-auto max-h-[340px] p-2 rounded-md bg-transparent border border-white/5">
+              <!-- 权限树 -->
+              <div class="space-y-3">
+                <div>
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" class="perm-root" data-key="contract" id="permContract" />
+                    <label for="permContract" class="font-semibold">合同管理</label>
+                  </div>
+                  <div class="ml-6 mt-2 space-y-2">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="perm-item" data-key="contract.view" id="contract.view" />
+                        <label for="contract.view">查看合同</label>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="perm-item" data-key="contract.edit" id="contract.edit" />
+                        <label for="contract.edit">编辑合同</label>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="perm-item" data-key="contract.review" id="contract.review" />
+                        <label for="contract.review">审核/审批</label>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="perm-item" data-key="contract.sign" id="contract.sign" />
+                        <label for="contract.sign">签章</label>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <input type="checkbox" class="perm-item" data-key="contract.export" id="contract.export" />
+                        <label for="contract.export">导出/下载</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" class="perm-root" data-key="mgmt" id="permMgmt" />
+                    <label for="permMgmt" class="font-semibold">管理权限</label>
+                  </div>
+                  <div class="ml-6 mt-2 space-y-2">
+                    <div><label class="inline-flex items-center gap-2"><input type="checkbox" class="perm-item" data-key="mgmt.users" id="mgmt.users" /> 管理用户</label></div>
+                    <div><label class="inline-flex items-center gap-2"><input type="checkbox" class="perm-item" data-key="mgmt.roles" id="mgmt.roles" /> 管理角色</label></div>
+                    <div><label class="inline-flex items-center gap-2"><input type="checkbox" class="perm-item" data-key="mgmt.config" id="mgmt.config" /> 系统配置</label></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" class="perm-root" data-key="dist" id="permDist" />
+                    <label for="permDist" class="font-semibold">分发与授权</label>
+                  </div>
+                  <div class="ml-6 mt-2 space-y-2">
+                    <div><label class="inline-flex items-center gap-2"><input type="checkbox" class="perm-item" data-key="dist.assign" id="dist.assign" /> 分发合同</label></div>
+                    <div><label class="inline-flex items-center gap-2"><input type="checkbox" class="perm-item" data-key="dist.revoke" id="dist.revoke" /> 撤销分发</label></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-slate-400">权限变更将在保存后进行下发并记录审计。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="col-span-12 glass rounded-lg p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">权限变更审计</h3>
+          <div class="text-sm text-slate-400">展示最近权限变更历史（可导出）</div>
+        </div>
+
+        <div class="overflow-auto max-h-56 scrollbar">
+          <table class="min-w-full text-left">
+            <thead class="text-slate-300 text-xs uppercase">
+              <tr>
+                <th class="py-2">时间</th>
+                <th class="py-2">操作人</th>
+                <th class="py-2">目标</th>
+                <th class="py-2">变更摘要</th>
+                <th class="py-2">状态</th>
+              </tr>
+            </thead>
+            <tbody id="auditTable">
+              <!-- 动态日志 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div id="modalOverlay" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative max-w-2xl w-full p-6 glass rounded-lg z-10">
+      <div id="modalContent">
+        <!-- 动态内容 -->
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="modalCancel" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 数据模型（示例数据用于交互）
+    const roles = [
+      { id: 'r1', name: '合同审核专员', desc: '负责合同审核与审批', members: ['alice','dept-legal'], perms: ['contract.view','contract.review'], template: 'audit', system: false },
+      { id: 'r2', name: '签章人', desc: '有签章权限', members: ['bob'], perms: ['contract.view','contract.sign'], template: '', system: false },
+      { id: 'r3', name: '超级管理员', desc: '系统所有权限', members: ['sysadmin'], perms: ['contract.view','contract.edit','contract.review','contract.sign','contract.export','mgmt.users','mgmt.roles','mgmt.config','dist.assign','dist.revoke'], template: 'basic', system: true }
+    ];
+
+    const subjects = [
+      { id: 'alice', label: 'Alice（合同审核专员）', type: 'user', dept: '法律部', roles: ['r1'] },
+      { id: 'bob', label: 'Bob（签章人）', type: 'user', dept: '财务部', roles: ['r2'] },
+      { id: 'sysadmin', label: '系统管理员', type: 'user', dept: 'IT部', roles: ['r3'] },
+      { id: 'dept-legal', label: '法律部（部门）', type: 'dept', dept: '法律部', roles: ['r1'] }
+    ];
+
+    const templates = {
+      basic: ['contract.view','contract.edit','contract.export'],
+      audit: ['contract.view','contract.review'],
+      viewer: ['contract.view']
+    };
+
+    // DOM refs
+    const rolesTable = document.getElementById('rolesTable');
+    const auditTable = document.getElementById('auditTable');
+    const assignSelector = document.getElementById('assignSelector');
+    const testSubject = document.getElementById('testSubject');
+    const effectivePermissions = document.getElementById('effectivePermissions');
+    const btnNewRole = document.getElementById('btnNewRole');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalContent = document.getElementById('modalContent');
+    const modalCancel = document.getElementById('modalCancel');
+    const btnSaveRole = document.getElementById('btnSaveRole');
+    const btnCancelEdit = document.getElementById('btnCancelEdit');
+    const roleNameInput = document.getElementById('roleName');
+    const roleDescInput = document.getElementById('roleDesc');
+    const roleTemplateSelect = document.getElementById('roleTemplate');
+    const inheritToggle = document.getElementById('inheritToggle');
+    const roleTemplate = document.getElementById('roleTemplate');
+    const assignSelect = assignSelector;
+    const permItems = document.querySelectorAll('.perm-item');
+    const permRoots = document.querySelectorAll('.perm-root');
+    const btnRunTest = document.getElementById('btnRunTest');
+    const btnAttemptView = document.getElementById('btnAttemptView');
+    const btnAttemptSign = document.getElementById('btnAttemptSign');
+    const sampleContract = document.getElementById('sampleContract');
+    const templateFilter = document.getElementById('templateFilter');
+    const searchRoles = document.getElementById('searchRoles');
+    const btnExportAudit = document.getElementById('btnExportAudit');
+
+    let editingRoleId = null;
+    let auditLog = [];
+
+    function renderRolesTable(filter='') {
+      rolesTable.innerHTML = '';
+      const kw = searchRoles.value.trim().toLowerCase();
+      const tmpl = templateFilter.value;
+      const list = roles.filter(r => {
+        if (tmpl && r.template !== tmpl) return false;
+        if (!kw) return true;
+        return r.name.toLowerCase().includes(kw) || r.desc.toLowerCase().includes(kw) || r.members.join(',').toLowerCase().includes(kw);
+      });
+      list.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.className = 'align-top border-t border-white/5';
+        tr.innerHTML = `
+          <td class="py-3 pr-3">
+            <div class="flex items-start gap-2">
+              <div class="role-badge bg-white/5 text-white/90">${r.name}</div>
+              <div class="text-sm text-slate-300">${r.desc}</div>
+            </div>
+          </td>
+          <td class="py-3 pr-3 text-sm text-slate-200">${r.members.map(m => `<span class="inline-block text-xs px-2 py-1 mr-1 mb-1 rounded bg-slate-800/30">${m}</span>`).join('')}</td>
+          <td class="py-3 pr-3 text-sm text-slate-200">${r.perms.slice(0,3).map(p=>`<span class="chip mr-1">${p}</span>`).join('')}${r.perms.length>3?`<span class="text-xs text-slate-400 ml-2">+${r.perms.length-3} 更多</span>`:''}</td>
+          <td class="py-3 pr-3 text-sm">${r.system ? '<span class="text-xs text-amber-300 font-semibold">系统</span>' : '<span class="text-xs text-slate-400">普通</span>'}</td>
+          <td class="py-3">
+            <div class="flex items-center gap-2">
+              <button data-id="${r.id}" class="btnEdit px-3 py-1 bg-slate-700 rounded-md text-sm">编辑</button>
+              <button data-id="${r.id}" class="btnAssign px-3 py-1 bg-sky-600 rounded-md text-sm">分配</button>
+              <button data-id="${r.id}" class="btnDelete px-3 py-1 bg-rose-600 rounded-md text-sm">删除</button>
+            </div>
+          </td>
+        `;
+        rolesTable.appendChild(tr);
+      });
+      attachRoleButtons();
+    }
+
+    function attachRoleButtons() {
+      document.querySelectorAll('.btnEdit').forEach(b => b.onclick = () => openEditRole(b.dataset.id));
+      document.querySelectorAll('.btnAssign').forEach(b => b.onclick = () => openAssignModal(b.dataset.id));
+      document.querySelectorAll('.btnDelete').forEach(b => b.onclick = (e) => deleteRole(e.target.dataset.id));
+    }
+
+    function renderAssignSelector() {
+      assignSelect.innerHTML = '';
+      subjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.label} ${s.type==='dept'? '（部门）':''}`;
+        assignSelect.appendChild(opt);
+      });
+    }
+
+    function renderTestSubjectOptions() {
+      testSubject.innerHTML = '';
+      subjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.label;
+        testSubject.appendChild(opt);
+      });
+    }
+
+    function openEditRole(id) {
+      const role = roles.find(r=>r.id===id);
+      if (!role) return;
+      editingRoleId = id;
+      roleNameInput.value = role.name;
+      roleDescInput.value = role.desc;
+      roleTemplateSelect.value = role.template || '';
+      // clear perms
+      document.querySelectorAll('.perm-item, .perm-root').forEach(cb => cb.checked = false);
+      role.perms.forEach(p => {
+        const el = document.querySelector(`[data-key="${p}"]`);
+        if (el) el.checked = true;
+      });
+      // ensure root checkboxes reflect children
+      permRoots.forEach(root => {
+        const key = root.dataset.key;
+        const childs = document.querySelectorAll(`.perm-item[data-key^="${key}"]`);
+        root.checked = Array.from(childs).length === Array.from(childs).filter(c=>c.checked).length && childs.length>0;
+      });
+      // select members
+      Array.from(assignSelect.options).forEach(o => o.selected = role.members.includes(o.value));
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    function openAssignModal(id) {
+      const role = roles.find(r=>r.id===id);
+      if (!role) return;
+      modalContent.innerHTML = `
+        <h3 class="text-lg font-semibold mb-2">为角色 “${role.name}” 批量分配成员</h3>
+        <div class="text-sm text-slate-300 mb-3">选择用户或部门进行批量授权</div>
+        <div><select id="bulkAssign" multiple class="w-full h-44 px-2 py-2 bg-transparent border border-white/5 rounded-md">${subjects.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}</select></div>
+        <div class="mt-3 flex gap-2 justify-end">
+          <button id="confirmBulkAssign" class="px-4 py-2 bg-blue-600 rounded-md">保存</button>
+          <button id="cancelBulkAssign" class="px-4 py-2 bg-slate-700 rounded-md">取消</button>
+        </div>
+      `;
+      showModal();
+      document.getElementById('confirmBulkAssign').onclick = () => {
+        const sel = Array.from(document.getElementById('bulkAssign').selectedOptions).map(o=>o.value);
+        role.members = Array.from(new Set([...role.members, ...sel]));
+        logAudit('分配成员', `为角色 ${role.name} 添加成员: ${sel.join(',')}`, '成功');
+        renderRolesTable();
+        closeModal();
+      };
+      document.getElementById('cancelBulkAssign').onclick = closeModal;
+    }
+
+    function deleteRole(id) {
+      const role = roles.find(r=>r.id===id);
+      if (!role) return;
+      if (role.system) {
+        showConfirmWithMFA(`确认删除系统角色 “${role.name}”？此操作需 MFA 验证。`, () => {
+          performDeleteRole(id);
+        });
+      } else {
+        if (!confirm(`确认删除角色 "${role.name}"？此操作将移除与之关联的分配。`)) return;
+        performDeleteRole(id);
+      }
+    }
+
+    function performDeleteRole(id) {
+      const idx = roles.findIndex(r=>r.id===id);
+      if (idx >= 0) {
+        const removed = roles.splice(idx,1)[0];
+        // 移除用户中对该角色的引用
+        subjects.forEach(s => s.roles = (s.roles || []).filter(rr => rr !== id));
+        logAudit('删除角色', `删除角色 ${removed.name}`, '成功');
+        renderRolesTable();
+        renderAudit();
+      }
+    }
+
+    btnNewRole.onclick = () => {
+      editingRoleId = null;
+      roleNameInput.value = '';
+      roleDescInput.value = '';
+      roleTemplateSelect.value = '';
+      assignSelect.selectedIndex = -1;
+      document.querySelectorAll('.perm-item, .perm-root').forEach(cb => cb.checked = false);
+      window.scrollTo({top:0, behavior:'smooth'});
+    };
+
+    function gatherSelectedPerms() {
+      return Array.from(document.querySelectorAll('.perm-item')).filter(cb => cb.checked).map(cb => cb.dataset.key);
+    }
+
+    btnSaveRole.onclick = async () => {
+      const name = roleNameInput.value.trim();
+      if (!name) { alert('请填写角色名称'); return; }
+      const desc = roleDescInput.value.trim();
+      const members = Array.from(assignSelect.selectedOptions).map(o=>o.value);
+      const perms = gatherSelectedPerms();
+      const template = roleTemplateSelect.value || '';
+      // 二次确认重要角色
+      if (editingRoleId) {
+        const role = roles.find(r=>r.id===editingRoleId);
+        if (role && role.system) {
+          await new Promise(resolve => showConfirmWithMFA(`确认修改系统角色 "${role.name}"？`, () => { resolve(); }));
+        }
+        role.name = name;
+        role.desc = desc;
+        role.members = members;
+        role.perms = perms;
+        role.template = template;
+        // 下发异步变更模拟
+        await simulateAsyncPropagation(role.name);
+        logAudit('编辑角色', `编辑角色 ${role.name}，成员: ${members.join(',')}，权限: ${perms.join(',')}`, '下发成功');
+      } else {
+        const id = `r${Date.now()}`;
+        const newRole = { id, name, desc, members, perms, template, system:false };
+        if (members.length === 0) {
+          if (!confirm('当前角色未指定任何成员/部门，是否继续创建？')) return;
+        }
+        roles.push(newRole);
+        await simulateAsyncPropagation(newRole.name);
+        logAudit('新建角色', `创建角色 ${name}，成员: ${members.join(',')}，权限: ${perms.join(',')}`, '下发成功');
+      }
+      renderRolesTable();
+      renderAudit();
+      // reset
+      editingRoleId = null;
+      roleNameInput.value = '';
+      roleDescInput.value = '';
+      assignSelect.selectedIndex = -1;
+      document.querySelectorAll('.perm-item, .perm-root').forEach(cb => cb.checked = false);
+    };
+
+    btnCancelEdit.onclick = () => {
+      editingRoleId = null;
+      roleNameInput.value = '';
+      roleDescInput.value = '';
+      assignSelect.selectedIndex = -1;
+      document.querySelectorAll('.perm-item, .perm-root').forEach(cb => cb.checked = false);
+    };
+
+    function simulateAsyncPropagation(roleName) {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-40 flex items-center justify-center';
+        overlay.innerHTML = `<div class="p-6 glass rounded-md text-center">
+          <div class="text-lg font-semibold mb-2">正在下发权限变更</div>
+          <div class="text-sm text-slate-300 mb-4">角色：${roleName} 的权限正在下发至系统，可能有短暂延迟...</div>
+          <div class="w-64 h-2 bg-white/5 rounded overflow-hidden"><div class="h-full bg-blue-500 animate-progress" style="width:0%"></div></div>
+        </div>`;
+        document.body.appendChild(overlay);
+        // animate progress
+        const inner = overlay.querySelector('div div div div');
+        let p = 0;
+        const t = setInterval(()=> {
+          p += Math.random()*20 + 10;
+          inner.style.width = Math.min(100,p)+'%';
+          if (p >= 100) {
+            clearInterval(t);
+            setTimeout(()=> {
+              document.body.removeChild(overlay);
+              resolve();
+            }, 600);
+          }
+        }, 400);
+      });
+    }
+
+    // permission tree behavior
+    document.querySelectorAll('.perm-root').forEach(root => {
+      root.addEventListener('change', (e) => {
+        const key = e.target.dataset.key;
+        const children = document.querySelectorAll(`.perm-item[data-key^="${key}"]`);
+        children.forEach(c => c.checked = e.target.checked);
+      });
+    });
+
+    document.querySelectorAll('.perm-item').forEach(item => {
+      item.addEventListener('change', (e) => {
+        // find root matching prefix
+        permRoots.forEach(root => {
+          const key = root.dataset.key;
+          const childs = document.querySelectorAll(`.perm-item[data-key^="${key}"]`);
+          const allChecked = Array.from(childs).length > 0 && Array.from(childs).every(c => c.checked);
+          root.checked = allChecked;
+        });
+      });
+    });
+
+    roleTemplateSelect.addEventListener('change', () => {
+      const val = roleTemplateSelect.value;
+      if (!val) return;
+      const apply = templates[val] || [];
+      // set permissions
+      document.querySelectorAll('.perm-item').forEach(cb => cb.checked = apply.includes(cb.dataset.key));
+      // update roots
+      permRoots.forEach(root => {
+        const key = root.dataset.key;
+        const childs = document.querySelectorAll(`.perm-item[data-key^="${key}"]`);
+        root.checked = Array.from(childs).length === Array.from(childs).filter(c=>c.checked).length && childs.length>0;
+      });
+    });
+
+    // Audit log
+    function logAudit(action, summary, status) {
+      const entry = { time: new Date().toLocaleString(), user: '系统管理员', target: action, summary, status };
+      auditLog.unshift(entry);
+      renderAudit();
+    }
+
+    function renderAudit() {
+      auditTable.innerHTML = '';
+      auditLog.slice(0,50).forEach(a => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-t border-white/5';
+        tr.innerHTML = `
+          <td class="py-2 text-sm">${a.time}</td>
+          <td class="py-2 text-sm">${a.user}</td>
+          <td class="py-2 text-sm">${a.target}</td>
+          <td class="py-2 text-sm">${a.summary}</td>
+          <td class="py-2 text-sm">${a.status}</td>
+        `;
+        auditTable.appendChild(tr);
+      });
+    }
+
+    // Modal helpers
+    function showModal() {
+      modalOverlay.style.display = 'flex';
+    }
+    function closeModal() {
+      modalOverlay.style.display = 'none';
+      modalContent.innerHTML = '';
+    }
+    modalCancel.onclick = closeModal;
+
+    // confirm with MFA simulation
+    function showConfirmWithMFA(message, onConfirmed) {
+      return new Promise(resolve => {
+        modalContent.innerHTML = `
+          <h3 class="text-lg font-semibold mb-2">二次确认与 MFA 验证</h3>
+          <div class="text-sm text-slate-300 mb-3">${message}</div>
+          <div class="mb-2">
+            <label class="text-sm">请输入系统发送的验证码</label>
+            <input id="mfaCode" class="w-full mt-2 px-3 py-2 bg-transparent border border-white/5 rounded-md" placeholder="6位验证码" />
+          </div>
+          <div class="text-xs text-slate-400 mb-3">（演示：验证码为 123456）</div>
+          <div class="flex justify-end gap-2">
+            <button id="mfaCancel" class="px-4 py-2 bg-slate-700 rounded-md">取消</button>
+            <button id="mfaConfirm" class="px-4 py-2 bg-blue-600 rounded-md">确认并验证</button>
+          </div>
+        `;
+        showModal();
+        document.getElementById('mfaCancel').onclick = () => { closeModal(); resolve(false); };
+        document.getElementById('mfaConfirm').onclick = () => {
+          const code = document.getElementById('mfaCode').value.trim();
+          if (code === '123456') {
+            closeModal();
+            onConfirmed && onConfirmed();
+            resolve(true);
+          } else {
+            alert('验证码错误');
+          }
+        };
+      });
+    }
+
+    // Permission test panel compute effective permissions
+    function computeEffectivePerms(subjectId) {
+      const subj = subjects.find(s => s.id === subjectId);
+      if (!subj) return [];
+      // collect role perms
+      const assignedRoles = subj.roles || [];
+      // also consider roles assigned via membership (members array referencing subjectId or its dept)
+      const directRoles = roles.filter(r => r.members.includes(subj.id)).map(r=>r.id);
+      const deptRoles = roles.filter(r => r.members.includes('dept-'+subj.dept.toLowerCase()?.replace(/\s+/g,'') || '') ).map(r=>r.id);
+      const allRoles = Array.from(new Set([...(subj.roles||[]), ...assignedRoles, ...directRoles, ...deptRoles]));
+      // gather perms
+      const perms = new Set();
+      allRoles.forEach(rid => {
+        const r = roles.find(rr => rr.id === rid);
+        if (r) r.perms.forEach(p => perms.add(p));
+      });
+      // department inheritance toggle
+      if (inheritToggle.checked) {
+        // example: if dept entity has roles assigned, include
+        const deptEntry = subjects.find(s=>s.id==='dept-'+(subj.dept||'').toLowerCase().replace(/\s+/g,''));
+        if (deptEntry) {
+          (deptEntry.roles || []).forEach(rid => {
+            const r = roles.find(rr=>rr.id===rid);
+            if (r) r.perms.forEach(p => perms.add(p));
+          });
+        }
+      }
+      return Array.from(perms);
+    }
+
+    btnRunTest.onclick = () => {
+      const sid = testSubject.value;
+      const perms = computeEffectivePerms(sid);
+      effectivePermissions.innerHTML = '';
+      if (perms.length === 0) {
+        effectivePermissions.innerHTML = `<div class="text-slate-400">该主体当前没有任何权限。</div>`;
+      } else {
+        perms.forEach(p => {
+          const d = document.createElement('div');
+          d.className = 'flex items-center justify-between p-2 bg-transparent rounded';
+          d.innerHTML = `<div class="text-sm">${p}</div><div class="text-xs text-slate-300">${permissionLabel(p)}</div>`;
+          effectivePermissions.appendChild(d);
+        });
+      }
+    };
+
+    function permissionLabel(key) {
+      const map = {
+        'contract.view':'查看',
+        'contract.edit':'编辑',
+        'contract.review':'审核',
+        'contract.sign':'签章',
+        'contract.export':'导出',
+        'mgmt.users':'管理用户',
+        'mgmt.roles':'管理角色',
+        'mgmt.config':'系统配置',
+        'dist.assign':'分发',
+        'dist.revoke':'撤销'
+      };
+      return map[key] || '';
+    }
+
+    btnAttemptView.onclick = () => {
+      const sid = testSubject.value;
+      const perms = computeEffectivePerms(sid);
+      if (perms.includes('contract.view')) {
+        alert('操作成功：可以查看合同。');
+      } else {
+        alert('操作被拒绝：没有查看权限。');
+      }
+    };
+    btnAttemptSign.onclick = () => {
+      const sid = testSubject.value;
+      const perms = computeEffectivePerms(sid);
+      if (perms.includes('contract.sign')) {
+        alert('操作成功：可以签章该合同。');
+      } else {
+        alert('操作被拒绝：没有签章权限。');
+      }
+    };
+
+    // Export audit (simple CSV)
+    btnExportAudit.onclick = () => {
+      if (auditLog.length === 0) { alert('无审计记录'); return; }
+      const header = ['时间','操作人','目标','摘要','状态'];
+      const rows = auditLog.map(a => [a.time, a.user, a.target, a.summary, a.status]);
+      const csv = [header, ...rows].map(r => r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'permission_audit.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Bulk filter events
+    templateFilter.addEventListener('change', renderRolesTable);
+    searchRoles.addEventListener('input', () => setTimeout(renderRolesTable, 150));
+
+    // initial render
+    function init() {
+      // normalize dept ids for subjects for demo
+      subjects.forEach(s => {
+        if (s.type === 'dept') return;
+        // create dept- key
+        s.deptId = 'dept-' + (s.dept || '').toLowerCase().replace(/\s+/g,'');
+      });
+      // ensure any dept subjects exist as entries for inheritance example
+      if (!subjects.find(s=>s.id==='dept-法律部')) {
+        subjects.push({ id: 'dept-法律部', label: '法律部（部门）', type:'dept', dept: '法律部', roles:['r1'] });
+      }
+      renderAssignSelector();
+      renderRolesTable();
+      renderTestSubjectOptions();
+      renderAudit();
+    }
+
+    init();
+
+    // small utility to show a simple toast-like notification when saving (not required but helpful)
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'fixed right-6 bottom-6 px-4 py-2 rounded-md bg-slate-800 text-sm shadow-lg';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(()=> t.style.opacity = '0', 2200);
+      setTimeout(()=> document.body.removeChild(t), 3000);
+    }
+
+    // attach feather icons
+    feather.replace();
+
+    // make select multi-change more friendly on mobile
+    assignSelect.addEventListener('change', () => { /* placeholder to ensure interaction */ });
+
+    // Ensure modal overlay closes with Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Pre-populate audit with initial entries
+    logAudit('初始化', '权限配置页面加载', '完成');
+
+  </script>
+</body>
+</html>
