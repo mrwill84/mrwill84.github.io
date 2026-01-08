@@ -1,0 +1,737 @@
+<think>
+I'm ready to craft some code! I need to focus on producing HTML with sufficient lines, while making sure I'm only giving code output. It's important to ensure clarity in the code so that it serves its purpose effectively. I should also double-check that I'm aligning with any formatting expectations. Let’s create a structured HTML document together, keeping everything neat and readable!
+</think><!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>智律云AI平台1.0 - 注册</title>
+  <meta name="description" content="智律云AI平台1.0 注册 — 合同审核与管理平台" />
+  <!-- 保留占位符（必须原样保留） -->
+  cdn： <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --brand: #0066FF; --muted:#6b7280; }
+    html,body,#app { height:100%; }
+    body { font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%); color: #0f172a; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,255,0.95)); box-shadow: 0 6px 24px rgba(12,18,28,0.08); border-radius: 12px; }
+    .btn-brand { background: linear-gradient(90deg,var(--brand),#0077ff); color:white; }
+    .field-hint { color:var(--muted); font-size:0.87rem; }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+    .pw-meter { height:8px; border-radius:6px; background:#e6eefc; overflow:hidden; }
+    .pw-meter > i { display:block; height:100%; background:linear-gradient(90deg,#ff6b6b,#ffd166,#4fd1c5,#60a5fa); width:0%; transition:width .35s ease; }
+    .captcha-box { background:linear-gradient(180deg,#fff,#fbfdff); padding:10px 12px; border-radius:8px; border:1px dashed #e6eefc; display:flex; align-items:center; gap:8px; }
+    .toast { position:fixed; right:20px; top:20px; z-index:60; min-width:280px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-5xl grid grid-cols-12 gap-8">
+      <!-- Left info column -->
+      <div class="col-span-5 flex flex-col gap-6">
+        <div class="card p-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white text-xl font-semibold">
+              智律
+            </div>
+            <div>
+              <h1 class="text-xl font-bold">智律云AI平台 1.0</h1>
+              <p class="text-sm text-slate-500">合同审核与管理 | 合同智能分析 | 工作流与审计</p>
+            </div>
+          </div>
+          <div class="mt-4 text-sm text-slate-600">
+            欢迎使用智律云AI平台。注册后可使用合同审核与管理功能，支持企业认证并进入待审核流程。注册过程包含验证码验证、密码策略与防机器人保护。
+          </div>
+          <div class="mt-6 grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-md bg-slate-50 border border-slate-100">
+              <p class="text-xs text-slate-500">合同智能审核</p>
+              <p class="font-medium">AI 驱动条款匹配与风险提示</p>
+            </div>
+            <div class="p-3 rounded-md bg-slate-50 border border-slate-100">
+              <p class="text-xs text-slate-500">合同管理</p>
+              <p class="font-medium">多角色协作，版本与审批流</p>
+            </div>
+            <div class="p-3 rounded-md bg-slate-50 border border-slate-100 mt-2">
+              <p class="text-xs text-slate-500">审计日志</p>
+              <p class="font-medium">完整操作链路与合规记录</p>
+            </div>
+            <div class="p-3 rounded-md bg-slate-50 border border-slate-100 mt-2">
+              <p class="text-xs text-slate-500">企业认证</p>
+              <p class="font-medium">资料上传与人工审核</p>
+            </div>
+          </div>
+          <div class="mt-6 text-xs text-slate-500">
+            注册即表示同意我们的 <a href="#" class="text-indigo-600 underline">用户协议</a> 与 <a href="#" class="text-indigo-600 underline">隐私政策</a>。
+          </div>
+        </div>
+
+        <!-- Audit log preview -->
+        <div class="card p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">注册审计预览</h3>
+            <span class="text-xs text-slate-500">系统记录示例</span>
+          </div>
+          <div id="auditLog" class="mt-3 text-sm text-slate-600 space-y-2 max-h-40 overflow-auto">
+            <!-- 动态日志项 -->
+          </div>
+        </div>
+
+        <div class="card p-4 text-sm text-slate-600">
+          <div class="font-medium">安全建议</div>
+          <ul class="mt-2 list-disc ml-5 space-y-1">
+            <li>使用强密码，避免在多个平台重复使用。</li>
+            <li>企业认证通过后可启用更高权限与协同功能。</li>
+            <li>系统将对频繁失败尝试进行速率限制与CAPTCHA 验证。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right form column -->
+      <div class="col-span-7">
+        <div class="card p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold">创建账号</h2>
+              <p class="text-sm text-slate-500 mt-1">通过邮箱或手机号注册，完成后可选择企业认证。</p>
+            </div>
+            <div>
+              <button id="signinBtn" class="px-3 py-2 rounded-md border border-slate-200 text-sm">已有账号？登录</button>
+            </div>
+          </div>
+
+          <form id="registerForm" class="mt-6 space-y-4" autocomplete="off" novalidate>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm font-medium">姓名 / 企业联系人</label>
+                <input id="fullName" name="fullName" type="text" maxlength="64"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="例如：张三" required>
+                <div id="fullNameError" class="text-xs text-red-500 mt-1 hidden">请填写姓名（最多64字符）。</div>
+              </div>
+              <div>
+                <label class="text-sm font-medium">企业名称（可选）</label>
+                <input id="companyName" name="companyName" type="text" maxlength="128"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="例如：某某律师事务所 / 企业全称">
+                <div id="companyHint" class="field-hint mt-1">若填写并勾选企业认证，则进入企业认证流程。</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm font-medium">邮箱</label>
+                <input id="email" name="email" type="email" maxlength="128"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="name@example.com">
+                <div id="emailError" class="text-xs text-red-500 mt-1 hidden">请输入有效邮箱或邮箱已存在。</div>
+              </div>
+              <div>
+                <label class="text-sm font-medium">手机号</label>
+                <input id="phone" name="phone" type="tel" maxlength="20"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="例如：+86 13800001234">
+                <div id="phoneError" class="text-xs text-red-500 mt-1 hidden">请输入有效手机号或手机号已存在。</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-sm font-medium">密码</label>
+                <input id="password" name="password" type="password" maxlength="128"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="至少8位，包含大小写、数字与特殊字符" required>
+                <div class="mt-2 pw-meter" aria-hidden><i id="pwBar"></i></div>
+                <div id="pwStrengthText" class="text-xs text-slate-500 mt-1">密码强度：<span class="font-medium">未输入</span></div>
+                <div id="pwError" class="text-xs text-red-500 mt-1 hidden">密码不满足策略。</div>
+              </div>
+              <div>
+                <label class="text-sm font-medium">确认密码</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" maxlength="128"
+                  class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  placeholder="再次输入密码" required>
+                <div id="confirmError" class="text-xs text-red-500 mt-1 hidden">两次密码输入不一致。</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 items-end">
+              <div class="col-span-2">
+                <label class="text-sm font-medium">验证码</label>
+                <div class="flex gap-2 mt-2">
+                  <input id="verificationCode" name="verificationCode" type="text" maxlength="8"
+                    class="flex-1 rounded-md border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                    placeholder="请输入收到的验证码">
+                  <button id="sendCodeBtn" type="button" class="btn-brand px-3 py-2 rounded-md text-sm">发送验证码</button>
+                </div>
+                <div id="codeHint" class="text-xs text-slate-500 mt-1">验证码有效期：5分钟，重试限制：3次。</div>
+                <div id="codeError" class="text-xs text-red-500 mt-1 hidden">验证码错误或已过期。</div>
+              </div>
+
+              <div class="col-span-1">
+                <label class="text-sm font-medium">CAPTCHA</label>
+                <div class="captcha-box mt-2">
+                  <div id="captchaQuestion" class="text-sm font-medium">加载中...</div>
+                  <input id="captchaInput" maxlength="6" class="ml-auto w-20 rounded-md border border-slate-200 px-2 py-1 focus:outline-none" placeholder="答案">
+                </div>
+                <div id="captchaError" class="text-xs text-red-500 mt-1 hidden">请正确填写 CAPTCHA。</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 mt-1">
+              <input id="isEnterprise" type="checkbox" class="rounded border-slate-200 focus:ring-indigo-200" />
+              <label for="isEnterprise" class="text-sm">这是企业账号（需要企业认证）</label>
+            </div>
+
+            <div id="enterprisePanel" class="mt-3 p-4 border border-slate-100 rounded-md hidden">
+              <div class="text-sm text-slate-600">企业认证需要提供下列信息，提交后进入待审核状态。</div>
+              <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label class="text-sm">统一社会信用代码 / 营业执照编号</label>
+                  <input id="bizNo" type="text" maxlength="64" class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2" placeholder="例如：9133XXXXXXXXX" />
+                </div>
+                <div>
+                  <label class="text-sm">企业联系人手机号</label>
+                  <input id="bizPhone" type="tel" maxlength="20" class="mt-2 w-full rounded-md border border-slate-200 px-3 py-2" placeholder="+86 138..." />
+                </div>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-sm">营业执照（图片）</label>
+                  <input id="bizFile" type="file" accept="image/*,.pdf" class="mt-2 w-full text-sm" />
+                  <div id="bizFileHint" class="text-xs text-slate-500 mt-1">支持 JPG/PNG/PDF，最大 10MB。文件将被加密存储。</div>
+                </div>
+                <div>
+                  <label class="text-sm">企业法人身份证（可选）</label>
+                  <input id="idFile" type="file" accept="image/*,.pdf" class="mt-2 w-full text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-2">
+              <label class="flex items-center text-sm gap-2">
+                <input id="agree" type="checkbox" class="rounded border-slate-200 focus:ring-indigo-200" />
+                <span>已阅读并同意 <a href="#" class="text-indigo-600 underline">用户协议</a> 与 <a href="#" class="text-indigo-600 underline">隐私政策</a></span>
+              </label>
+              <div class="text-xs text-slate-500">所有传输使用 TLS，加密存储敏感信息。</div>
+            </div>
+
+            <div>
+              <button id="submitBtn" type="submit" class="btn-brand w-full py-3 rounded-md font-semibold">提交注册</button>
+            </div>
+
+            <div class="text-center text-sm text-slate-500">
+              或使用第三方登录
+              <div class="mt-3 flex items-center justify-center gap-3">
+                <button type="button" class="px-3 py-2 rounded-md border border-slate-200">微信</button>
+                <button type="button" class="px-3 py-2 rounded-md border border-slate-200">钉钉</button>
+                <button type="button" class="px-3 py-2 rounded-md border border-slate-200">GitHub</button>
+              </div>
+            </div>
+
+            <div id="statusBar" class="mt-3 text-sm text-red-500 hidden"></div>
+          </form>
+        </div>
+
+        <!-- Welcome / Result area -->
+        <div id="resultCard" class="card p-6 mt-6 hidden">
+          <h3 class="text-lg font-bold">注册成功</h3>
+          <p class="mt-2 text-slate-600">已创建账号。系统会发送激活邮件/短信，请根据其中提示完成激活。</p>
+          <div id="resultDetails" class="mt-4 text-sm text-slate-600"></div>
+          <div class="mt-4 flex gap-3">
+            <button id="goDashboard" class="px-4 py-2 rounded-md btn-brand">进入平台</button>
+            <button id="goBack" class="px-4 py-2 rounded-md border border-slate-200">返回注册页</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast hidden">
+    <div class="p-3 rounded-md shadow-md bg-white border border-slate-100">
+      <div id="toastMsg" class="text-sm text-slate-700"></div>
+    </div>
+  </div>
+
+  <script>
+    // Mock server state (in-memory) for simulation purposes
+    const server = (function(){
+      const users = [
+        { email: "existing@example.com", phone: "+8613800001111" },
+        { email: "demo@company.com", phone: "+8613800002222" }
+      ];
+      const verificationStore = {}; // key -> { code, expiresAt, tries }
+      const rateLimit = {}; // ip/email -> { attempts, firstAt }
+      const audit = [];
+
+      function addAudit(entry) {
+        audit.unshift({ time: new Date().toISOString(), entry });
+        if (audit.length > 200) audit.pop();
+      }
+
+      return {
+        checkUnique: async function({email, phone}) {
+          // Simulate network latency & transaction uniqueness check
+          await new Promise(r=>setTimeout(r, 600));
+          const emailExists = email && users.some(u=>u.email.toLowerCase() === email.toLowerCase());
+          const phoneExists = phone && users.some(u=>u.phone === phone);
+          return { emailExists, phoneExists };
+        },
+        createUser: async function({fullName, email, phone, passwordHash, isEnterprise, enterprisePayload}) {
+          // Simulate DB transaction and race prevention
+          await new Promise(r=>setTimeout(r, 800));
+          const { emailExists, phoneExists } = await this.checkUnique({email, phone});
+          if (emailExists || phoneExists) {
+            addAudit(`创建用户失败: 已存在 email=${email} phone=${phone}`);
+            return { success:false, reason: 'duplicate' };
+          }
+          users.push({ email, phone, fullName, isEnterprise, createdAt: new Date().toISOString() });
+          addAudit(`创建用户成功: ${email || phone}`);
+          // If enterprise, add pending audit
+          if (isEnterprise) {
+            addAudit(`企业认证进入待审核: ${enterprisePayload?.bizNo || '无执照号'}`);
+          }
+          return { success:true, userId: Math.random().toString(36).slice(2, 10) };
+        },
+        sendVerificationCode: async function({to, via}) {
+          await new Promise(r=>setTimeout(r, 500));
+          const key = to;
+          const now = Date.now();
+          if (!verificationStore[key]) verificationStore[key] = { tries:0 };
+          const rec = verificationStore[key];
+          // Rate control: allow up to 3 sends in 5 minutes
+          if (!rec.sentList) rec.sentList = [];
+          rec.sentList = rec.sentList.filter(t=>now - t < 5*60*1000);
+          if (rec.sentList.length >= 3) {
+            addAudit(`发送验证码受限: ${to}`);
+            return { ok:false, reason:'rate_limit' };
+          }
+          const code = String(Math.floor(100000 + Math.random()*900000)); // 6 digits
+          rec.code = code;
+          rec.expiresAt = now + 5*60*1000;
+          rec.tries = 0;
+          rec.sentList.push(now);
+          // In a real system we'd deliver via SMS/Email. We log it.
+          addAudit(`已向 ${to} 发送验证码(${via}): ${code}`);
+          return { ok:true, code };
+        },
+        verifyCode: async function({to, code}) {
+          await new Promise(r=>setTimeout(r, 300));
+          const rec = verificationStore[to];
+          if (!rec) return { ok:false, reason:'no_code' };
+          const now = Date.now();
+          if (now > rec.expiresAt) return { ok:false, reason:'expired' };
+          rec.tries = (rec.tries||0) + 1;
+          if (rec.tries > 5) return { ok:false, reason:'too_many_attempts' };
+          if (rec.code === code) {
+            addAudit(`验证码验证通过: ${to}`);
+            delete verificationStore[to];
+            return { ok:true };
+          } else {
+            addAudit(`验证码验证失败(${rec.tries}): ${to}`);
+            return { ok:false, reason:'invalid' };
+          }
+        },
+        getAudit: function() { return audit.slice(); },
+        addAudit: addAudit
+      };
+    })();
+
+    // Utilities
+    function $qs(id){ return document.getElementById(id); }
+    function show(el){ el.classList.remove('hidden'); }
+    function hide(el){ el.classList.add('hidden'); }
+    function toast(msg, ms=3500) {
+      const t=$qs('toast'), m=$qs('toastMsg');
+      m.textContent=msg; show(t);
+      clearTimeout(t._t);
+      t._t = setTimeout(()=>hide(t), ms);
+    }
+
+    // Password policy configuration
+    const policy = {
+      minLen: 8,
+      requireUpper: true,
+      requireLower: true,
+      requireDigit: true,
+      requireSpecial: true,
+    };
+
+    // Form elements
+    const form = $qs('registerForm');
+    const fullName = $qs('fullName');
+    const companyName = $qs('companyName');
+    const email = $qs('email');
+    const phone = $qs('phone');
+    const password = $qs('password');
+    const confirmPassword = $qs('confirmPassword');
+    const sendCodeBtn = $qs('sendCodeBtn');
+    const verificationCode = $qs('verificationCode');
+    const captchaQuestion = $qs('captchaQuestion');
+    const captchaInput = $qs('captchaInput');
+    const isEnterprise = $qs('isEnterprise');
+    const enterprisePanel = $qs('enterprisePanel');
+    const bizNo = $qs('bizNo');
+    const bizPhone = $qs('bizPhone');
+    const bizFile = $qs('bizFile');
+    const idFile = $qs('idFile');
+    const agree = $qs('agree');
+    const submitBtn = $qs('submitBtn');
+    const pwBar = $qs('pwBar');
+    const pwStrengthText = $qs('pwStrengthText');
+    const statusBar = $qs('statusBar');
+    const resultCard = $qs('resultCard');
+    const resultDetails = $qs('resultDetails');
+    const auditLog = $qs('auditLog');
+
+    // Error nodes
+    const fullNameError = $qs('fullNameError');
+    const emailError = $qs('emailError');
+    const phoneError = $qs('phoneError');
+    const pwError = $qs('pwError');
+    const confirmError = $qs('confirmError');
+    const codeError = $qs('codeError');
+    const captchaError = $qs('captchaError');
+
+    // CAPTCHA simple math
+    let currentCaptcha = null;
+    function genCaptcha() {
+      const a = Math.floor(Math.random()*9)+1;
+      const b = Math.floor(Math.random()*9)+1;
+      currentCaptcha = a + b;
+      captchaQuestion.textContent = `${a} + ${b} = ?`;
+      captchaInput.value = '';
+    }
+
+    genCaptcha();
+
+    // Password strength evaluation
+    function evalPassword(pw) {
+      let score = 0;
+      if (pw.length >= policy.minLen) score++;
+      if (/[A-Z]/.test(pw)) score++;
+      if (/[a-z]/.test(pw)) score++;
+      if (/[0-9]/.test(pw)) score++;
+      if (/[^A-Za-z0-9]/.test(pw)) score++;
+      return score; // 0-5
+    }
+
+    function updatePwUI() {
+      const val = password.value || '';
+      const score = evalPassword(val);
+      const pct = Math.min(100, Math.round((score/5)*100));
+      pwBar.style.width = pct + '%';
+      let text = '弱';
+      let color = '#ff6b6b';
+      if (score <=1) { text='非常弱'; color='#ff6b6b'; }
+      else if (score===2) { text='弱'; color='#ff8a6b'; }
+      else if (score===3) { text='中等'; color='#ffd166'; }
+      else if (score===4) { text='强'; color='#60a5fa'; }
+      else if (score===5) { text='非常强'; color='#38bdf8'; }
+      pwStrengthText.innerHTML = `密码强度：<span class="font-medium" style="color:${color}">${text}</span>`;
+    }
+
+    password.addEventListener('input', ()=> {
+      updatePwUI();
+      hide(pwError);
+    });
+
+    confirmPassword.addEventListener('input', ()=> {
+      hide(confirmError);
+    });
+
+    fullName.addEventListener('input', ()=> hide(fullNameError));
+    email.addEventListener('input', ()=> hide(emailError));
+    phone.addEventListener('input', ()=> hide(phoneError));
+    verificationCode.addEventListener('input', ()=> hide(codeError));
+    captchaInput.addEventListener('input', ()=> hide(captchaError));
+
+    isEnterprise.addEventListener('change', ()=> {
+      if (isEnterprise.checked) show(enterprisePanel); else hide(enterprisePanel);
+    });
+
+    // Send code logic with UI cooldown and server simulation
+    let sendCooldown = 0;
+    function disableSend(seconds) {
+      sendCooldown = seconds;
+      sendCodeBtn.disabled = true;
+      updateSendBtn();
+      const intv = setInterval(()=> {
+        sendCooldown--;
+        updateSendBtn();
+        if (sendCooldown <= 0) {
+          clearInterval(intv);
+          sendCodeBtn.disabled = false;
+          sendCodeBtn.textContent = '发送验证码';
+        }
+      }, 1000);
+    }
+    function updateSendBtn() {
+      if (sendCooldown > 0) sendCodeBtn.textContent = `重新发送(${sendCooldown}s)`;
+    }
+
+    sendCodeBtn.addEventListener('click', async ()=> {
+      const target = email.value.trim() || phone.value.trim();
+      if (!target) {
+        toast('请先填写邮箱或手机号以接收验证码');
+        return;
+      }
+      // Basic format check
+      const isEmail = /\S+@\S+\.\S+/.test(target);
+      const isPhone = /^\+?\d[\d\s-]{6,}$/.test(target);
+      if (!isEmail && !isPhone) {
+        toast('请输入有效的邮箱或手机号');
+        return;
+      }
+      sendCodeBtn.disabled = true;
+      sendCodeBtn.textContent = '发送中...';
+      const via = isEmail ? 'email' : 'sms';
+      const res = await server.sendVerificationCode({to: target, via});
+      if (res.ok) {
+        toast('验证码已发送（模拟），请注意查收');
+        disableSend(60); // 60s cooldown
+        // For demo, show code in console (real system would not do this)
+        console.info('模拟验证码:', res.code);
+      } else {
+        if (res.reason === 'rate_limit') {
+          toast('发送频率过高，请稍后再试');
+          disableSend(120);
+        } else {
+          toast('发送失败，请稍后重试');
+          disableSend(30);
+        }
+      }
+    });
+
+    // Update audit log UI periodically
+    function refreshAudit() {
+      const items = server.getAudit();
+      auditLog.innerHTML = items.slice(0,20).map(it => {
+        return `<div class="flex justify-between"><div class="text-xs text-slate-600">${it.entry}</div><div class="text-xs text-slate-400">${new Date(it.time).toLocaleString()}</div></div>`;
+      }).join('');
+    }
+    setInterval(refreshAudit, 1500);
+    refreshAudit();
+
+    // Simple client-side password validation
+    function validatePasswordPolicy(pw) {
+      if (!pw || pw.length < policy.minLen) return {ok:false, reason:`密码长度至少${policy.minLen}位`};
+      if (policy.requireUpper && !/[A-Z]/.test(pw)) return {ok:false, reason:'需包含大写字母'};
+      if (policy.requireLower && !/[a-z]/.test(pw)) return {ok:false, reason:'需包含小写字母'};
+      if (policy.requireDigit && !/[0-9]/.test(pw)) return {ok:false, reason:'需包含数字'};
+      if (policy.requireSpecial && !/[^A-Za-z0-9]/.test(pw)) return {ok:false, reason:'需包含特殊字符'};
+      return {ok:true};
+    }
+
+    // On submit
+    form.addEventListener('submit', async (ev)=> {
+      ev.preventDefault();
+      hide(statusBar);
+      // Basic front-end validation
+      let ok = true;
+      if (!fullName.value.trim()) { show(fullNameError); ok=false; }
+      const em = email.value.trim();
+      const ph = phone.value.trim();
+      if (!em && !ph) {
+        emailError.textContent = '邮箱或手机号必须至少填一项';
+        phoneError.textContent = '邮箱或手机号必须至少填一项';
+        show(emailError); show(phoneError);
+        ok=false;
+      }
+      // captcha
+      if (String(captchaInput.value).trim() !== String(currentCaptcha)) {
+        show(captchaError);
+        ok=false;
+      }
+      // password
+      const pwRes = validatePasswordPolicy(password.value);
+      if (!pwRes.ok) {
+        pwError.textContent = pwRes.reason;
+        show(pwError);
+        ok=false;
+      }
+      if (password.value !== confirmPassword.value) {
+        show(confirmError);
+        ok=false;
+      }
+      if (!agreementCheck()) { ok=false; }
+      if (!ok) {
+        statusBar.textContent = '请修正表单中的错误后重试。';
+        show(statusBar);
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
+
+      // Verify code
+      const target = em || ph;
+      const code = verificationCode.value.trim();
+      const codeVerify = await server.verifyCode({to:target, code});
+      if (!codeVerify.ok) {
+        if (codeVerify.reason === 'expired') {
+          codeError.textContent = '验证码已过期，请重新发送';
+        } else if (codeVerify.reason === 'invalid') {
+          codeError.textContent = '验证码错误';
+        } else if (codeVerify.reason === 'too_many_attempts') {
+          codeError.textContent = '验证码尝试次数过多，请重新发送';
+        } else {
+          codeError.textContent = '未发送验证码或验证码错误';
+        }
+        show(codeError);
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交注册';
+        return;
+      }
+
+      // Check uniqueness against server
+      const unique = await server.checkUnique({email:em, phone:ph});
+      if (unique.emailExists || unique.phoneExists) {
+        if (unique.emailExists) {
+          emailError.textContent = '该邮箱已存在';
+          show(emailError);
+        }
+        if (unique.phoneExists) {
+          phoneError.textContent = '该手机号已存在';
+          show(phoneError);
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交注册';
+        return;
+      }
+
+      // Prepare enterprise payload
+      const enterprisePayload = isEnterprise.checked ? {
+        bizNo: bizNo.value.trim(),
+        bizPhone: bizPhone.value.trim(),
+        files: {
+          bizFileName: bizFile.files[0]?.name || null,
+          idFileName: idFile.files[0]?.name || null
+        }
+      } : null;
+
+      // Simulate password hashing client-side just for demo (server must use bcrypt/argon2)
+      const pwHash = await pseudoHash(password.value);
+
+      const createRes = await server.createUser({
+        fullName: fullName.value.trim(),
+        email: em || null,
+        phone: ph || null,
+        passwordHash: pwHash,
+        isEnterprise: !!isEnterprise.checked,
+        enterprisePayload
+      });
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = '提交注册';
+
+      if (!createRes.success) {
+        statusBar.textContent = '创建账号失败：账号已存在或服务器异常';
+        show(statusBar);
+        return;
+      }
+
+      // Show result/welcome
+      form.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      resultDetails.innerHTML = `
+        <div class="text-sm">账号 ID：<span class="font-medium">${createRes.userId}</span></div>
+        <div class="text-sm mt-2">我们已向 <span class="font-medium">${em || ph}</span> 发送激活通知。</div>
+        <div class="text-sm mt-2">企业认证状态：<span class="font-medium">${isEnterprise.checked ? '待审核' : '无需认证'}</span></div>
+      `;
+      toast('注册成功（模拟）');
+      server.addAudit(`用户注册：${em || ph}`);
+      genCaptcha();
+    });
+
+    function agreementCheck() {
+      if (!agree.checked) {
+        statusBar.textContent = '请先同意用户协议与隐私政策';
+        show(statusBar);
+        return false;
+      }
+      hide(statusBar);
+      return true;
+    }
+
+    // Simple pseudo-hash to simulate client-side hashing (not real security)
+    async function pseudoHash(text) {
+      // Use subtle crypto for demonstration (SHA-256) — note: real system must use server-side bcrypt/argon2
+      const enc = new TextEncoder();
+      const data = enc.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+      return 'sha256$' + hashHex;
+    }
+
+    // Simple mock for sign-in button
+    $qs('signinBtn').addEventListener('click', ()=> {
+      toast('跳转到登录页（模拟）');
+    });
+
+    $qs('goBack').addEventListener('click', ()=> {
+      resultCard.classList.add('hidden');
+      form.classList.remove('hidden');
+    });
+
+    $qs('goDashboard').addEventListener('click', ()=> {
+      toast('进入平台（模拟）');
+    });
+
+    // Rate limiting and preventing duplicate submissions (frontend)
+    let lastSubmit = 0;
+    form.addEventListener('submit', ()=> {
+      const now = Date.now();
+      if (now - lastSubmit < 1500) {
+        // prevent double submit
+        throw new Error('重复提交阻止');
+      }
+      lastSubmit = now;
+    }, true);
+
+    // Simulate third-party login exception handling
+    const thirdPartyButtons = document.querySelectorAll('button[type="button"]');
+    thirdPartyButtons.forEach(b => {
+      b.addEventListener('click', (e)=> {
+        if (b.textContent.trim() === 'GitHub') {
+          // Simulate external error
+          toast('第三方登录返回异常：权限被拒绝（模拟）');
+        } else {
+          toast(`${b.textContent.trim()} 登录（模拟）`);
+        }
+      });
+    });
+
+    // Form field sanitation on submit (basic)
+    function sanitizeInputs() {
+      fullName.value = fullName.value.replace(/[<>]/g, '').slice(0,64);
+      companyName.value = companyName.value.replace(/[<>]/g, '').slice(0,128);
+      email.value = email.value.trim().slice(0,128);
+      phone.value = phone.value.trim().slice(0,20);
+    }
+    form.addEventListener('submit', sanitizeInputs, true);
+
+    // Initialize
+    updatePwUI();
+    refreshAudit();
+
+    // Accessibility: Enter key on captcha triggers nothing unusual
+    captchaInput.addEventListener('keyup', (e)=> {
+      if (e.key === 'Enter') e.preventDefault();
+    });
+
+    // Pre-fill demo credentials for faster testing (can be removed)
+    (function prefillDemo(){
+      // no-op, keep empty for production readiness
+    })();
+
+    // Expose server to console for debugging simulation
+    window.__mockServer = server;
+
+  </script>
+
+</body>
+</html>
